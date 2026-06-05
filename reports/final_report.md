@@ -10,14 +10,14 @@ _Generated 2026-06-06._
 | equal_weight | -0.5541 | -0.0387 | 0.0672 | 0.1010 | 0.0217 | 0.0298 | 0.0000 | 0.0000 | 0.9241 |
 | min_variance | -0.8579 | -0.0433 | 0.0501 | 0.1116 | 0.0159 | 0.0216 | 0.0000 | 0.0279 | 0.9153 |
 | cvar_optimizer | -0.1126 | -0.0080 | 0.0571 | 0.0746 | 0.0179 | 0.0257 | 0.0000 | 0.0359 | 0.9840 |
-| rl_constrained | -0.5160 | -0.0361 | 0.0670 | 0.0965 | 0.0215 | 0.0292 | 0.0000 | 0.0010 | 0.9291 |
-| rl_unconstrained | -0.4541 | -0.0330 | 0.0687 | 0.0911 | 0.0218 | 0.0301 | 0.0000 | 0.0010 | 0.9350 |
+| rl_constrained | -0.5531 | -0.0390 | 0.0679 | 0.1021 | 0.0219 | 0.0299 | 0.0000 | 0.0008 | 0.9236 |
+| rl_unconstrained | -0.5591 | -0.0396 | 0.0682 | 0.1033 | 0.0221 | 0.0302 | 0.0000 | 0.0008 | 0.9225 |
 
 ## Statistical comparison (paired block bootstrap, Sharpe)
 | comparison | sharpe_diff | ci_low | ci_high | p_value |
 | --- | --- | --- | --- | --- |
-| constrained_minus_rl_unconstrained | -0.1239 | -0.2806 | 0.0357 | 0.1280 |
-| constrained_minus_equal_weight | -0.0542 | -0.1498 | 0.0395 | 0.2620 |
+| constrained_minus_rl_unconstrained | 0.0301 | -0.0362 | 0.0914 | 0.3760 |
+| constrained_minus_equal_weight | 0.0742 | 0.0007 | 0.1422 | 0.0365 |
 
 ## Deterministic baselines (full universe)
 |  | sharpe | ann_return | ann_vol | max_drawdown | cvar_95 | cvar_99 | cvar_breach_rate | avg_turnover | final_wealth |
