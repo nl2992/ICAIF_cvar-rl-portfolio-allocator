@@ -1,0 +1,7 @@
+# Training loop settings.
+training:
+  n_episodes: 150
+  turnover_penalty: 0.0
+  entropy_decay: 0.1
+  eval_every: 10
+  seeds: [7, 13, 23, 42, 2025]

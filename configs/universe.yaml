@@ -1,0 +1,10 @@
+# Asset universe definition.
+universe:
+  universe_id: macro5
+  assets: [equity_index, rates, credit, commodity, fx]
+  descriptions:
+    equity_index: broad equity beta
+    rates: duration / government bonds
+    credit: corporate / high-yield credit
+    commodity: broad commodity basket
+    fx: trade-weighted dollar proxy
