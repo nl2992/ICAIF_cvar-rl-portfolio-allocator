@@ -1,0 +1,16 @@
+seed: 11
+universe:
+  assets: [equity_index, rates, credit, commodity, fx]
+environment:
+  rebalance_frequency: weekly
+  transaction_cost_bps: 2.0
+  max_weight: 0.60
+  allow_short: false
+risk:
+  cvar_alpha: 0.95
+  cvar_limit_weekly: 0.035
+  drawdown_limit: 0.15
+training:
+  algorithm: baseline_first
+  total_steps: 10000
+
