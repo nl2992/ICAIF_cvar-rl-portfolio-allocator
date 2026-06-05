@@ -36,6 +36,17 @@ def load_returns(cfg: Config) -> tuple[pd.DataFrame, pd.Series | None]:
         path = Path(data["parquet_path"])
         returns = pd.read_parquet(path)
         return returns, None
+    if source == "yahoo":
+        from crlpa.data.build_dataset import ETF_UNIVERSE, build_etf_dataset
+
+        tickers = list(data.get("tickers", list(ETF_UNIVERSE.keys())))
+        returns = build_etf_dataset(
+            tickers,
+            start=str(data.get("start", "2008-01-01")),
+            end=str(data.get("end", "2024-12-31")),
+            rule=str(data.get("weekly_rule", "W-FRI")),
+        )
+        return returns, None
     raise ValueError(f"unknown data source: {source}")
 
 

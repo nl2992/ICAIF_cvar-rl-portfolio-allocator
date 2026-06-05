@@ -7,13 +7,18 @@ dataset_version: synthetic_regimes_v1
 seed: 42
 
 data:
-  source: synthetic        # synthetic | parquet
+  source: synthetic        # synthetic | parquet | yahoo
   n_steps: 520
   parquet_path: data/processed/aligned_portfolio_panel.parquet
   periods_per_year: 52
   # chronological split fractions
   train_frac: 0.6
   val_frac: 0.2            # remainder is test
+  # used when source: yahoo (see configs/experiment_etf.yaml)
+  tickers: [SPY, TLT, HYG, DBC, GLD, UUP, BIL]
+  start: "2008-01-01"
+  end: "2024-12-31"
+  weekly_rule: W-FRI
 
 universe:
   universe_id: macro5
