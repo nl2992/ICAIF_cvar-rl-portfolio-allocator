@@ -1,16 +1,60 @@
-seed: 11
+# Master experiment config consumed by scripts/. The split files
+# (env.yaml, model.yaml, training.yaml, backtest.yaml) mirror these sections
+# for readers who prefer the per-phase layout from the TODO.
+
+experiment_id: cvar_ac_v1
+dataset_version: synthetic_regimes_v1
+seed: 42
+
+data:
+  source: synthetic        # synthetic | parquet
+  n_steps: 520
+  parquet_path: data/processed/aligned_portfolio_panel.parquet
+  periods_per_year: 52
+  # chronological split fractions
+  train_frac: 0.6
+  val_frac: 0.2            # remainder is test
+
 universe:
+  universe_id: macro5
   assets: [equity_index, rates, credit, commodity, fx]
+
 environment:
-  rebalance_frequency: weekly
   transaction_cost_bps: 2.0
+  lookback: 26
+
+constraints:
+  long_only: true
   max_weight: 0.60
-  allow_short: false
+  turnover_cap: 0.50
+  gross_cap: 1.0
+  cash_index: null
+  cash_floor: 0.0
+
 risk:
   cvar_alpha: 0.95
-  cvar_limit_weekly: 0.035
-  drawdown_limit: 0.15
-training:
-  algorithm: baseline_first
-  total_steps: 10000
+  cvar_limit: 0.03
+  cvar_window: 52
 
+model:
+  hidden: [64, 64]
+  actor_lr: 0.0003
+  critic_lr: 0.001
+  gamma: 0.95
+  entropy_coef: 0.01
+  value_coef: 0.5
+  log_std_init: -0.5
+  lagrange_lr: 0.05
+  cvar_budget: 0.0
+
+training:
+  n_episodes: 150
+  turnover_penalty: 0.0
+  entropy_decay: 0.1
+  eval_every: 10
+  seeds: [7, 13, 23, 42, 2025]
+
+backtest:
+  periods_per_year: 52
+  bootstrap_resamples: 2000
+  block_size: 4
