@@ -161,6 +161,51 @@ confirm the win is consistent and not one lucky stress split; then Deflated-Shar
 fold-level paired tests, and equal-weight + shrinkage optimisers inside the
 walk-forward. A "win" counts only if it survives OOS + DSR.
 
+### H5 VERDICT: FAILS out-of-sample — the stress-window win was an artifact
+
+Rolling walk-forward on large31 (20 OOS folds, refit every 26 wk, `results/tables_wf_large/`):
+
+| large31 Sharpe | single stress split | **rolling walk-forward (OOS)** |
+|---|---|---|
+| minimum-variance | 0.23 | **1.40** |
+| diff. constrained | 0.85 | 0.74 |
+| inverse-vol | 0.38 | 0.78 |
+
+Under proper rolling OOS, **minimum-variance dominates (Sharpe 1.40, CVaR-99 0.0075,
+max-DD 0.031)** — the *reverse* of the single stress window. The "+0.17 scaling win"
+was a fixed-split artifact (min-var concentrated badly into the one 2018+ test
+period). Per-regime: min-var wins calm (2.03) and high-vol (1.60), ties selloff.
+What survives is only the Phase-1 result: the constraint cuts tail vs the
+*unconstrained learner* (fold CVaR-99 paired test p=0.0006, 15/20 folds) — **the
+learner still does not beat the optimiser. H5 does not clear the seminal bar.**
+
+**This is the key lesson, and a genuine contribution:** single stress-window
+evaluations can *reverse* under rolling walk-forward (here a +0.62 Sharpe "win"
+becomes a −0.66 loss). The anti-snooping protocol caught a result that would have
+been demolished in review.
+
+### Reframed seminal candidate (HONEST, and TRUE): evaluation rigor
+> *Backtest-protocol sensitivity in learned allocation: apparent learned-allocator
+> advantages over classical optimisers on fixed stress windows do not survive rolling
+> walk-forward + Deflated-Sharpe; we quantify the reversal across universe
+> dimensionality and give a protocol that prevents it.*
+
+This is real, novel for the ICAIF reproducibility audience (cf. Deflated Sharpe), and
+supported by our own data (the stress-vs-walk-forward reversal). It does NOT claim the
+learner beats the optimiser — it explains why others might wrongly think so.
+
+### Remaining learner-beats-optimiser hypotheses (honest probability)
+- **H2** (min-var anchor + tail tilt): low odds — OOS min-var already has CVaR-99
+  0.0075 and Sharpe 1.40; almost no tail headroom to improve.
+- **H1** (benchmark-relative active risk): different objective; min-var is not
+  benchmark-aware, so a genuine active-risk angle exists. Medium odds.
+- **H6** (batched temporal encoder, GPU): medium-low; min-var is a very strong
+  long-only baseline regardless of encoder.
+
+Recommendation: the **evaluation-rigor reframing** is the credible seminal/strong
+contribution; continued hunting for a learner-beats-optimiser win risks p-hacking
+given 3 universes now agree min-var is hard to beat OOS.
+
 ### CUDA engineering note
 The differentiable trainer rolls out **sequentially per timestep with scalar host
 syncs** (`.item()`/`.tolist()` each step on tiny tensors). Moving that to CUDA as-is
