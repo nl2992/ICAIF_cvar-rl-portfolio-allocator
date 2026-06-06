@@ -81,9 +81,17 @@ Outputs land in `results/tables/` (metrics, statistical tests),
 For the real-ETF differentiable-allocator stress study (the headline result):
 
 ```bash
-python scripts/build_dataset.py  --config configs/experiment_etf.yaml --out data/processed/aligned_portfolio_panel_etf.parquet
-python scripts/run_diff_study.py --config configs/experiment_etf.yaml   # -> results/tables_diff/, reports/etf_study.md
+python scripts/build_dataset.py    --config configs/experiment_etf.yaml --out data/processed/aligned_portfolio_panel_etf.parquet
+python scripts/run_diff_study.py   --config configs/experiment_etf.yaml   # headline stress study -> results/tables_diff/
+python scripts/run_walk_forward.py --config configs/experiment_etf.yaml   # rolling OOS + regime slices + fold tests
+python scripts/run_robustness.py   --config configs/experiment_etf.yaml   # costs / CVaR limit / universe perturbations
+python scripts/run_ablations.py    --config configs/experiment_etf.yaml   # anchor / alpha / risk budget / objective
+python scripts/run_macro_study.py  --config configs/experiment_etf.yaml   # market-only vs macro+factor state
 ```
+
+Additional model-free baseline: `crlpa/training/ppo.py` (clipped PPO with GAE and
+an optional CVaR Lagrangian). The strong learner is the differentiable allocator
+(`crlpa/training/differentiable.py`).
 
 ## Configuration
 
@@ -96,17 +104,21 @@ off a frozen dataset built by `build_dataset.py`. Canonical seeds: `7, 13, 23, 4
 
 ```text
 src/crlpa/
-  data/        synthetic regime data + dataset contract
-  envs/        allocation environment + constraint projection
+  data/        synthetic regime data + real ETF/macro loaders
+  features/    macro features, rolling factor betas, exog builder
+  envs/        allocation environment (+ optional exog) + constraint projection
   models/      actor, critic, safety critic, CVaR actor-critic agent
   policies/    deterministic baselines
-  training/    Lagrangian dual + training loop
-  evaluation/  metrics, backtest, bootstrap
+  training/    A2C + Lagrangian dual, PPO, differentiable allocator
+  evaluation/  metrics, backtest, bootstrap, walk-forward, regimes, stress
   experiment.py  config -> data/env/agent builders shared by scripts
-configs/       master + per-phase YAML configs
-scripts/       build_dataset / run_baselines / train_allocator / evaluate_allocator / make_report
-tests/         env, constraints, metrics, baselines, models, no-look-ahead
-reports/       generated reports + project scope
+configs/       master + per-phase YAML configs (+ experiment_etf.yaml)
+scripts/       build_dataset / run_baselines / train_allocator / evaluate_allocator /
+               run_diff_study / run_walk_forward / run_robustness / run_ablations /
+               run_macro_study / make_report
+tests/         env, constraints, metrics, baselines, models, PPO, differentiable,
+               features, walk-forward, stress, no-look-ahead
+reports/       generated reports + project scope + ETF study
 ```
 
 ## Status and roadmap
