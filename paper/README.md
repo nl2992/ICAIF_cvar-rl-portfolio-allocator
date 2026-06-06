@@ -6,10 +6,14 @@
 Method → Experimental Setup → Results → Limitations → Conclusion/Future Work →
 References).
 
-**This is a backbone, pending results.** The method, environment and committed
-configuration (drawn from `configs/experiment.yaml`) are written out in full; the
-result tables are placeholders marked with the `\TODO{...}` macro, to be filled
-from `results/` once the trained-agent runs complete.
+The paper is populated with the **real results** from the
+`feat/cvar-allocator-pipeline` branch (seven-ETF macro study: differentiable
+CVaR-constrained allocator, stress window, walk-forward, robustness, ablations).
+Figures used by the paper are copied into `paper/figures/`; `\graphicspath` also
+points at `../reports/figures`. A few `\TODO{...}` markers remain where results
+are genuinely still incomplete (e.g. the model-free PPO/SAC sweep, and the extra
+walk-forward folds / second universe needed to push the marginal significance
+below 0.05).
 
 ## Build
 
