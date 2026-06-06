@@ -82,6 +82,19 @@ def main() -> None:
             "Walk-forward CVaR-99 by universe (constrained vs. unconstrained)",
             colors={"mean_cvar99_unc": "#d62728", "mean_cvar99_con": "#1f77b4"}))
 
+    folds = _load(Path("results/tables_stats/fold_level_cvar99.csv"))
+    if folds is not None:
+        folds = folds.reset_index()  # universe/fold/diff were not the index
+        mean = ci = None
+        pooled = Path("results/tables_stats/pooled_fold_test.csv")
+        if pooled.exists():
+            pr = pd.read_csv(pooled).iloc[0]
+            mean, ci = float(pr["mean_diff"]), (float(pr["ci_low"]), float(pr["ci_high"]))
+        made.append(plots.plot_forest(
+            folds, FIG / "fold_forest_cvar99.png", mean=mean, ci=ci,
+            universe_colors={"etf7": "#1f77b4", "sector10": "#ff7f0e"},
+            title="Per-fold CVaR-99 reduction across both universes (40 walk-forward folds)"))
+
     for p in made:
         print("wrote", p)
     print(f"\n{len(made)} figures in {FIG}/")

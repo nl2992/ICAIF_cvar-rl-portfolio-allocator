@@ -48,6 +48,7 @@ def main() -> None:
     pooled_unc: list[float] = []
     per_universe = []
     trial_sharpes_all: list[float] = []
+    fold_rows: list[dict] = []
 
     for cfg_path in args.configs:
         cfg = load_config(cfg_path)
@@ -70,6 +71,10 @@ def main() -> None:
         unc99 = fu["cvar_99"].to_numpy()
         pooled_con.extend(con99.tolist())
         pooled_unc.extend(unc99.tolist())
+        for f, c, u in zip(fc["fold"].to_numpy(), con99, unc99):
+            fold_rows.append({"universe": uid, "fold": int(f),
+                              "cvar99_con": float(c), "cvar99_unc": float(u),
+                              "diff": float(c - u)})
 
         # per-fold constrained Sharpe values act as the "trials" for DSR deflation
         trial_sharpes_all.extend((fc["sharpe"] / np.sqrt(52)).tolist())
@@ -104,6 +109,7 @@ def main() -> None:
 
     summary = pd.DataFrame(per_universe)
     summary.to_csv(out / "per_universe_stats.csv", index=False)
+    pd.DataFrame(fold_rows).to_csv(out / "fold_level_cvar99.csv", index=False)
     pooled_row = pd.DataFrame([{
         "n_folds_pooled": pooled.n,
         "mean_diff": pooled.mean_diff,

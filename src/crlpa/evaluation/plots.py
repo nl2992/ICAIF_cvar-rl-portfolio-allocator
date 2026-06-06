@@ -165,3 +165,44 @@ def plot_val_vs_oos(groups: dict, path, reference: tuple | None = None,
     ax.legend(fontsize=8, loc="upper center", ncol=2, framealpha=0.9)
     ax.grid(alpha=0.3, axis="y")
     return _save(fig, path)
+
+
+def plot_forest(df: pd.DataFrame, path, mean=None, ci=None,
+                universe_colors=None, title="Per-fold CVaR-99 difference"):
+    """Forest/lollipop of per-fold differences (treatment - control).
+
+    ``df`` has columns ``universe``, ``fold``, ``diff``; one horizontal row per fold,
+    grouped by universe. A vertical line at zero separates folds where the constraint
+    helps (left, diff<0) from those where it hurts (right). ``mean`` and ``ci`` draw
+    the pooled mean difference and its bootstrap CI as a line and shaded band.
+    """
+    palette = universe_colors or {}
+    default = ["#1f77b4", "#ff7f0e", "#2ca02c", "#9467bd"]
+    order = list(dict.fromkeys(df["universe"]))
+    rows = []
+    for u in order:
+        sub = df[df["universe"] == u].sort_values("fold")
+        for _, r in sub.iterrows():
+            rows.append((u, r["diff"]))
+    n = len(rows)
+    fig, ax = plt.subplots(figsize=(7, max(4.0, 0.16 * n + 1.0)))
+    if ci is not None:
+        ax.axvspan(ci[0], ci[1], color="#1f77b4", alpha=0.12, zorder=0,
+                   label="pooled 95% CI")
+    if mean is not None:
+        ax.axvline(mean, color="#1f77b4", ls="--", lw=1.5, zorder=2,
+                   label=f"pooled mean {mean:+.4f}")
+    ax.axvline(0, color="black", lw=1.0, zorder=2)
+    seen = set()
+    for y, (u, d) in enumerate(rows):
+        col = palette.get(u, default[order.index(u) % len(default)])
+        ax.plot([0, d], [y, y], color=col, lw=1.0, alpha=0.5, zorder=1)
+        ax.scatter(d, y, s=26, color=col, edgecolor="black", linewidth=0.4, zorder=3,
+                   label=u if u not in seen else None)
+        seen.add(u)
+    ax.set_yticks([]); ax.set_ylim(-1, n)
+    ax.set_xlabel(r"CVaR$_{99}$ difference (constrained $-$ unconstrained); left = constraint reduces tail")
+    ax.set_title(title)
+    ax.legend(fontsize=8, loc="best", framealpha=0.9)
+    ax.grid(alpha=0.3, axis="x")
+    return _save(fig, path)
