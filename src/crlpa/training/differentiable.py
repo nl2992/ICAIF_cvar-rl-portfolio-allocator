@@ -48,6 +48,7 @@ class DiffConfig:
     lr: float = 1e-3
     objective: str = "sharpe"  # "sharpe" (risk-adjusted) | "return" (return-greedy)
     risk_aversion: float = 0.0  # >0 adds a mean-variance term on top of the objective
+    turnover_penalty: float = 0.0  # extra penalty on mean one-way turnover (beyond costs)
     weight_decay: float = 1e-4  # L2 regularisation to curb backtest overfitting
     constrained: bool = True
     lagrange_lr: float = 1.0
@@ -175,14 +176,17 @@ def train_differentiable(
         wealth, peak, drawdown, cvar_feat = 1.0, 1.0, 0.0, 0.0
         recent: deque = deque(maxlen=cvar_window)
         rets: list[torch.Tensor] = []
+        turnovers: list[torch.Tensor] = []
 
         for t in range(start, start + horizon):
             state_tail = torch.tensor([*w_prev.detach().tolist(), drawdown, cvar_feat])
             obs = torch.cat([feats[t], state_tail])
             la = None if log_anchor is None else log_anchor[t]
             w = actor(obs, la)
-            ret = (w * R[t]).sum() - cost * (w - w_prev.detach()).abs().sum()
+            turnover = (w - w_prev.detach()).abs().sum()
+            ret = (w * R[t]).sum() - cost * turnover
             rets.append(ret)
+            turnovers.append(turnover)
 
             r_val = float(ret.item())
             wealth *= 1 + r_val
@@ -203,6 +207,8 @@ def train_differentiable(
             loss = -sharpe
         if config.risk_aversion > 0:
             loss = loss + config.risk_aversion * rets_t.var()
+        if config.turnover_penalty > 0:
+            loss = loss + config.turnover_penalty * torch.stack(turnovers).mean()
         if config.constrained:
             loss = loss + lam * torch.relu(cvar_t - cvar_limit)
 
@@ -249,28 +255,42 @@ def train_differentiable(
     return actor, pd.DataFrame(history)
 
 
-def diff_policy(actor: DiffAllocator, lookback: int, anchor: str | None = "inverse_vol"):
-    """Backtest policy wrapper that recomputes the adaptive anchor each step.
+def _step_log_anchor(env, lookback: int, anchor: str | None) -> np.ndarray | None:
+    """Per-step log anchor from history before the current step (no look-ahead)."""
+    if anchor is None:
+        return None
+    t = env.state.step
+    hist = env.returns.iloc[max(0, t - lookback) : t].to_numpy()
+    n = env.n_assets
+    if hist.shape[0] >= 2 and anchor == "inverse_vol":
+        vol = hist.std(axis=0)
+        vol = np.where(vol <= 1e-8, np.nanmean(vol) + 1e-8, vol)
+        w = 1.0 / vol
+        w = w / w.sum()
+    else:
+        w = np.full(n, 1.0 / n)
+    return np.log(np.clip(w, 1e-6, None)).astype(np.float32)
 
-    The anchor uses only returns observable before the current decision step, so
-    the deployed policy remains free of look-ahead.
-    """
+
+def diff_policy(actor: DiffAllocator, lookback: int, anchor: str | None = "inverse_vol"):
+    """Backtest policy wrapper that recomputes the adaptive anchor each step."""
 
     def policy(env) -> np.ndarray:
-        t = env.state.step
-        log_anchor = None
-        if anchor is not None:
-            hist = env.returns.iloc[max(0, t - lookback) : t].to_numpy()
-            n = env.n_assets
-            if hist.shape[0] >= 2 and anchor == "inverse_vol":
-                vol = hist.std(axis=0)
-                vol = np.where(vol <= 1e-8, np.nanmean(vol) + 1e-8, vol)
-                w = (1.0 / vol)
-                w = w / w.sum()
-            else:
-                w = np.full(n, 1.0 / n)
-            log_anchor = np.log(np.clip(w, 1e-6, None)).astype(np.float32)
-        return actor.predict(env.observation(), log_anchor)
+        return actor.predict(env.observation(), _step_log_anchor(env, lookback, anchor))
+
+    return policy
+
+
+def ensemble_diff_policy(
+    actors: list[DiffAllocator], lookback: int, anchor: str | None = "inverse_vol"
+):
+    """Average the weights of several seed-trained actors (a robust inference policy)."""
+
+    def policy(env) -> np.ndarray:
+        log_anchor = _step_log_anchor(env, lookback, anchor)
+        obs = env.observation()
+        weights = np.mean([a.predict(obs, log_anchor) for a in actors], axis=0)
+        return weights / weights.sum()
 
     return policy
 
