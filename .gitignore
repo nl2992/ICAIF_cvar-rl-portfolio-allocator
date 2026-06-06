@@ -15,4 +15,4 @@ data/processed/
 results/*
 !results/.gitkeep
 notebooks/.ipynb_checkpoints/
-
+/CLAUDE.md

@@ -29,15 +29,24 @@ def weekly_returns_from_prices(prices: pd.DataFrame, rule: str = "W-FRI") -> pd.
     return returns
 
 
+def build_etf_panel(
+    tickers: list[str],
+    start: str,
+    end: str,
+    rule: str = "W-FRI",
+) -> pd.DataFrame:
+    """Date-indexed weekly return panel (columns in requested ticker order)."""
+    prices = load_prices(tickers, start=start, end=end)
+    returns = weekly_returns_from_prices(prices, rule=rule)
+    ordered = [t for t in tickers if t in returns.columns]
+    return returns[ordered]
+
+
 def build_etf_dataset(
     tickers: list[str],
     start: str,
     end: str,
     rule: str = "W-FRI",
 ) -> pd.DataFrame:
-    """Fetch, align, and resample an ETF universe to a weekly return panel."""
-    prices = load_prices(tickers, start=start, end=end)
-    returns = weekly_returns_from_prices(prices, rule=rule)
-    # preserve requested ticker order where available
-    ordered = [t for t in tickers if t in returns.columns]
-    return returns[ordered].reset_index(drop=True)
+    """Fetch, align, and resample an ETF universe to a weekly return panel (index reset)."""
+    return build_etf_panel(tickers, start, end, rule).reset_index(drop=True)
