@@ -17,24 +17,42 @@ DEFAULT_MACRO = {
 }
 
 
-def fetch_fred_series(series_id: str, start: str, end: str, retries: int = 4) -> pd.Series:
-    """Fetch a single FRED series as a date-indexed float Series (no API key)."""
+def _fetch_chunk(series_id: str, start: str, end: str, retries: int = 4) -> pd.Series:
     url = _FRED_CSV.format(series=series_id, start=start, end=end)
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers=_HEADERS)
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=20) as resp:
                 raw = resp.read().decode("utf-8")
             df = pd.read_csv(io.StringIO(raw))
             df.columns = ["date", "value"]
             df["date"] = pd.to_datetime(df["date"])
             df["value"] = pd.to_numeric(df["value"], errors="coerce")  # '.' -> NaN
-            return df.set_index("date")["value"].rename(series_id).dropna()
+            return df.set_index("date")["value"].dropna()
         except Exception as exc:  # network / parse errors -> retry
             last_err = exc
             time.sleep(1.5 * (attempt + 1))
-    raise RuntimeError(f"failed to fetch FRED {series_id}: {last_err}")
+    raise RuntimeError(f"failed to fetch FRED {series_id} [{start}:{end}]: {last_err}")
+
+
+def fetch_fred_series(
+    series_id: str, start: str, end: str, retries: int = 4, chunk_years: int = 4
+) -> pd.Series:
+    """Fetch a FRED series as a date-indexed float Series, in chunks (no API key).
+
+    FRED throttles large single-shot historical CSV downloads, so the range is
+    split into ``chunk_years``-year requests and concatenated.
+    """
+    bounds = pd.date_range(start=start, end=end, freq=f"{chunk_years}YS").tolist()
+    edges = [pd.Timestamp(start), *bounds, pd.Timestamp(end)]
+    edges = sorted(set(e for e in edges if pd.Timestamp(start) <= e <= pd.Timestamp(end)))
+    pieces = []
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        pieces.append(_fetch_chunk(series_id, lo.strftime("%Y-%m-%d"), hi.strftime("%Y-%m-%d"), retries))
+        time.sleep(0.2)
+    series = pd.concat(pieces) if pieces else _fetch_chunk(series_id, start, end, retries)
+    return series[~series.index.duplicated(keep="last")].sort_index().rename(series_id)
 
 
 def load_macro(

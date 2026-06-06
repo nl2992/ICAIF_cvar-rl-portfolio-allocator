@@ -56,10 +56,15 @@ def main() -> None:
 
     panel = build_etf_panel(tickers, start, end, str(cfg.get_path("data.weekly_rule", "W-FRI")))
     returns = panel.reset_index(drop=True)
-    macro = load_macro(start="2007-01-01", end=end)
+    try:
+        macro = load_macro(start="2007-01-01", end=end)
+    except Exception as exc:  # FRED throttling/outage -> factor-betas-only study
+        print(f"WARNING: macro fetch failed ({exc}); proceeding with factor betas only")
+        macro = None
     exog_full = build_exog(panel, macro, market_col=0,
                            beta_window=int(cfg.get_path("risk.cvar_window", 52)))
-    print(f"panel {panel.shape}, exog {exog_full.shape}")
+    augmented = "with_macro_factors" if macro is not None else "with_factor_betas"
+    print(f"panel {panel.shape}, exog {exog_full.shape} ({augmented})")
 
     tr_end, va_end = 560, 620
     lookback = int(cfg.get_path("environment.lookback", 26))
@@ -85,7 +90,7 @@ def main() -> None:
             )
             env = _env(test, cfg, None if ex is None else ex[va_end:])
             per_seed.append(run_policy(env, diff_policy(actor, lookback)).metrics)
-        label = "with_macro_factors" if use_exog else "market_only"
+        label = augmented if use_exog else "market_only"
         rows.append({"variant": label, **pd.DataFrame(per_seed).mean().to_dict()})
         r = rows[-1]
         print(f"{label:20s} sharpe={r['sharpe']:.3f} cvar95={r['cvar_95']:.4f} "
