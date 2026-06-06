@@ -2,6 +2,26 @@
 
 _Real-data study on a 7-ETF macro universe. Generated from `configs/experiment_etf.yaml`._
 
+## Headline result
+
+On a stress out-of-sample window (trained pre-2018, tested through the 2020 COVID
+crash and 2022 selloff), the **CVaR constraint cuts tail risk and drawdown roughly
+in half versus unconstrained RL**, while *improving* risk-adjusted return — robust
+across 5 seeds (§9):
+
+| Metric | unconstrained RL | CVaR-constrained RL | change |
+| --- | --- | --- | --- |
+| Sharpe | 0.63 ± 0.09 | **0.88 ± 0.04** | +40% |
+| Max drawdown | 0.206 ± 0.018 | **0.118 ± 0.006** | −43% |
+| CVaR-95 | 0.0331 ± 0.001 | **0.0188 ± 0.000** | −43% |
+| CVaR-99 | 0.0654 ± 0.006 | **0.0331 ± 0.001** | −49% |
+| Breach rate | 0.234 ± 0.064 | **0.189 ± 0.003** | −19% |
+
+This required two changes over the initial model-free A2C: a **differentiable
+allocator** (§8) that actually learns to allocate, and fixing a **constraint-
+coupling bug** (§5) that had made the dual inert. The original A2C results (§3–§7)
+are retained as the model-free baseline and a cautionary finding.
+
 ## 1. Data
 
 - **Universe (7 ETFs):** SPY (equity), TLT (rates), HYG (credit), DBC (commodity),
@@ -46,7 +66,7 @@ CVaR limit; the tolerated breach budget is 5%.
 park in BIL/TLT during the 2022 rate-hike drawdown, earning the positive cash rate
 at near-zero volatility — a hard bar to clear on this calm, cash-friendly window.
 
-## 4. RL allocators vs. baselines (test split)
+## 4. Model-free A2C allocators vs. baselines (calm test split)
 
 Full run: 150 episodes × 5 seeds × 2 variants, metrics averaged across seeds.
 
@@ -109,16 +129,71 @@ Two fixes (kept as the defaults):
    So the bottleneck is the **policy class / training budget**, not the constraint
    layer.
 
-## 7. Limitations & next steps
+## 7. Why the A2C result was weak
 
-- The compact on-policy A2C, trained on a single deterministic price path for
-  150 episodes, converges close to a static near-equal-weight allocation; it does
-  not learn the "rotate into cash during stress" behaviour that the variance/CVaR
-  optimisers exploit. The CVaR constraint therefore acts mainly as an insurance
-  premium on this calm out-of-sample window rather than producing a tail-risk
-  reduction, because tail events sit in the training span.
-- **Next steps:** (i) episode start-point randomisation and return scaling for a
-  stronger learning signal; (ii) longer training / larger networks; (iii) evaluate
-  on a stress-inclusive walk-forward so the constraint's protective value is
-  measured where breaches actually occur; (iv) tighten the CVaR limit so it binds
-  out-of-sample; (v) PPO/SAC actor for sample efficiency.
+The model-free A2C uses score-function policy gradients, which throw away a fact
+specific to allocation: the reward `w·r − costs` is a **known differentiable
+function of the weights**. Combined with a single deterministic training path and
+a 7-simplex softmax, the high-variance gradient converges to a near-static
+near-uniform policy. The next two sections replace it.
+
+## 8. Differentiable allocator (residual policy)
+
+`src/crlpa/training/differentiable.py` trains the allocator by backpropagating a
+risk-adjusted objective (or return, with a differentiable CVaR penalty)
+**directly through the rollout**. Two design choices make it generalise rather
+than overfit one price path:
+
+- **Residual policy over an adaptive anchor:** weights are
+  `softmax(log(inverse_vol_anchor) + net(state))`. At initialisation the policy
+  *is* the adaptive inverse-vol allocation (a strong, regime-robust prior); training
+  learns a state-dependent tilt on top.
+- **Validation model selection** (constrained: best validation objective subject
+  to the validation CVaR limit; otherwise lowest validation CVaR), plus weight
+  decay — to curb backtest overfitting.
+
+On the calm 2021–2024 test split this lifts RL from ≈0.79 Sharpe (A2C) to **1.24**
+(vs 0.82 equal weight, 1.45 inverse-vol). The CVaR constraint is still non-binding
+there, so its value only appears under stress (§9).
+
+## 9. Stress study: the constraint's value (train pre-2018, test 2020–2024)
+
+`scripts/run_diff_study.py` trains on 2008–2018 (incl. the GFC), validates on
+2018–2019, and tests on the **267-week stress window** containing the 2020 COVID
+crash and the 2022 selloff. "Unconstrained" is a return-greedy agent; "constrained"
+adds the CVaR limit. Metrics are mean ± std over 5 seeds.
+
+| Strategy | Sharpe | Ann. ret | Max DD | CVaR-95 | CVaR-99 | Breach rate |
+| --- | --- | --- | --- | --- | --- | --- |
+| inverse_vol | 0.78 | 0.041 | 0.113 | 0.0156 | 0.0435 | 0.20 |
+| min_variance | 0.90 | 0.045 | 0.113 | 0.0141 | 0.0435 | 0.20 |
+| rl_unconstrained (greedy) | 0.63 ± 0.09 | 0.065 | 0.206 | 0.0331 | 0.0654 | 0.234 |
+| **rl_cvar_constrained** | **0.88 ± 0.04** | 0.057 | **0.118** | **0.0188** | **0.0331** | **0.189** |
+
+**Findings:**
+1. **The CVaR constraint roughly halves tail risk and drawdown vs unconstrained
+   RL** (CVaR-95 −43%, CVaR-99 −49%, max DD −43%) for a modest return give-up
+   (6.5%→5.7% annual), and *improves* Sharpe (+40%) by removing the deep-loss
+   weeks. The effect is robust and low-variance across seeds.
+2. **The constrained allocator is competitive with the adaptive optimisers** on the
+   stress window (Sharpe 0.88 vs min-variance 0.90) while taking materially less
+   tail risk than the return-greedy agent.
+3. This is the thesis demonstrated where it matters — under stress, where breaches
+   occur — rather than on the calm chronological split where the limit never binds.
+
+Paired block bootstrap of the **CVaR-99 difference** (constrained − unconstrained,
+2000 resamples, block 4): −0.033, 95% CI [−0.035, −0.008], p ≈ 0.00 — the tail-risk
+reduction is statistically significant. (`results/tables_diff/stress_constraint_test.csv`)
+
+## 10. Limitations & next steps
+
+- Results are on a single liquid macro universe with synthetic-cost assumptions
+  (5 bps). The stress window is a specific 2020–2024 slice; a full rolling
+  walk-forward (§Phase 10 in `TODO.md`) would strengthen the claim.
+- The constrained allocator's turnover (~0.04/wk) is higher than the optimisers';
+  an explicit turnover penalty (already supported) should be tuned.
+- The headline depends on a tightened CVaR limit (0.012) so the constraint binds
+  on validation; on the calm chronological split the limit is non-binding and the
+  constraint is a near-free insurance premium.
+- **Next steps:** rolling walk-forward across regimes; PPO/SAC for the model-free
+  arm; per-asset transaction-cost calibration; benchmark-relative variant.
