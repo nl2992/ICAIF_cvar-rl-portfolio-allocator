@@ -17,6 +17,10 @@ _COLORS = {
     "min_variance": "#2ca02c",
     "inverse_vol": "#9467bd",
     "equal_weight": "#7f7f7f",
+    "ppo_best_unconstrained": "#ff7f0e",
+    "ppo_best_cvar_constrained": "#17becf",
+    "sac_best_unconstrained": "#bcbd22",
+    "sac_best_cvar_constrained": "#e377c2",
 }
 
 
@@ -92,4 +96,26 @@ def plot_grouped_bars(df: pd.DataFrame, label_col, series, path, ylabel, title, 
     ax.set_xticks(x + width * (len(series) - 1) / 2)
     ax.set_xticklabels(df[label_col].astype(str), rotation=30, ha="right", fontsize=8)
     ax.set_ylabel(ylabel); ax.set_title(title); ax.legend(fontsize=8); ax.grid(alpha=0.3, axis="y")
+    return _save(fig, path)
+
+
+def plot_risk_return(df: pd.DataFrame, path, x="sharpe", y="cvar_99",
+                     title="Risk vs. return (stress window)"):
+    """Scatter of return (x, higher better) vs. tail risk (y, lower better) per strategy.
+
+    Each strategy is one labelled point coloured by the shared palette; the y-axis is
+    inverted so the desirable corner (high Sharpe, low tail) is top-right. The figure
+    is meant to show the model-free arms chasing return into a high-tail region while
+    the constrained allocator sits in the low-tail corner.
+    """
+    fig, ax = plt.subplots(figsize=(7, 4.8))
+    for name, row in df.iterrows():
+        ax.scatter(row[x], row[y], s=90, color=_COLORS.get(name, "#333333"),
+                   edgecolor="black", linewidth=0.6, zorder=3)
+        ax.annotate(str(name), (row[x], row[y]), fontsize=7.5,
+                    xytext=(5, 4), textcoords="offset points")
+    ax.invert_yaxis()  # lower tail risk = better = upward
+    ax.set_xlabel(f"{x} (higher is better)")
+    ax.set_ylabel(f"{y} (lower is better)")
+    ax.set_title(title); ax.grid(alpha=0.3)
     return _save(fig, path)

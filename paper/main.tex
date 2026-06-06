@@ -104,10 +104,11 @@ policy over an adaptive anchor for generalisation (Section~\ref{sec:method}).
 actor--critic, standardising the reward advantage but not the cost advantage
 makes the constraint inert for any reasonable multiplier; we identify and fix the
 coupling (Section~\ref{sec:coupling}).
-\item A \textbf{rigorous evaluation}: deterministic optimisers, two model-free RL
-families (A2C, PPO), seed averaging, paired bootstrap, a rolling walk-forward with
-regime slices, robustness to costs/universe, and ablations
-(Section~\ref{sec:results}).
+\item A \textbf{rigorous evaluation}: deterministic optimisers, three model-free RL
+families (A2C, PPO, SAC) each tuned by a validation-selected hyperparameter sweep,
+seed averaging, paired bootstrap, a two-universe rolling walk-forward with regime
+slices and Deflated-Sharpe / multiple-testing control, robustness to costs/universe,
+and ablations (Section~\ref{sec:results}).
 \end{enumerate}
 
 We are explicit about scope: the learned allocator does \textbf{not} beat a
@@ -143,7 +144,8 @@ optimisation~\cite{achiam2017cpo}. Our positive result is methodological: a
 well-scaled coupling is what makes the dual bind.
 
 \paragraph{RL and differentiable allocation.} Model-free policy gradients
-(A2C/PPO~\cite{schulman2017ppo}) ignore that the allocation reward is a known
+(A2C/PPO~\cite{schulman2017ppo}) and off-policy actor--critics
+(SAC~\cite{haarnoja2018soft}) ignore that the allocation reward is a known
 differentiable function of the weights; our differentiable allocator exploits this
 pathwise gradient, closer to deep portfolio optimisation than to score-function
 RL.
@@ -196,8 +198,9 @@ limit, with weight decay---both to curb backtest overfitting.
 \paragraph{Baselines.} Deterministic, re-estimated weekly: cash, equal weight,
 inverse vol, minimum variance, mean--variance, risk parity, and a min-CVaR
 Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned: model-free
-A2C and PPO~\cite{schulman2017ppo} (clipped surrogate, GAE), and the unconstrained
-differentiable allocator ($\lambda=0$).
+A2C, PPO~\cite{schulman2017ppo} (clipped surrogate, GAE) and SAC~\cite{haarnoja2018soft}
+(off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable
+allocator ($\lambda=0$).
 
 %% =====================================================================
 \section{The Constraint-Coupling Finding}
@@ -229,6 +232,14 @@ $\approx$2018--2021; test $\approx$2021--2024). For the stress study we retrain 
 proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}); a FRED loader is also
 provided.
 
+For the cross-universe significance test (Section~\ref{sec:significance}) we add a
+second universe of ten S\&P sector ETFs (XLK, XLF, XLE, XLV, XLY, XLP, XLU, XLI, XLB,
+plus a BIL cash leg), identical in every other respect---same provider, weekly
+W-FRI clock, 2008--2024 window, and 5\,bps cost assumption. Every series is a free,
+public daily market series (no licensed feeds or API keys), so both universes share
+one data provenance and the second functions as a clean replication rather than a
+confound; the pipeline rebuilds them from a clean checkout.
+
 %% =====================================================================
 \section{Results}
 \label{sec:results}
@@ -239,7 +250,28 @@ On the comparatively calm 2021--2024 test split, deterministic minimum-variance
 differentiable allocator reaches Sharpe 1.24 (vs equal weight 0.82, inverse vol
 1.45), and model-free A2C only $\approx$0.79. No strategy breaches the CVaR limit,
 so constrained $\approx$ unconstrained---the constraint is a near-free insurance
-premium with nothing to insure.
+premium with nothing to insure. Table~\ref{tab:baselines} reports the full
+deterministic baseline suite on this split.
+
+\begin{table}[t]
+\centering
+\caption{Deterministic baselines, calm 2021--2024 test split (re-estimated weekly).
+The convex optimisers dominate when no tail event occurs.}
+\label{tab:baselines}
+\small
+\begin{tabular}{lrrr}
+\toprule
+baseline & Sharpe & $\mathrm{CVaR}_{95}$ & max-DD \\
+\midrule
+minimum variance     & 2.52 & 0.0064 & 0.016 \\
+min-CVaR LP           & 2.24 & 0.0080 & 0.016 \\
+inverse volatility    & 1.45 & 0.0087 & 0.041 \\
+mean--variance        & 0.84 & 0.0198 & 0.104 \\
+equal weight          & 0.82 & 0.0163 & 0.097 \\
+risk parity           & 0.70 & 0.0182 & 0.134 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Stress window: the main result}
 Table~\ref{tab:stress} contrasts a return-greedy unconstrained learner with the
@@ -315,9 +347,9 @@ max-DD $-25\%$). The fold-level Wilcoxon on $\mathrm{CVaR}_{99}$ is marginal
 ($p=0.06$; improved in 5/10 folds), and the reduction concentrates in
 \textbf{selloffs} ($\mathrm{CVaR}_{99}$ $0.066\!\to\!0.048$, max-DD
 $0.218\!\to\!0.137$; Figure~\ref{fig:regime}). Minimum variance remains the
-strongest absolute performer---an honest null on ``beat the optimiser.''
-\TODO{add folds / a second universe to move $p$ below 0.05, with
-multiple-testing / Deflated-Sharpe control.}
+strongest absolute performer---an honest null on ``beat the optimiser.'' A second
+universe and shorter folds push this significance through
+(Section~\ref{sec:significance}).
 
 \begin{table}[t]
 \centering
@@ -343,6 +375,81 @@ minimum variance      & 1.45 & 0.057 & 0.0106 \\
   keep in selloffs, the regime it targets.}
   \label{fig:regime}
 \end{figure}
+
+\subsection{Statistical significance across two universes}
+\label{sec:significance}
+To move past the marginal single-universe result we add a second universe---ten
+S\&P sector ETFs (XLK, XLF, \dots, plus a cash leg)---and shorten the walk-forward
+test fold to 26 weeks for more independent observations (20 folds per universe),
+then pool the fold-level $\mathrm{CVaR}_{99}$ differences (Table~\ref{tab:stats},
+Figure~\ref{fig:multiuniverse}). On the sector universe the reduction is significant
+(Wilcoxon $p=0.0004$, improved 16/20, surviving a Benjamini--Hochberg correction
+across the two universes); pooling all 40 folds it is strongly significant
+(Wilcoxon $p=10^{-4}$, bootstrap 95\% CI $[-0.0082,\,-0.0033]$ on the mean
+difference). On the original macro-ETF universe alone it stays marginal ($p=0.11$),
+matching the 10-fold result above. Crucially, the constrained allocator's
+out-of-sample Sharpe does \emph{not} survive a Deflated-Sharpe correction for the
+number of configurations tried (DSR $\approx 0$ on both universes): the robust,
+significant effect is on \emph{tail risk}, not return---the same honest null we
+report against minimum variance.
+
+\begin{table}[t]
+\centering
+\caption{Walk-forward CVaR-99 across two universes (26-week folds). Pooling lifts the
+fold-level paired test below $0.05$; the Sharpe gain does not survive Deflated-Sharpe.}
+\label{tab:stats}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+universe & folds & $\mathrm{CVaR}_{99}$ unc. & $\mathrm{CVaR}_{99}$ con. & Wilcoxon $p$ & DSR \\
+\midrule
+macro ETF (7)   & 20 & 0.0141 & 0.0114 & 0.11   & 0.00 \\
+sector (10)     & 20 & 0.0336 & 0.0252 & 0.0004 & 0.00 \\
+\textbf{pooled} & 40 & ---    & ---    & \textbf{$10^{-4}$} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{multiuniverse_cvar99.png}
+  \caption{Walk-forward $\mathrm{CVaR}_{99}$ (constrained vs.\ unconstrained) on both
+  universes; the constraint lowers the tail in each, with the larger, significant gap
+  on the sector universe.}
+  \label{fig:multiuniverse}
+\end{figure}
+
+\subsection{Generalization: the stress result replicates on sector ETFs}
+\label{sec:generalize}
+Re-running the stress study unchanged on the ten-sector universe
+(Table~\ref{tab:stress_sector}) replicates the headline effect: the constraint cuts
+$\mathrm{CVaR}_{99}$ by $30\%$ ($0.109\!\to\!0.076$), maximum drawdown by $30\%$
+($0.295\!\to\!0.208$), and the breach rate by $47\%$ ($0.75\!\to\!0.40$)---at
+\emph{no} Sharpe cost ($0.752\!\to\!0.748$). A paired block bootstrap of the
+$\mathrm{CVaR}_{99}$ difference gives $-0.044$, 95\% CI $[-0.050,\,-0.014]$,
+$p\approx0$. The one honest difference from the macro universe: there the constraint
+\emph{improved} Sharpe (the avoided tail dominated), whereas on sectors it is
+Sharpe-neutral---the robust, replicating effect is the tail and drawdown reduction,
+not a return gain.
+
+\begin{table}[t]
+\centering
+\caption{Stress window on the ten-sector universe (mean over 3 seeds). The tail and
+drawdown reduction replicates the macro-universe result (Table~\ref{tab:stress}).}
+\label{tab:stress_sector}
+\small
+\begin{tabular}{lrrr}
+\toprule
+metric & unconstr. & \textbf{constr.} & change \\
+\midrule
+Sharpe          & 0.75   & \textbf{0.75}   & $\approx0$ \\
+Max drawdown    & 0.295  & \textbf{0.208}  & $-30\%$ \\
+$\mathrm{CVaR}_{95}$ & 0.0576 & \textbf{0.0374} & $-35\%$ \\
+$\mathrm{CVaR}_{99}$ & 0.1094 & \textbf{0.0760} & $-30\%$ \\
+Breach rate     & 0.752  & \textbf{0.401}  & $-47\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Robustness and ablations}
 The $\mathrm{CVaR}_{99}$ reduction holds in \textbf{7/7} perturbations, including
@@ -386,6 +493,78 @@ Rolling factor betas alone slightly hurt (redundant with momentum/vol); adding
 macro state (term spread, VIX) gives a marginal Sharpe/drawdown improvement
 ($0.92\!\to\!0.94$, max-DD $0.105\!\to\!0.095$) but no tail gain.
 
+\subsection{Diagnostics: behaviour, not metric-gaming}
+Three diagnostics confirm the constraint changes \emph{behaviour} rather than gaming
+the tail metric (Figure~\ref{fig:diagnostics}). The unconstrained allocator
+concentrates and rides the 2020/2022 drawdowns; the constrained one rotates into the
+cash/rates leg and holds a lower, steadier rolling CVaR estimate. The tail control is
+paid for with modestly higher turnover---not leverage or a single-asset bet: the
+policy stays long-only, diversified, and within the turnover cap.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.86\linewidth]{rolling_cvar.png}\\[2pt]
+  \includegraphics[width=0.86\linewidth]{weights_unconstrained.png}\\[2pt]
+  \includegraphics[width=0.86\linewidth]{turnover.png}
+  \caption{Stress-window diagnostics. Top: rolling $\mathrm{CVaR}_{95}$ estimate
+  (constrained holds a lower, steadier tail). Middle: unconstrained allocator weights
+  (concentrated; compare the constrained weights in Figure~\ref{fig:weights}).
+  Bottom: turnover---the constraint's tail control costs modestly more trading.}
+  \label{fig:diagnostics}
+\end{figure}
+
+\subsection{Tuned model-free RL is still weak}
+\label{sec:modelfree}
+Is the model-free arms' weakness merely a tuning artefact? We sweep PPO (36 configs
+over learning rate, entropy bonus, discount, and training length) and SAC (8 configs
+over learning rate, discount, and entropy-temperature handling), \emph{select each by
+validation Sharpe} (no test leakage), retrain the winner across three seeds, and
+evaluate on the stress window against the differentiable allocators and the optimisers
+(Table~\ref{tab:modelfree}, Figure~\ref{fig:frontier}). Tuning does not rescue them.
+The selected PPO overfits the validation window (validation Sharpe $1.70$) and posts
+the \emph{worst} out-of-sample tail of any method (Sharpe $0.67$,
+$\mathrm{CVaR}_{99}=0.070$); the selected SAC collapses to a timid, near-static
+allocation (Sharpe $0.39$, turnover $0.005$). Neither approaches the differentiable
+CVaR-constrained allocator (Sharpe $0.91$, $\mathrm{CVaR}_{99}=0.032$) or minimum
+variance. The two families fail in opposite directions---PPO chases return into the
+tail, SAC under-allocates---consistent with score-function / off-policy RL being
+sample-inefficient on this short, weekly, heavy-tailed problem, and motivating the
+pathwise-differentiable allocator. Adding the CVaR Lagrangian to either model-free
+arm lowers its tail but at a steep return cost (PPO Sharpe $0.67\!\to\!0.63$; SAC
+$0.39\!\to\!0.18$), never reaching the differentiable allocator's frontier.
+
+\begin{table}[t]
+\centering
+\caption{Best-tuned model-free RL (selected by validation Sharpe, mean over 3 seeds)
+vs.\ the differentiable allocators and optimisers on the stress window. Best learner
+in bold.}
+\label{tab:modelfree}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+strategy & Sharpe & $\mathrm{CVaR}_{99}$ & max-DD & turnover \\
+\midrule
+minimum variance        & 0.90 & 0.044 & 0.113 & 0.011 \\
+\textbf{diff.\ constrained} & \textbf{0.91} & \textbf{0.032} & \textbf{0.113} & 0.039 \\
+diff.\ unconstrained    & 0.60 & 0.062 & 0.212 & 0.023 \\
+PPO (best)              & 0.67 & 0.070 & 0.225 & 0.028 \\
+PPO (best) + CVaR       & 0.63 & 0.047 & 0.160 & 0.162 \\
+SAC (best)              & 0.39 & 0.033 & 0.185 & 0.005 \\
+SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{risk_return_frontier.png}
+  \caption{Stress-window risk vs.\ return (tail axis inverted: up = lower
+  $\mathrm{CVaR}_{99}$). The differentiable constrained allocator and the optimisers
+  occupy the desirable top-right; every tuned model-free arm sits in a worse
+  region---PPO at high tail risk, SAC at low return.}
+  \label{fig:frontier}
+\end{figure}
+
 %% =====================================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -406,14 +585,17 @@ optimisers on this universe.
 \section{Limitations}
 \label{sec:limitations}
 
-Single universe, single region, synthetic 5\,bps costs (robustness covers
-2--3$\times$ but not bid--ask realism). Walk-forward significance is marginal
-($p\approx0.06$); more folds and $\ge$1 additional universe are needed for a
-strong claim. The differentiable allocator is closer to deep portfolio
-optimisation than classic model-free RL; the model-free A2C/PPO arms remain weak
-and warrant a proper hyperparameter sweep \TODO{run PPO/SAC sweep}. Constrained
-turnover ($\sim$0.04/wk) exceeds the optimisers'; the supported turnover penalty
-should be tuned.
+Two ETF universes (macro and sector), single region, synthetic 5\,bps costs
+(robustness covers 2--3$\times$ but not bid--ask realism). The fold-level tail-risk
+reduction is significant on the sector universe and in the two-universe pool
+($p=10^{-4}$; Section~\ref{sec:significance}) but only marginal on the macro
+universe alone ($p=0.11$), and the out-of-sample \emph{Sharpe} does not survive a
+Deflated-Sharpe correction---the robust effect is on tail risk, not return. The
+differentiable allocator is closer to deep portfolio optimisation than classic
+model-free RL; the model-free A2C/PPO/SAC arms remain weak even after a proper
+hyperparameter sweep (Section~\ref{sec:modelfree}). Constrained turnover
+($\sim$0.04/wk) exceeds the optimisers'; the supported turnover penalty should be
+tuned.
 
 %% =====================================================================
 \section{Conclusion and Future Work}
@@ -426,14 +608,14 @@ out-of-sample tail risk and drawdown versus an unconstrained learner while
 improving Sharpe, robustly and exactly in the selloff regimes it targets; it does
 not, honestly, beat a rolling minimum-variance optimiser. Along the way we surface
 a cautionary constraint-coupling finding for Lagrangian RL. Future work: a
-benchmark-relative active-risk variant; per-asset transaction-cost calibration; a
-formal CMDP convergence treatment of the breach-rate dual; and a model-free
-PPO/SAC sweep with $\ge$1 additional universe to strengthen the walk-forward
-claim.
+benchmark-relative active-risk variant; per-asset transaction-cost calibration; and
+a formal CMDP convergence treatment of the breach-rate dual. Extending beyond the
+two ETF universes to futures and equity cross-sections is the clearest route to a
+walk-forward claim that is strong on every universe individually.
 
 \begin{acks}
 Artefacts are produced by the open pipeline in the project repository
-(leak-free checks, 60 unit tests, fixed seeds, config snapshots) and are
+(leak-free checks, 68 unit tests, fixed seeds, config snapshots) and are
 reproducible from a clean checkout.
 \end{acks}
 
