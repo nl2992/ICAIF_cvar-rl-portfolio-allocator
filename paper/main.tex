@@ -427,8 +427,8 @@ Figure~\ref{fig:multiuniverse}). On the sector universe the reduction is signifi
 (Wilcoxon $p=0.0004$, improved 16/20, surviving a Benjamini--Hochberg correction
 across the two universes); pooling all 40 folds it is strongly significant
 (Wilcoxon $p=10^{-4}$, bootstrap 95\% CI $[-0.0082,\,-0.0033]$ on the mean
-difference). On the original macro-ETF universe alone it stays marginal ($p=0.11$),
-matching the 10-fold result above. Crucially, the constrained allocator's
+difference; Figure~\ref{fig:forest}). On the original macro-ETF universe alone it
+stays marginal ($p=0.11$), matching the 10-fold result above. Crucially, the constrained allocator's
 out-of-sample Sharpe does \emph{not} survive a Deflated-Sharpe correction for the
 number of configurations tried (DSR $\approx 0$ on both universes): the robust,
 significant effect is on \emph{tail risk}, not return---the same honest null we
@@ -458,6 +458,17 @@ sector (10)     & 20 & 0.0336 & 0.0252 & 0.0004 & 0.00 \\
   universes; the constraint lowers the tail in each, with the larger, significant gap
   on the sector universe.}
   \label{fig:multiuniverse}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fold_forest_cvar99.png}
+  \caption{Per-fold $\mathrm{CVaR}_{99}$ difference (constrained $-$ unconstrained)
+  across all 40 walk-forward folds; left of zero means the constraint reduced the
+  tail. Sector folds (orange) sit firmly left, the macro folds (blue) cluster near
+  zero, and the pooled mean ($-0.0056$, dashed) with its bootstrap CI (band) excludes
+  zero---the effect is real but driven by the sector universe.}
+  \label{fig:forest}
 \end{figure}
 
 \subsection{Generalization: the stress result replicates on sector ETFs}
