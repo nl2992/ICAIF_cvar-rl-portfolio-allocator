@@ -47,9 +47,12 @@ $\sim$43\% relative to an unconstrained learner, while \emph{improving}
 risk-adjusted return; the tail reduction is robust across seeds, a 10-fold
 walk-forward, and 2--3$\times$ transaction-cost perturbations. We report an honest
 null on the secondary question: neither learner beats a rolling minimum-variance
-optimiser on this universe. The contribution is therefore an explicit,
-well-behaved tail-control layer for learned allocators, plus a reproducible
-benchmark and a cautionary finding about constraint coupling in Lagrangian RL.
+optimiser on this universe. The takeaway is that, for a learned allocator, explicit
+tail control is a safety \emph{layer} to be added, not a return to be sacrificed:
+it cuts deep-loss weeks at little or no cost to risk-adjusted return. The
+contribution is therefore an explicit, well-behaved tail-control layer for learned
+allocators, plus a reproducible two-universe benchmark and a cautionary finding
+about constraint coupling in Lagrangian RL.
 \end{abstract}
 
 \begin{CCSXML}
@@ -183,9 +186,32 @@ the training series, the objective
   \;+\; \lambda\,\mathrm{ReLU}(\widehat{\mathrm{CVaR}} - d)
   \;+\; \kappa\,\text{turnover},
 \end{equation}
-where $\widehat{\mathrm{CVaR}}$ is the mean of the worst $(1-\alpha)$ fraction of
-window net returns (a differentiable tail mean via \texttt{topk}). This pathwise
-gradient is far more sample-efficient than score-function RL for this problem.
+where $\widehat{\mathrm{CVaR}}$ is the mean tail loss over the worst $(1-\alpha)$
+fraction of window net returns (a differentiable tail mean via \texttt{topk}). This
+pathwise gradient is far more sample-efficient than score-function RL for this
+problem.
+
+\paragraph{Pathwise gradient and where the constraint acts.} Every term in
+$\mathcal{L}$ is a differentiable function of the rollout, so the policy is trained
+by exact back-propagation through the simplex map and the reward---no score-function
+estimator. With net returns $r_t = w_t^{\top}\rho_t - c\lVert w_t-w_{t-1}\rVert_1$
+and tail set $\mathcal{T}=\{t : r_t \text{ among the worst } \lceil(1-\alpha)T\rceil
+\text{ of the window}\}$,
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial \theta}
+= \sum_{t}\Big(
+  \underbrace{-\tfrac{\partial\,\mathrm{Sharpe}}{\partial r_t}}_{\text{all weeks}}
+  \;-\;
+  \underbrace{\tfrac{\lambda}{|\mathcal{T}|}\,
+  \mathbf{1}[\widehat{\mathrm{CVaR}}>d]\,\mathbf{1}[t\in\mathcal{T}]}_{\text{tail weeks only}}
+  \Big)\,\frac{\partial r_t}{\partial w_t}\,\frac{\partial w_t}{\partial \theta},
+\end{equation}
+where $\partial w_t/\partial\theta$ flows through the residual softmax
+(below). The \texttt{topk} subgradient routes the dual pressure to \emph{exactly}
+the worst-$(1-\alpha)$ weeks, and only while the constraint is breached: the penalty
+lifts the deep-loss weeks without distorting the bulk of the path. This locality is
+what makes the constraint bind cleanly once the coupling is correctly scaled
+(Section~\ref{sec:coupling}).
 
 \paragraph{Residual policy over an adaptive anchor.} To generalise across regimes
 rather than overfit one price path, weights are $w_t = \mathrm{softmax}(\log a_t +
@@ -261,7 +287,7 @@ The convex optimisers dominate when no tail event occurs.}
 \small
 \begin{tabular}{lrrr}
 \toprule
-baseline & Sharpe & $\mathrm{CVaR}_{95}$ & max-DD \\
+baseline & Sharpe ($\uparrow$) & $\mathrm{CVaR}_{95}$ ($\downarrow$) & max-DD ($\downarrow$) \\
 \midrule
 minimum variance     & 2.52 & 0.0064 & 0.016 \\
 min-CVaR LP           & 2.24 & 0.0080 & 0.016 \\
@@ -358,7 +384,7 @@ universe and shorter folds push this significance through
 \small
 \begin{tabular}{lrrr}
 \toprule
-strategy & Sharpe & max-DD & $\mathrm{CVaR}_{99}$ \\
+strategy & Sharpe ($\uparrow$) & max-DD ($\downarrow$) & $\mathrm{CVaR}_{99}$ ($\downarrow$) \\
 \midrule
 unconstrained RL      & 0.70 & 0.151 & 0.0416 \\
 \textbf{constrained RL} & \textbf{0.83} & \textbf{0.114} & \textbf{0.0331} \\
@@ -542,7 +568,7 @@ in bold.}
 \small
 \begin{tabular}{lrrrr}
 \toprule
-strategy & Sharpe & $\mathrm{CVaR}_{99}$ & max-DD & turnover \\
+strategy & Sharpe ($\uparrow$) & $\mathrm{CVaR}_{99}$ ($\downarrow$) & max-DD ($\downarrow$) & turnover ($\downarrow$) \\
 \midrule
 minimum variance        & 0.90 & 0.044 & 0.113 & 0.011 \\
 \textbf{diff.\ constrained} & \textbf{0.91} & \textbf{0.032} & \textbf{0.113} & 0.039 \\
@@ -614,9 +640,10 @@ two ETF universes to futures and equity cross-sections is the clearest route to 
 walk-forward claim that is strong on every universe individually.
 
 \begin{acks}
-Artefacts are produced by the open pipeline in the project repository
+All figures and tables are produced by the open pipeline in the project repository
 (leak-free checks, 68 unit tests, fixed seeds, config snapshots) and are
-reproducible from a clean checkout.
+reproducible from a clean checkout. Code and configurations are available at
+\url{https://github.com/nl2992/cvar-rl-portfolio-allocator}.
 \end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
