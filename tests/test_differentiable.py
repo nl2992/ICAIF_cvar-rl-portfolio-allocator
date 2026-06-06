@@ -12,6 +12,7 @@ from crlpa.training.differentiable import (  # noqa: E402
     DiffAllocator,
     DiffConfig,
     diff_policy,
+    ensemble_diff_policy,
     train_differentiable,
 )
 
@@ -46,3 +47,23 @@ def test_training_runs_and_policy_is_valid():
     res = run_policy(AllocationEnv(returns), diff_policy(actor, lookback=26))
     weights_ok = np.allclose(res.weights.sum(axis=1), 1.0)
     assert weights_ok
+
+
+def test_ensemble_policy_produces_valid_simplex():
+    returns = make_synthetic_returns(n_steps=120, seed=7)
+    actors = [DiffAllocator(obs_dim=3 * returns.shape[1] + 2, action_dim=returns.shape[1]) for _ in range(3)]
+    res = run_policy(AllocationEnv(returns), ensemble_diff_policy(actors, lookback=26))
+    assert np.allclose(res.weights.sum(axis=1), 1.0)
+    assert (res.weights.to_numpy() >= -1e-9).all()
+
+
+def test_turnover_penalty_reduces_turnover():
+    # No val selection (returns the trained actor) so the penalty's effect is visible.
+    returns = make_synthetic_returns(n_steps=180, seed=7)
+    common = dict(cost_bps=5.0, cvar_alpha=0.95, cvar_limit=0.03, cvar_window=52, lookback=26)
+    # anchor=None so the network (not the rebalancing anchor) controls all turnover.
+    base, _ = train_differentiable(returns, config=DiffConfig(n_updates=200, horizon=52, anchor=None, turnover_penalty=0.0, seed=7), **common)
+    pen, _ = train_differentiable(returns, config=DiffConfig(n_updates=200, horizon=52, anchor=None, turnover_penalty=200.0, seed=7), **common)
+    t_base = run_policy(AllocationEnv(returns), diff_policy(base, 26, anchor=None)).metrics["avg_turnover"]
+    t_pen = run_policy(AllocationEnv(returns), diff_policy(pen, 26, anchor=None)).metrics["avg_turnover"]
+    assert t_pen < t_base
