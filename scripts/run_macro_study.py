@@ -56,14 +56,20 @@ def main() -> None:
 
     panel = build_etf_panel(tickers, start, end, str(cfg.get_path("data.weekly_rule", "W-FRI")))
     returns = panel.reset_index(drop=True)
+    macro, macro_src = None, "none"
     try:
-        macro = load_macro(start="2007-01-01", end=end)
-    except Exception as exc:  # FRED throttling/outage -> factor-betas-only study
-        print(f"WARNING: macro fetch failed ({exc}); proceeding with factor betas only")
-        macro = None
+        macro, macro_src = load_macro(start="2007-01-01", end=end), "fred"
+    except Exception as exc:  # FRED throttling/outage -> Yahoo proxy
+        print(f"WARNING: FRED macro fetch failed ({exc}); trying Yahoo proxies")
+        try:
+            from crlpa.data.load_macro import load_macro_yahoo
+
+            macro, macro_src = load_macro_yahoo(start="2008-01-01", end=end), "yahoo"
+        except Exception as exc2:
+            print(f"WARNING: Yahoo macro failed ({exc2}); factor betas only")
     exog_full = build_exog(panel, macro, market_col=0,
                            beta_window=int(cfg.get_path("risk.cvar_window", 52)))
-    augmented = "with_macro_factors" if macro is not None else "with_factor_betas"
+    augmented = f"with_macro({macro_src})+factors" if macro is not None else "with_factor_betas"
     print(f"panel {panel.shape}, exog {exog_full.shape} ({augmented})")
 
     tr_end, va_end = 560, 620

@@ -83,6 +83,12 @@ See `reports/etf_study.md` for the full write-up.
 | budget_loose | inverse_vol | 0.9500 | 0.0192 | return | 0.5146 | 0.0302 | 0.0493 | 0.2300 | 0.0207 |
 | objective_sharpe | inverse_vol | 0.9500 | 0.0120 | sharpe | 0.7907 | 0.0166 | 0.0273 | 0.1077 | 0.0435 |
 
+### Feature study — market-only vs macro+factor state
+| variant | ann_return | ann_vol | sharpe | sortino | calmar | max_drawdown | hit_rate | cvar_95 | cvar_99 | avg_turnover | total_costs | cvar_breach_rate | constraint_violations | final_wealth |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| market_only | 0.0549 | 0.0603 | 0.9175 | 0.9270 | 0.5215 | 0.1054 | 0.5749 | 0.0174 | 0.0287 | 0.0388 | 0.0052 | 0.0562 | 0.0000 | 1.3160 |
+| with_macro(yahoo)+factors | 0.0551 | 0.0591 | 0.9382 | 0.9156 | 0.5886 | 0.0947 | 0.5787 | 0.0173 | 0.0310 | 0.0779 | 0.0104 | 0.1948 | 0.0000 | 1.3168 |
+
 ### Feature study — market-only vs factor betas
 | variant | ann_return | ann_vol | sharpe | sortino | calmar | max_drawdown | hit_rate | cvar_95 | cvar_99 | avg_turnover | total_costs | cvar_breach_rate | constraint_violations | final_wealth |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

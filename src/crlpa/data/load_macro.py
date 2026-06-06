@@ -55,6 +55,24 @@ def fetch_fred_series(
     return series[~series.index.duplicated(keep="last")].sort_index().rename(series_id)
 
 
+def load_macro_yahoo(start: str = "2008-01-01", end: str = "2024-12-31") -> pd.DataFrame:
+    """Macro state from Yahoo index proxies (fallback when FRED is unavailable).
+
+    term_spread = 10y yield (^TNX) minus 13-week T-bill (^IRX); vix = ^VIX. Both
+    are market-observable same-day, so no release lag beyond the 1-week shift the
+    feature builder already applies.
+    """
+    from crlpa.data.load_prices import fetch_adjusted_close
+
+    tnx = fetch_adjusted_close("^TNX", start, end)
+    irx = fetch_adjusted_close("^IRX", start, end)
+    vix = fetch_adjusted_close("^VIX", start, end)
+    df = pd.concat([tnx.rename("tnx"), irx.rename("irx"), vix.rename("vix")], axis=1)
+    df = df.sort_index().ffill()
+    out = pd.DataFrame({"term_spread": df["tnx"] - df["irx"], "vix": df["vix"]})
+    return out.dropna()
+
+
 def load_macro(
     series: dict[str, str] | None = None,
     start: str = "2007-01-01",
