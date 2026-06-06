@@ -49,8 +49,9 @@ model:
   entropy_coef: 0.01
   value_coef: 0.5
   log_std_init: -0.5
-  lagrange_lr: 0.05
-  cvar_budget: 0.0
+  cost_mode: breach        # breach (0/1 indicator) | magnitude
+  lagrange_lr: 1.0
+  cvar_budget: 0.05         # tolerated weekly CVaR breach rate
 
 training:
   n_episodes: 150

@@ -89,7 +89,6 @@ def make_env(cfg: Config, returns: pd.DataFrame) -> AllocationEnv:
 
 def make_agent_config(cfg: Config, constrained: bool = True) -> ActorCriticConfig:
     m = cfg.get_path("model", {})
-    risk = cfg.get_path("risk", {})
     return ActorCriticConfig(
         hidden=tuple(m.get("hidden", (64, 64))),
         actor_lr=float(m.get("actor_lr", 3e-4)),
@@ -99,8 +98,9 @@ def make_agent_config(cfg: Config, constrained: bool = True) -> ActorCriticConfi
         value_coef=float(m.get("value_coef", 0.5)),
         log_std_init=float(m.get("log_std_init", -0.5)),
         constrained=constrained,
-        lagrange_lr=float(m.get("lagrange_lr", 0.05)),
-        cvar_budget=float(m.get("cvar_budget", risk.get("cvar_limit", 0.0) * 0.0)),
+        cost_mode=str(m.get("cost_mode", "breach")),
+        lagrange_lr=float(m.get("lagrange_lr", 1.0)),
+        cvar_budget=float(m.get("cvar_budget", 0.05)),
     )
 
 

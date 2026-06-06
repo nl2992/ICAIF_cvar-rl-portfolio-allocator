@@ -28,7 +28,10 @@ def _rollout(env: AllocationEnv, agent: CVaRActorCritic, turnover_penalty: float
         _, reward, done, info = env.step(weights)
         caches.append(cache)
         rewards.append(reward - turnover_penalty * info["turnover"])
-        costs.append(info["cvar_cost"])
+        # The breach indicator (0/1) is well scaled for the dual update and the
+        # safety critic; the raw cost magnitude (~1e-3) is too small to drive them.
+        cost = info["cvar_breach"] if agent.config.cost_mode == "breach" else info["cvar_cost"]
+        costs.append(cost)
         obs = env.observation()
     return caches, rewards, costs
 
