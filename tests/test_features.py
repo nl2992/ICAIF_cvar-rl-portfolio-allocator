@@ -48,6 +48,23 @@ def test_env_exog_extends_observation():
     assert env.observation().shape == (env.obs_dim,)
 
 
+def test_env_exog_observation_no_lookahead():
+    # The observation at step t must depend only on exog[t], not future exog rows.
+    returns = make_synthetic_returns(n_steps=40, seed=7)
+    exog_a = np.arange(len(returns) * 2, dtype=np.float32).reshape(len(returns), 2)
+    exog_b = exog_a.copy()
+    exog_b[20:] = -999.0  # corrupt the future
+    env_a = AllocationEnv(returns, exog=exog_a)
+    env_b = AllocationEnv(returns, exog=exog_b)
+    env_a.reset()
+    env_b.reset()
+    w = np.full(returns.shape[1], 1 / returns.shape[1])
+    for _ in range(10):
+        env_a.step(w)
+        env_b.step(w)
+    assert np.allclose(env_a.observation(), env_b.observation())
+
+
 def test_build_exog_shapes():
     panel = make_synthetic_returns(n_steps=60, seed=7)
     panel.index = pd.date_range("2015-01-02", periods=60, freq="W-FRI")
