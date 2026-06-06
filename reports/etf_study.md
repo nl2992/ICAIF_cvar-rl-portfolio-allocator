@@ -254,7 +254,25 @@ optimisers remain the strongest absolute performers — RL does not beat them he
 The constraint cuts tail risk and drawdown most in **selloffs** — exactly the
 regime it targets — and is not costly (even helps) in calm periods.
 
-## 13. Limitations & next steps
+## 13. Feature study (`scripts/run_macro_study.py`)
+
+Does extra state beyond market momentum/vol help? Comparing the constrained
+allocator with vs. without rolling factor betas (market-only baseline), stress
+window, mean over seeds 7/13:
+
+| State | Sharpe | CVaR-99 | Max DD |
+| --- | --- | --- | --- |
+| market only | **0.914** | **0.0288** | **0.106** |
+| market + factor betas | 0.882 | 0.0346 | 0.116 |
+
+Factor betas did **not** help (slightly hurt) — they are largely redundant with
+the momentum/vol already in the state, and the extra inputs add estimation noise.
+The macro covariates (term/credit spread, VIX) loaders are implemented and unit
+tested, but the live FRED study could not run in this environment (FRED throttled
+the historical CSV download); the chunked loader and a factor-only fallback are in
+place for a future run.
+
+## 14. Limitations & next steps
 
 - Results are on a single liquid macro universe with synthetic-cost assumptions
   (5 bps), though robustness (§10) shows the effect survives 2–3× costs.

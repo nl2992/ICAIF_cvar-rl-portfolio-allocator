@@ -73,6 +73,8 @@ def main() -> None:
          Path("results/tables_ablations/ablation_metrics.csv")),
         ("Feature study — market-only vs macro+factor state",
          Path("results/tables_macro/macro_study.csv")),
+        ("Feature study — market-only vs factor betas",
+         Path("results/tables_macro/factor_study.csv")),
     ]
     present = [(title, p) for title, p in studies if p.exists()]
     if present:
