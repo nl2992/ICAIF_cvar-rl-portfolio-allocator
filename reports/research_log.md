@@ -129,5 +129,43 @@ chung2023mvecf.
 ## 5. Status timeline
 - Phase 1 complete; paper at 7 pages (acmart sigconf), compiles 0 overfull/0 undefined
   (TeX Live 2024). Pushed to `feat/cvar-allocator-pipeline`.
-- Pivot infra ready: `.venv-cuda` (GPU). Next: build large universe + temporal-encoder
-  allocator + GPU grid search under the anti-snooping protocol.
+- Pivot infra ready: `.venv-cuda` (GPU).
+
+---
+
+## 6. Phase 2 — H5 (scale/dimensionality): STRONG positive signal
+
+Built a 31-asset cross-asset/sector/industry ETF universe (`large31`, full 2008–2024
+history, `configs/experiment_large.yaml`). Added a **Ledoit-Wolf shrinkage**
+minimum-variance baseline (`baselines.min_variance_shrunk`) so the optimiser
+comparison is fair (raw sample covariance is the weak baseline on large universes).
+
+**Stress-window (train pre-2018, test 2018–2024), 3 seeds — dimensionality scaling
+of Sharpe (RL constrained minus best optimiser incl. shrinkage & equal-weight):**
+
+| universe | dim | best optimiser | RL constrained | margin |
+|---|---|---|---|---|
+| macro7   | 7  | min-var 0.90 | 0.88 | **−0.02** (optimiser wins) |
+| sector10 | 10 | eq-wt 0.72  | 0.75 | **+0.03** |
+| large31  | 31 | eq-wt 0.68  | 0.85 | **+0.17** (learner wins) |
+
+On large31 the learner also cuts **CVaR-99 to 0.027 vs ~0.10 for every optimiser
+(−73%)** and max-DD to 0.10 vs 0.27. The advantage over classical optimisers grows
+monotonically with dimensionality — the candidate **seminal** claim:
+> *Explicit tail-constrained learned allocation beats classical optimisers on
+> high-dimensional universes where estimation error dominates, and the margin scales
+> with dimensionality.*
+
+**Hardening in progress (anti-snooping):** walk-forward on large31 (20 folds, OOS) to
+confirm the win is consistent and not one lucky stress split; then Deflated-Sharpe +
+fold-level paired tests, and equal-weight + shrinkage optimisers inside the
+walk-forward. A "win" counts only if it survives OOS + DSR.
+
+### CUDA engineering note
+The differentiable trainer rolls out **sequentially per timestep with scalar host
+syncs** (`.item()`/`.tolist()` each step on tiny tensors). Moving that to CUDA as-is
+forces a device↔host sync per step and runs *slower* than 16-thread CPU; GPU only
+pays off for a *vectorised/batched* rollout. Phase-2 H5 therefore runs on CPU (the
+correct tool). `.venv-cuda` (torch cu124, RTX 4060) is reserved for a future batched
+encoder (H6) where it genuinely helps. Forcing a GPU port here would be a
+pessimisation, not an optimisation.

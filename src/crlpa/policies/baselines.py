@@ -65,6 +65,37 @@ def min_variance(
     return _finalise(result.x, n)
 
 
+def min_variance_shrunk(
+    returns: pd.DataFrame, lookback: int = 104, max_weight: float = 1.0
+) -> np.ndarray:
+    """Long-only minimum-variance with Ledoit-Wolf shrinkage covariance.
+
+    Shrinking the sample covariance toward a scaled identity is the standard fix for
+    estimation error in high-dimensional universes, so this is the *strong* optimiser
+    baseline the learned allocator must beat (raw sample covariance is fragile when
+    the asset count approaches the lookback).
+    """
+    from sklearn.covariance import LedoitWolf
+
+    data = _clean_window(returns, lookback)
+    cov = LedoitWolf().fit(data).covariance_
+    n = cov.shape[0]
+    bounds, budget = _simplex_constraints(n, max_weight)
+
+    def objective(w: np.ndarray) -> float:
+        return float(w @ cov @ w)
+
+    result = minimize(
+        objective,
+        equal_weight(n),
+        method="SLSQP",
+        bounds=bounds,
+        constraints=[budget],
+        options={"maxiter": 500, "ftol": 1e-12},
+    )
+    return _finalise(result.x, n)
+
+
 def mean_variance(
     returns: pd.DataFrame,
     lookback: int = 104,
