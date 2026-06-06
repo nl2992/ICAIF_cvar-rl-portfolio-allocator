@@ -130,3 +130,38 @@ def plot_risk_return(df: pd.DataFrame, path, x="sharpe", y="cvar_99",
     ax.set_ylabel(f"{y} (lower is better)")
     ax.set_title(title); ax.grid(alpha=0.3)
     return _save(fig, path)
+
+
+def plot_val_vs_oos(groups: dict, path, reference: tuple | None = None,
+                    ylabel="Sharpe", title="Validation selection vs. out-of-sample"):
+    """Show how validation-selected model-free configs collapse out-of-sample.
+
+    ``groups`` maps a label -> (array of per-config validation Sharpes, OOS Sharpe of
+    the selected config). Each group is one x-slot: a jittered strip of the swept
+    configs' validation Sharpes, the selected (max) config marked, and a bar at the
+    realised out-of-sample Sharpe. ``reference`` is an optional (value, label) drawn
+    as a horizontal line (e.g. the differentiable allocator's OOS Sharpe).
+    """
+    rng = np.random.default_rng(0)
+    fig, ax = plt.subplots(figsize=(7, 4.4))
+    xs = np.arange(len(groups))
+    vmax = max(np.asarray(v, dtype=float).max() for v, _ in groups.values())
+    ax.set_ylim(0, vmax * 1.28)  # headroom so the legend clears the top points
+    for i, (name, (val, oos)) in enumerate(groups.items()):
+        val = np.asarray(val, dtype=float)
+        ax.scatter(i + rng.uniform(-0.12, 0.12, val.size), val, s=24, alpha=0.55,
+                   color="#9467bd", zorder=2,
+                   label="swept configs (validation)" if i == 0 else None)
+        ax.scatter([i], [val.max()], s=120, marker="*", color="#9467bd",
+                   edgecolor="black", linewidth=0.6, zorder=4,
+                   label="selected (best validation)" if i == 0 else None)
+        ax.bar(i, oos, width=0.5, color="#d62728", alpha=0.55, zorder=1,
+               label="selected, out-of-sample" if i == 0 else None)
+    if reference is not None:
+        ax.axhline(reference[0], ls="--", color="#1f77b4", lw=1.6, zorder=3,
+                   label=reference[1])
+    ax.set_xticks(xs); ax.set_xticklabels(list(groups), fontsize=9)
+    ax.set_ylabel(ylabel); ax.set_title(title)
+    ax.legend(fontsize=8, loc="upper center", ncol=2, framealpha=0.9)
+    ax.grid(alpha=0.3, axis="y")
+    return _save(fig, path)

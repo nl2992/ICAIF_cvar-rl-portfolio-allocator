@@ -10,6 +10,9 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{xcolor}
+\usepackage{microtype}  % reduces overfull boxes via char protrusion / font expansion
+\setlength{\emergencystretch}{3em}  % last-resort stretch to clear residual overfull lines
+\setlength{\tabcolsep}{4.5pt}       % slightly tighter columns so wide tables fit the column
 \graphicspath{{figures/}{../reports/figures/}}
 
 %% --- Macro for "still to finalise" items; keeps the draft honest. ---
@@ -152,6 +155,18 @@ well-scaled coupling is what makes the dual bind.
 differentiable function of the weights; our differentiable allocator exploits this
 pathwise gradient, closer to deep portfolio optimisation than to score-function
 RL.
+
+\paragraph{Deep hedging and differentiable risk control.} The closest methodological
+neighbour is deep hedging~\cite{buehler2019deephedging}, which trains a neural policy
+end-to-end to optimise a risk measure (often CVaR) of terminal P\&L by
+back-propagating through a simulated trajectory---the same pathwise-gradient idea we
+apply to multi-asset allocation under an explicit, separately-budgeted CVaR
+\emph{constraint} rather than a CVaR utility. Recent work makes such policies
+auditable: ProtoHedge~\cite{faloughi2025protohedge} replaces the black-box hedger
+with a transparent prototype-similarity policy at negligible performance cost. These
+results---and ours---point the same way: differentiating a risk objective through the
+trajectory is both more sample-efficient and more controllable than score-function RL
+on small, frictional financial data.
 
 %% =====================================================================
 \section{Problem Formulation}
@@ -427,7 +442,7 @@ fold-level paired test below $0.05$; the Sharpe gain does not survive Deflated-S
 \small
 \begin{tabular}{lrrrrr}
 \toprule
-universe & folds & $\mathrm{CVaR}_{99}$ unc. & $\mathrm{CVaR}_{99}$ con. & Wilcoxon $p$ & DSR \\
+universe & folds & $\mathrm{CVaR}_{99}^{\text{unc}}$ & $\mathrm{CVaR}_{99}^{\text{con}}$ & Wilcoxon $p$ & DSR \\
 \midrule
 macro ETF (7)   & 20 & 0.0141 & 0.0114 & 0.11   & 0.00 \\
 sector (10)     & 20 & 0.0336 & 0.0252 & 0.0004 & 0.00 \\
@@ -557,7 +572,15 @@ tail, SAC under-allocates---consistent with score-function / off-policy RL being
 sample-inefficient on this short, weekly, heavy-tailed problem, and motivating the
 pathwise-differentiable allocator. Adding the CVaR Lagrangian to either model-free
 arm lowers its tail but at a steep return cost (PPO Sharpe $0.67\!\to\!0.63$; SAC
-$0.39\!\to\!0.18$), never reaching the differentiable allocator's frontier.
+$0.39\!\to\!0.18$), never reaching the differentiable allocator's frontier. The
+failure is one of \emph{generalisation}, not tuning effort: across the swept
+configurations validation Sharpe reaches $1.0$--$1.8$, yet the validation-selected
+winner collapses out-of-sample to $0.67$ (PPO) and $0.39$ (SAC), below the
+differentiable allocator's $0.91$ (Figure~\ref{fig:modelfree_gen}). On 887 weekly
+observations the model-free arms simply have too few effective samples to learn a
+stable policy, whereas the pathwise gradient extracts a usable signal from the same
+data. The grouped comparison in Figure~\ref{fig:modelfree_bars} makes the joint
+Sharpe/tail gap explicit.
 
 \begin{table}[t]
 \centering
@@ -565,7 +588,7 @@ $0.39\!\to\!0.18$), never reaching the differentiable allocator's frontier.
 vs.\ the differentiable allocators and optimisers on the stress window. Best learner
 in bold.}
 \label{tab:modelfree}
-\small
+\footnotesize
 \begin{tabular}{lrrrr}
 \toprule
 strategy & Sharpe ($\uparrow$) & $\mathrm{CVaR}_{99}$ ($\downarrow$) & max-DD ($\downarrow$) & turnover ($\downarrow$) \\
@@ -589,6 +612,26 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
   occupy the desirable top-right; every tuned model-free arm sits in a worse
   region---PPO at high tail risk, SAC at low return.}
   \label{fig:frontier}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{modelfree_generalization.png}
+  \caption{Validation selection vs.\ out-of-sample for the model-free sweeps. Swept
+  configurations reach validation Sharpe $1.0$--$1.8$ and the selected winner (star)
+  is the best of them, but its realised stress-window Sharpe (bar) collapses below
+  the differentiable constrained allocator (dashed)---a generalisation gap, not a
+  tuning failure.}
+  \label{fig:modelfree_gen}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{modelfree_comparison.png}
+  \caption{Stress-window Sharpe and $\mathrm{CVaR}_{99}$ across all arms. The
+  differentiable constrained allocator matches minimum variance on Sharpe with the
+  lowest tail; the model-free arms are dominated on at least one axis.}
+  \label{fig:modelfree_bars}
 \end{figure}
 
 %% =====================================================================

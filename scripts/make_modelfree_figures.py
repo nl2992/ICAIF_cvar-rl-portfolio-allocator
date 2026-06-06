@@ -56,6 +56,22 @@ def main() -> None:
             FIG / "modelfree_comparison.png", "value",
             "Model-free (PPO/SAC) vs. differentiable allocator and optimisers"))
 
+        # validation-selection vs out-of-sample: the model-free overfitting gap
+        ppo_grid = _load(Path("results/tables_ppo/ppo_sweep_grid.csv"))
+        sac_grid = _load(Path("results/tables_sac/sac_sweep_grid.csv"))
+        if ppo_grid is not None and sac_grid is not None:
+            groups = {
+                "PPO": (ppo_grid["val_sharpe"].to_numpy(),
+                        float(comp.loc["ppo_best_unconstrained", "sharpe"])),
+                "SAC": (sac_grid["val_sharpe"].to_numpy(),
+                        float(comp.loc["sac_best_unconstrained", "sharpe"])),
+            }
+            ref = (float(comp.loc["rl_cvar_constrained", "sharpe"]),
+                   "diff. constrained (OOS)")
+            made.append(plots.plot_val_vs_oos(
+                groups, FIG / "modelfree_generalization.png", reference=ref,
+                title="Model-free arms overfit validation and collapse out-of-sample"))
+
     stats = _load(Path("results/tables_stats/per_universe_stats.csv"))
     if stats is not None:
         s = stats.reset_index() if "universe" not in stats.columns else stats
