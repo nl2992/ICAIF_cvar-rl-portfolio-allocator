@@ -185,15 +185,58 @@ Paired block bootstrap of the **CVaR-99 difference** (constrained − unconstrai
 2000 resamples, block 4): −0.033, 95% CI [−0.035, −0.008], p ≈ 0.00 — the tail-risk
 reduction is statistically significant. (`results/tables_diff/stress_constraint_test.csv`)
 
-## 10. Limitations & next steps
+## 10. Robustness (`scripts/run_robustness.py`)
+
+Re-running the stress study under perturbations, the constraint reduced CVaR-99 in
+**7 / 7 scenarios** (mean over seeds 7, 13):
+
+| Scenario | unconstrained CVaR-99 | constrained CVaR-99 | max DD (unc → con) |
+| --- | --- | --- | --- |
+| baseline | 0.0611 | 0.0301 | 0.200 → 0.111 |
+| 2× costs | 0.0572 | 0.0265 | 0.199 → 0.102 |
+| 3× costs | 0.0547 | 0.0251 | 0.226 → 0.103 |
+| tighter limit | 0.0611 | 0.0172 | 0.200 → 0.055 |
+| looser limit | 0.0611 | 0.0505 | 0.200 → 0.217 |
+| drop gold | 0.0563 | 0.0197 | 0.226 → 0.062 |
+| drop commodity | 0.0627 | 0.0340 | 0.212 → 0.120 |
+
+The tail-risk reduction **survives 2–3× transaction costs** (constrained turnover
+is higher, yet it still wins net) and a reduced universe. As expected, a looser
+CVaR budget weakens the effect.
+
+## 11. Ablations (`scripts/run_ablations.py`)
+
+Constrained allocator on the stress window, varying one factor at a time:
+
+| Ablation | Sharpe | CVaR-95 | CVaR-99 | Max DD |
+| --- | --- | --- | --- | --- |
+| base (anchor, α=0.95, return obj) | 0.865 | 0.0177 | 0.0301 | 0.111 |
+| no anchor | 0.826 | 0.0180 | 0.0318 | 0.108 |
+| α = 0.90 | 0.684 | 0.0249 | 0.0452 | 0.172 |
+| α = 0.99 | 1.251 | 0.0098 | 0.0146 | 0.053 |
+| tighter risk budget | **1.272** | 0.0092 | 0.0135 | 0.041 |
+| looser risk budget | 0.515 | 0.0302 | 0.0493 | 0.230 |
+| Sharpe objective | 0.791 | 0.0166 | 0.0273 | 0.108 |
+
+**Reads:** (i) the inverse-vol anchor helps; (ii) a more extreme tail level
+(α=0.99) and a tighter risk budget push the allocator further toward the cash leg,
+which on this stress window *both* cuts tail risk and lifts Sharpe — i.e. tighter
+risk control was not costly here; (iii) the effect is monotone in the budget.
+
+## 12. Walk-forward across regimes (`scripts/run_walk_forward.py`)
+
+<!-- WALK_FORWARD -->
+_Rolling refit/evaluate with per-regime breakdowns and a fold-level paired test;
+see `results/tables_wf/`._
+
+## 13. Limitations & next steps
 
 - Results are on a single liquid macro universe with synthetic-cost assumptions
-  (5 bps). The stress window is a specific 2020–2024 slice; a full rolling
-  walk-forward (§Phase 10 in `TODO.md`) would strengthen the claim.
+  (5 bps), though robustness (§10) shows the effect survives 2–3× costs.
 - The constrained allocator's turnover (~0.04/wk) is higher than the optimisers';
-  an explicit turnover penalty (already supported) should be tuned.
-- The headline depends on a tightened CVaR limit (0.012) so the constraint binds
-  on validation; on the calm chronological split the limit is non-binding and the
-  constraint is a near-free insurance premium.
-- **Next steps:** rolling walk-forward across regimes; PPO/SAC for the model-free
-  arm; per-asset transaction-cost calibration; benchmark-relative variant.
+  the (now-supported) turnover penalty should be tuned.
+- The headline depends on a tightened CVaR limit so the constraint binds; on the
+  calm chronological split the limit is non-binding and the constraint is a
+  near-free insurance premium.
+- **Next steps:** PPO/SAC (now available) sweep for the model-free arm; per-asset
+  transaction-cost calibration; benchmark-relative active-risk variant.
