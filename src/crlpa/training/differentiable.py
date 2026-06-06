@@ -86,6 +86,7 @@ def _rollout_sharpe(
     cvar_window: int,
     cvar_alpha: float,
     log_anchor: torch.Tensor | None = None,
+    exog: torch.Tensor | None = None,
 ) -> tuple[float, float, float]:
     """Deterministic full-pass (Sharpe, CVaR, mean return) of net returns for selection."""
     n = R.shape[1]
@@ -96,8 +97,9 @@ def _rollout_sharpe(
     rets: list[float] = []
     for t in range(R.shape[0]):
         state_tail = torch.tensor([*w_prev.tolist(), drawdown, cvar_feat])
+        obs_parts = [feats[t], state_tail] if exog is None else [feats[t], state_tail, exog[t]]
         la = None if log_anchor is None else log_anchor[t]
-        w = actor(torch.cat([feats[t], state_tail]), la)
+        w = actor(torch.cat(obs_parts), la)
         ret = float((w * R[t]).sum() - cost * (w - w_prev).abs().sum())
         rets.append(ret)
         wealth *= 1 + ret
@@ -131,13 +133,16 @@ def train_differentiable(
     lookback: int,
     config: DiffConfig | None = None,
     val_returns: pd.DataFrame | None = None,
+    exog: np.ndarray | None = None,
+    val_exog: np.ndarray | None = None,
 ) -> tuple[DiffAllocator, pd.DataFrame]:
     """Train a differentiable allocator on randomised windows of the return series.
 
     Objective per window: maximise the realised Sharpe ratio (optionally minus a
     mean-variance term), with a differentiable CVaR penalty (mean of the worst
     ``(1-alpha)`` tail of net returns) scaled by a Lagrange multiplier that tracks
-    the CVaR-limit violation via dual ascent.
+    the CVaR-limit violation via dual ascent. Optional ``exog`` adds per-step
+    exogenous state (e.g. macro/factor features) appended to the observation.
     """
     config = config or DiffConfig()
     set_global_seed(config.seed)
@@ -147,7 +152,9 @@ def train_differentiable(
     feats = torch.as_tensor(_market_features(returns.to_numpy(), lookback))
     anchor_np = _anchor_log_weights(returns.to_numpy(), lookback, config.anchor)
     log_anchor = None if anchor_np is None else torch.as_tensor(anchor_np)
-    obs_dim = 3 * n + 2
+    exog_t = None if exog is None else torch.as_tensor(np.asarray(exog), dtype=torch.float32)
+    exog_dim = 0 if exog_t is None else exog_t.shape[1]
+    obs_dim = 3 * n + 2 + exog_dim
     horizon = min(config.horizon, t_total - 1)
     k_tail = max(1, int(round((1 - cvar_alpha) * horizon)))
 
@@ -163,12 +170,13 @@ def train_differentiable(
     best_cvar = np.inf  # fallback: lowest val CVaR if none are feasible
     best_state = {k: v.clone() for k, v in actor.state_dict().items()}
     best_feasible_state = None
-    val_anchor = None
+    val_anchor = val_exog_t = None
     if val_returns is not None:
         val_R = torch.as_tensor(val_returns.to_numpy().copy(), dtype=torch.float32)
         val_feats = torch.as_tensor(_market_features(val_returns.to_numpy(), lookback))
         va = _anchor_log_weights(val_returns.to_numpy(), lookback, config.anchor)
         val_anchor = None if va is None else torch.as_tensor(va)
+        val_exog_t = None if val_exog is None else torch.as_tensor(np.asarray(val_exog), dtype=torch.float32)
 
     for it in range(config.n_updates):
         start = int(rng.integers(0, max(1, t_total - horizon)))
@@ -180,7 +188,8 @@ def train_differentiable(
 
         for t in range(start, start + horizon):
             state_tail = torch.tensor([*w_prev.detach().tolist(), drawdown, cvar_feat])
-            obs = torch.cat([feats[t], state_tail])
+            obs_parts = [feats[t], state_tail] if exog_t is None else [feats[t], state_tail, exog_t[t]]
+            obs = torch.cat(obs_parts)
             la = None if log_anchor is None else log_anchor[t]
             w = actor(obs, la)
             turnover = (w - w_prev.detach()).abs().sum()
@@ -229,7 +238,7 @@ def train_differentiable(
         }
         if val_R is not None and it % config.eval_every == 0:
             val_sharpe, val_cvar, val_ret = _rollout_sharpe(
-                actor, val_R, val_feats, cost, cvar_window, cvar_alpha, val_anchor
+                actor, val_R, val_feats, cost, cvar_window, cvar_alpha, val_anchor, val_exog_t
             )
             # Select by the same criterion the objective optimises.
             val_metric = val_ret if config.objective == "return" else val_sharpe

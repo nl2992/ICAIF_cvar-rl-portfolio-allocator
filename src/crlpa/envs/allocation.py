@@ -43,12 +43,18 @@ class AllocationEnv:
         cvar_limit: float = 0.035,
         cvar_window: int = 52,
         lookback: int = 26,
+        exog: np.ndarray | None = None,
     ) -> None:
         if returns.empty:
             raise ValueError("returns cannot be empty")
         self.returns = returns.reset_index(drop=True)
         self.transaction_cost = transaction_cost_bps / 10_000.0
         self.n_assets = returns.shape[1]
+        if exog is not None:
+            exog = np.asarray(exog, dtype=np.float64)
+            if exog.shape[0] != len(self.returns):
+                raise ValueError("exog must have one row per return step")
+        self.exog = exog
         self.constraints = constraints
         if constraints is not None:
             constraints.feasible_max_weight(self.n_assets)
@@ -58,10 +64,14 @@ class AllocationEnv:
         self.lookback = lookback
         self.state = self._initial_state()
 
-    # observation layout: [momentum(n), volatility(n), weights(n), drawdown, cvar]
+    # observation layout: [momentum(n), volatility(n), weights(n), drawdown, cvar, exog(k)]
+    @property
+    def exog_dim(self) -> int:
+        return 0 if self.exog is None else int(self.exog.shape[1])
+
     @property
     def obs_dim(self) -> int:
-        return 3 * self.n_assets + 2
+        return 3 * self.n_assets + 2 + self.exog_dim
 
     @property
     def action_dim(self) -> int:
@@ -92,14 +102,15 @@ class AllocationEnv:
         else:
             momentum = hist.mean(axis=0)
             volatility = hist.std(axis=0)
-        return np.concatenate(
-            [
-                momentum,
-                volatility,
-                self.state.weights,
-                [self.state.drawdown, self.state.cvar_estimate],
-            ]
-        ).astype(np.float64)
+        parts = [
+            momentum,
+            volatility,
+            self.state.weights,
+            np.array([self.state.drawdown, self.state.cvar_estimate]),
+        ]
+        if self.exog is not None:
+            parts.append(self.exog[min(t, len(self.exog) - 1)])
+        return np.concatenate(parts).astype(np.float64)
 
     def step(self, action: np.ndarray) -> tuple[AllocationState, float, bool, dict[str, float]]:
         weights = self._admissible(action)
