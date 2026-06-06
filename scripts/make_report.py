@@ -55,6 +55,34 @@ def main() -> None:
         _table(tables / "statistical_tests.csv"),
         "## Deterministic baselines (full universe)",
         _table(tables / "baseline_metrics.csv", perf_cols),
+    ]
+
+    # Real-ETF differentiable-allocator studies (included if their tables exist).
+    studies = [
+        ("Differentiable allocator — stress study (constrained vs unconstrained)",
+         Path("results/tables_diff/stress_metrics.csv")),
+        ("Stress study — CVaR-99 constraint bootstrap test",
+         Path("results/tables_diff/stress_constraint_test.csv")),
+        ("Walk-forward — concatenated out-of-sample metrics",
+         Path("results/tables_wf/walkforward_oos_metrics.csv")),
+        ("Walk-forward — fold-level CVaR-99 paired test",
+         Path("results/tables_wf/walkforward_fold_test.csv")),
+        ("Robustness — constraint effect under cost/limit/universe perturbations",
+         Path("results/tables_robustness/robustness_metrics.csv")),
+        ("Ablations — anchor / CVaR level / risk budget / objective",
+         Path("results/tables_ablations/ablation_metrics.csv")),
+        ("Feature study — market-only vs macro+factor state",
+         Path("results/tables_macro/macro_study.csv")),
+    ]
+    present = [(title, p) for title, p in studies if p.exists()]
+    if present:
+        sections.append("## Real-ETF studies\n")
+        sections.append("See `reports/etf_study.md` for the full write-up.\n")
+        for title, path in present:
+            sections.append(f"### {title}")
+            sections.append(_table(path))
+
+    sections += [
         "## Notes",
         "- Metrics are averaged across training seeds for the RL variants.",
         "- CVaR breach rate is the fraction of weeks the rolling CVaR estimate "
