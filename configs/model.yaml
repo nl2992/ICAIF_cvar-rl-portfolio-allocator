@@ -1,0 +1,12 @@
+# Actor-critic architecture and optimiser settings.
+model:
+  hidden: [64, 64]
+  actor_lr: 0.0003
+  critic_lr: 0.001
+  gamma: 0.95
+  entropy_coef: 0.01
+  value_coef: 0.5
+  log_std_init: -0.5
+  cost_mode: breach        # breach (0/1 indicator) | magnitude
+  lagrange_lr: 1.0
+  cvar_budget: 0.05         # tolerated weekly CVaR breach rate

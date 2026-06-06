@@ -1,0 +1,5 @@
+# Backtest / evaluation settings.
+backtest:
+  periods_per_year: 52
+  bootstrap_resamples: 2000
+  block_size: 4
