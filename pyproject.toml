@@ -31,7 +31,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = ["E501"]
+ignore = ["E501", "E702"]  # E702: compact semicolons allowed (plotting helpers)
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

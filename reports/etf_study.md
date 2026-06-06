@@ -256,21 +256,22 @@ regime it targets — and is not costly (even helps) in calm periods.
 
 ## 13. Feature study (`scripts/run_macro_study.py`)
 
-Does extra state beyond market momentum/vol help? Comparing the constrained
-allocator with vs. without rolling factor betas (market-only baseline), stress
-window, mean over seeds 7/13:
+Does extra state beyond market momentum/vol help the constrained allocator?
+Stress window, mean over seeds 7/13:
 
 | State | Sharpe | CVaR-99 | Max DD |
 | --- | --- | --- | --- |
-| market only | **0.914** | **0.0288** | **0.106** |
-| market + factor betas | 0.882 | 0.0346 | 0.116 |
+| market only | 0.917 | **0.0287** | 0.105 |
+| + factor betas only | 0.882 | 0.0346 | 0.116 |
+| + macro (term spread, VIX) + factor betas | **0.938** | 0.0310 | **0.095** |
 
-Factor betas did **not** help (slightly hurt) — they are largely redundant with
-the momentum/vol already in the state, and the extra inputs add estimation noise.
-The macro covariates (term/credit spread, VIX) loaders are implemented and unit
-tested, but the live FRED study could not run in this environment (FRED throttled
-the historical CSV download); the chunked loader and a factor-only fallback are in
-place for a future run.
+**Reads:** factor betas alone slightly *hurt* (redundant with the momentum/vol
+already in the state, adding estimation noise); adding macro state (10y−3m term
+spread and VIX, lagged one week) recovers and slightly improves Sharpe and
+drawdown, but not tail CVaR — a marginal, not decisive, benefit on this universe.
+Macro is sourced from Yahoo index proxies (`^TNX−^IRX`, `^VIX`); the FRED loader
+(term/credit spread, VIX) is implemented and unit-tested but was rate-limited in
+this run, so `load_macro_yahoo` is used as the fallback.
 
 ## 14. Limitations & next steps
 
@@ -283,3 +284,33 @@ place for a future run.
   near-free insurance premium.
 - **Next steps:** PPO/SAC (now available) sweep for the model-free arm; per-asset
   transaction-cost calibration; benchmark-relative active-risk variant.
+
+## Figures (`scripts/make_figures.py` → `reports/figures/`)
+
+Time-series figures back-test the constrained vs. unconstrained allocator on the
+stress window; bar charts summarise the result tables.
+
+**Performance & risk over time**
+
+![Cumulative wealth](figures/wealth_curves.png)
+![Drawdown](figures/drawdown_curves.png)
+
+**What the constrained allocator does** — it de-risks into the cash/rates leg
+during stress, with lower turnover spikes and a lower rolling CVaR than the
+unconstrained agent:
+
+![Constrained weights](figures/weights_constrained.png)
+![Unconstrained weights](figures/weights_unconstrained.png)
+![Turnover](figures/turnover.png)
+![Rolling CVaR](figures/rolling_cvar.png)
+
+**Constraint mechanics** — the Lagrange multiplier rises as the CVaR penalty bites
+during training:
+
+![Lagrange path](figures/lagrange_path.png)
+
+**Summary charts**
+
+![Robustness CVaR-99](figures/robustness_cvar99.png)
+![Walk-forward CVaR-99 by regime](figures/regime_cvar99.png)
+![Ablations](figures/ablation_cvar99.png)
