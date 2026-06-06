@@ -1,0 +1,292 @@
+%% ICAIF-style paper backbone for the CVaR-Constrained RL Portfolio Allocator.
+%% Format intentionally mirrors recent ICAIF submissions (acmart, sigconf).
+%% This is a BACKBONE: method/setup are committed; result tables are placeholders
+%% (\TODO) to be filled by the pipeline. Every committed number below is drawn
+%% from configs/experiment.yaml.
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\graphicspath{{figures/}{../results/}}
+
+%% --- Macro for "pending results" placeholders; keeps the draft honest. ---
+\newcommand{\TODO}[1]{\textcolor{red}{[\textsc{todo}: #1]}}
+
+\begin{document}
+
+\title{CVaR-Constrained Reinforcement Learning for Benchmark-Aware
+Multi-Asset Allocation}
+
+%% Replace with the final author block before submission.
+\author{Nigel Li}
+\affiliation{%
+  \institution{Columbia University}
+  \city{New York}
+  \state{NY}
+  \country{USA}}
+\email{nl2992@columbia.edu}
+
+\renewcommand{\shortauthors}{Li}
+
+\begin{abstract}
+Mean--variance optimisation underpins modern portfolio construction but
+penalises upside and downside symmetrically and is silent on path-wise
+drawdown---precisely the risks that matter when allocating across asset classes
+through stress regimes. We study a reinforcement-learning (RL) allocator that
+optimises return while \emph{explicitly} controlling tail risk and drawdown,
+formulated around a cost-adjusted Conditional Value-at-Risk (CVaR) objective with
+hard constraints on per-period CVaR, drawdown and concentration. The allocator
+acts in a compact, testable multi-asset environment (equity index, rates, credit,
+commodity, FX) with weekly rebalancing, proportional transaction costs and a
+long-only budget. We benchmark learned policies against equal-weight and
+inverse-volatility allocation, reporting annualised return, Sharpe, Sortino,
+maximum drawdown, $\mathrm{CVaR}_{95}$, turnover and constraint-violation rates,
+with paired-bootstrap significance on per-period returns.
+\emph{[Backbone: headline results pending the trained-agent runs.]}
+On the synthetic study the CVaR-constrained allocator is expected to reduce
+$\mathrm{CVaR}_{95}$ and maximum drawdown relative to the risk-agnostic baselines
+at comparable or better risk-adjusted return; we will report \TODO{headline
+$\mathrm{CVaR}_{95}$ / max-DD / Sharpe deltas} and ablate the contribution of the
+CVaR term and the drawdown constraint.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept><concept_id>10010147.10010257</concept_id>
+<concept_desc>Computing methodologies~Reinforcement learning</concept_desc>
+<concept_significance>500</concept_significance></concept>
+<concept><concept_id>10003752</concept_id>
+<concept_desc>Applied computing~Economics</concept_desc>
+<concept_significance>300</concept_significance></concept>
+</ccs2012>
+\end{CCSXML}
+\ccsdesc[500]{Computing methodologies~Reinforcement learning}
+\ccsdesc[300]{Applied computing~Economics}
+
+\keywords{portfolio allocation, reinforcement learning, Conditional
+Value-at-Risk, drawdown control, risk-constrained optimisation, mean-variance}
+
+\maketitle
+
+%% =====================================================================
+\section{Introduction}
+%% Context -> problem -> research question -> contributions -> roadmap.
+
+Markowitz mean--variance optimisation (MVO) laid the foundation of modern
+portfolio theory~\cite{markowitz1952portfolio}, but its variance penalty treats
+upside and downside symmetrically and ignores the \emph{path} of wealth: two
+portfolios with identical variance can have very different drawdowns. For
+multi-asset allocators that must survive stress regimes, the economically
+relevant risks are \emph{tail loss} and \emph{drawdown}, not variance. A growing
+literature applies machine learning to portfolio construction---both to estimate
+MVO inputs better~\cite{lee2024dfl} and to recommend portfolios that respect
+investor preferences~\cite{chung2023mvecf}---and reinforcement learning offers a
+natural way to optimise a risk measure \emph{directly}, end to end, under
+transaction costs and constraints.
+
+We therefore ask:
+\begin{quote}
+\emph{Can a reinforcement-learning allocator that optimises a cost-adjusted CVaR
+objective, subject to explicit drawdown and concentration constraints, control
+tail risk and drawdown better than risk-agnostic baselines without sacrificing
+risk-adjusted return?}
+\end{quote}
+
+\noindent\textbf{Our main contributions are:}
+\begin{itemize}
+\item A compact, testable \textbf{multi-asset allocation environment} with budget
+normalisation, proportional transaction costs and a long-only weight cap, plus a
+dataset contract for returns, factor exposures, costs and benchmark weights
+(Section~\ref{sec:method}).
+\item A \textbf{cost-adjusted CVaR objective with hard risk constraints}
+(per-period $\mathrm{CVaR}_{95}$, maximum drawdown, per-asset concentration),
+expressed so that constraint violations are measurable and reportable
+(Section~\ref{sec:method}).
+\item A \textbf{benchmark suite and evaluation protocol}: equal-weight and
+inverse-volatility baselines, a held-out evaluation with a controlled stress
+regime, and significance testing on per-period returns
+(Section~\ref{sec:setup}).
+\item \emph{[Pending]} An \textbf{empirical study} quantifying the tail-risk and
+drawdown reduction from the CVaR objective and the drawdown constraint, with
+ablations isolating each ingredient (Section~\ref{sec:results}).
+\end{itemize}
+
+The remainder reviews background and related work
+(Section~\ref{sec:related}), details the environment, objective and policies
+(Section~\ref{sec:method}), the experimental setup (Section~\ref{sec:setup}) and
+results (Section~\ref{sec:results}), then discusses limitations, future work and
+conclusions (Sections~\ref{sec:limitations}--\ref{sec:conclusion}).
+
+%% =====================================================================
+\section{Background and Related Work}
+\label{sec:related}
+
+\paragraph{Mean--variance optimisation and its inputs.} MVO~\cite{markowitz1952portfolio}
+is sensitive to input estimates; decision-focused learning trains return
+predictors to improve downstream MVO decisions rather than raw forecast
+accuracy~\cite{lee2024dfl}, and mean--variance-efficient collaborative filtering
+blends user preference with portfolio theory~\cite{chung2023mvecf}. These works
+improve the \emph{inputs} or \emph{recommendation} layer of a variance-based
+objective; we instead optimise a \emph{tail} risk measure directly.
+
+\paragraph{Conditional Value-at-Risk.} CVaR is a coherent risk measure with a
+convex Rockafellar--Uryasev representation~\cite{rockafellar2000optimization}
+amenable to optimisation and to use as an RL reward. We adopt it both as the
+training objective and as a hard per-period constraint.
+
+\paragraph{Reinforcement learning for allocation.} RL frames allocation as a
+sequential decision problem and can optimise non-differentiable, path-dependent
+objectives such as drawdown directly. Our environment is deliberately small and
+swappable so that policy and evaluation interfaces can later host SAC/PPO or a
+continuous-time actor--critic.
+
+%% =====================================================================
+\section{Method}
+\label{sec:method}
+
+\paragraph{Allocation environment.} At each weekly step the agent outputs target
+weights $w_t$ over $N$ assets; weights are clipped non-negative and budget-
+normalised (long-only, $\sum_i w_{t,i}=1$, $w_{t,i}\le w_{\max}$). Transaction
+costs are charged on turnover, $c_t = \kappa \lVert w_t - w_{t-1}\rVert_1$, and
+wealth compounds as $W_{t+1} = W_t\,(1 + w_t^{\top} r_t - c_t)$. The committed
+configuration is summarised in Table~\ref{tab:config}.
+
+\begin{table}[t]
+\centering
+\caption{Committed environment and risk configuration
+(\texttt{configs/experiment.yaml}).}
+\label{tab:config}
+\small
+\begin{tabular}{ll}
+\toprule
+parameter & value \\
+\midrule
+universe          & equity index, rates, credit, commodity, FX \\
+rebalance         & weekly \\
+transaction cost  & 2.0 bps on turnover \\
+max weight        & 0.60 (long-only) \\
+$\mathrm{CVaR}$ level $\alpha$ & 0.95 \\
+weekly CVaR limit & 0.035 \\
+drawdown limit    & 0.15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Objective and constraints.} The agent maximises a cost-adjusted CVaR
+utility
+\begin{equation}
+\mathcal{U} = \mathbb{E}[r^{p}] - \lambda\,\mathrm{CVaR}_{\alpha}(\text{loss}),
+\end{equation}
+in the convex Rockafellar--Uryasev form~\cite{rockafellar2000optimization},
+subject to hard constraints on per-period $\mathrm{CVaR}_{95}$ ($\le 0.035$),
+maximum drawdown ($\le 0.15$) and per-asset concentration ($w_{t,i}\le 0.60$).
+Constraint violations are tracked and reported as a first-class metric.
+
+\paragraph{Policies.} Baselines are \emph{equal-weight} ($w_i = 1/N$) and
+\emph{inverse-volatility} ($w_i \propto 1/\hat\sigma_i$ over a trailing window).
+The learned allocator shares the same environment, cost model and constraints;
+the policy/training interface is built to accept a discrete-time SAC/PPO agent or
+a continuous-time actor--critic approximation. \TODO{finalise the trained-agent
+class for the headline run.}
+
+%% =====================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Data.} The synthetic study draws correlated weekly returns for the
+five asset classes with one embedded stress regime (a multi-week drawdown
+shock), so that a risk-agnostic policy is visibly punished in the tail. The same
+dataset contract (returns, factor exposures, costs, benchmark weights, optional
+liabilities) accepts real multi-asset panels for the empirical extension.
+
+\paragraph{Protocol.} Train on in-sample windows; evaluate on disjoint held-out
+windows including the stress regime. We report annualised return, Sharpe,
+Sortino, maximum drawdown, $\mathrm{CVaR}_{95}$, turnover and constraint-
+violation rate, with paired-bootstrap confidence intervals and the Wilcoxon
+signed-rank test on per-period returns. Every run records seed and configuration
+for reproducibility.
+
+%% =====================================================================
+\section{Results}
+\label{sec:results}
+
+\emph{This section is a backbone; the tables below are placeholders to be filled
+by the pipeline.}
+
+\begin{table}[t]
+\centering
+\caption{Held-out comparison (synthetic). Lower $\mathrm{CVaR}_{95}$/max-DD/
+turnover is better; higher Sharpe/Sortino is better. \TODO{populate from
+\texttt{results/}}.}
+\label{tab:results}
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+policy & ann.\ ret. & Sharpe & Sortino & max-DD & $\mathrm{CVaR}_{95}$ & turn. \\
+\midrule
+equal-weight        & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} \\
+inverse-vol         & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} \\
+\textbf{CVaR-RL (ours)} & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} & \TODO{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Ablations (synthetic). \TODO{populate}.}
+\label{tab:ablation}
+\small
+\begin{tabular}{lrr}
+\toprule
+variant & $\mathrm{CVaR}_{95}$ & max-DD \\
+\midrule
+full (CVaR + drawdown constraint) & \TODO{} & \TODO{} \\
+objective = mean-only (no CVaR)   & \TODO{} & \TODO{} \\
+no drawdown constraint            & \TODO{} & \TODO{} \\
+no transaction costs              & \TODO{} & \TODO{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We expect the CVaR-constrained allocator to dominate the risk-agnostic baselines
+on $\mathrm{CVaR}_{95}$ and maximum drawdown through the stress regime, and the
+mean-only ablation to inflate the tail---mirroring the role the risk objective
+plays in related risk-aware studies. \TODO{state the realised deltas and their
+significance.}
+
+%% =====================================================================
+\section{Limitations}
+\label{sec:limitations}
+
+The headline study uses a synthetic multi-asset market with a single embedded
+stress regime; real panels will introduce non-stationarity, estimation error and
+richer correlation dynamics. Costs are proportional to turnover with no market
+impact or borrow modelling, and the policy is long-only with a fixed weekly
+cadence. The trained-agent class and the choice of absolute versus
+benchmark-relative CVaR are still being finalised (Section~\ref{sec:method}).
+
+%% =====================================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+We present a benchmark-aware, CVaR-constrained RL allocator and an evaluation
+protocol that treats tail loss, drawdown and constraint violations as
+first-class outcomes rather than by-products of a variance objective. Once the
+trained-agent runs complete, we will quantify the tail-risk and drawdown
+reduction over risk-agnostic baselines and ablate each ingredient. Future work
+includes a discrete-time SAC/PPO and a continuous-time actor--critic agent,
+benchmark-relative and surplus-shortfall risk targets, leverage and shorting
+variants, and a real multi-asset empirical study spanning historical stress
+episodes.
+
+\begin{acks}
+Artefacts are produced by the open pipeline in the project repository and are
+reproducible from a clean checkout.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
