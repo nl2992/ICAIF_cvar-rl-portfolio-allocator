@@ -109,11 +109,22 @@ def plot_risk_return(df: pd.DataFrame, path, x="sharpe", y="cvar_99",
     the constrained allocator sits in the low-tail corner.
     """
     fig, ax = plt.subplots(figsize=(7, 4.8))
+    xs, ys = df[x].to_numpy(float), df[y].to_numpy(float)
+    # pad the data limits so points (and their labels) sit inside the border
+    xpad = 0.08 * (xs.max() - xs.min() or 1.0)
+    ypad = 0.08 * (ys.max() - ys.min() or 1.0)
+    ax.set_xlim(xs.min() - xpad, xs.max() + xpad)
+    ax.set_ylim(ys.min() - ypad, ys.max() + ypad)
+    xmid = 0.5 * (xs.min() + xs.max())
     for name, row in df.iterrows():
         ax.scatter(row[x], row[y], s=90, color=_COLORS.get(name, "#333333"),
                    edgecolor="black", linewidth=0.6, zorder=3)
-        ax.annotate(str(name), (row[x], row[y]), fontsize=7.5,
-                    xytext=(5, 4), textcoords="offset points")
+        # flip the label to the inside for points on the right half, so the text
+        # never runs off the right border
+        right = row[x] > xmid
+        ax.annotate(str(name), (row[x], row[y]), fontsize=7.5, zorder=4,
+                    xytext=(-6 if right else 6, 4), textcoords="offset points",
+                    ha="right" if right else "left", va="bottom")
     ax.invert_yaxis()  # lower tail risk = better = upward
     ax.set_xlabel(f"{x} (higher is better)")
     ax.set_ylabel(f"{y} (lower is better)")
