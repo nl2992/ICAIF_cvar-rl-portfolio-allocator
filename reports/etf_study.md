@@ -225,9 +225,34 @@ risk control was not costly here; (iii) the effect is monotone in the budget.
 
 ## 12. Walk-forward across regimes (`scripts/run_walk_forward.py`)
 
-<!-- WALK_FORWARD -->
-_Rolling refit/evaluate with per-regime breakdowns and a fold-level paired test;
-see `results/tables_wf/`._
+The strongest test: refit every 52 weeks on a rolling 312-week window and
+concatenate **10 out-of-sample folds (~2010–2024)** into one OOS path.
+
+| Strategy | Sharpe | Ann. ret | Max DD | CVaR-95 | CVaR-99 |
+| --- | --- | --- | --- | --- | --- |
+| rl_unconstrained | 0.70 | 0.043 | 0.151 | 0.0226 | 0.0416 |
+| rl_cvar_constrained | 0.83 | 0.041 | 0.114 | 0.0168 | 0.0331 |
+| inverse_vol | 1.06 | 0.034 | 0.070 | 0.0104 | 0.0183 |
+| min_variance | 1.45 | 0.033 | 0.057 | 0.0071 | 0.0106 |
+
+Across the full rolling OOS the **constraint beats unconstrained RL** (Sharpe
++18%, CVaR-99 −20%, max DD −25%). Fold-level paired test of CVaR-99
+(constrained − unconstrained): mean −0.0052, improved in 5/10 folds,
+Wilcoxon p = 0.06 (marginal). The deterministic min-variance / inverse-vol
+optimisers remain the strongest absolute performers — RL does not beat them here.
+
+**Per-regime** (constrained vs unconstrained), where the constraint earns its keep:
+
+| Regime | metric | unconstrained | constrained |
+| --- | --- | --- | --- |
+| selloff (61w) | CVaR-99 | 0.0660 | **0.0479** (−27%) |
+| selloff | max DD | 0.218 | **0.137** (−37%) |
+| selloff | Sharpe | −1.13 | **−0.81** |
+| calm (388w) | CVaR-99 | 0.0275 | **0.0195** |
+| calm | Sharpe | 1.28 | **1.44** |
+
+The constraint cuts tail risk and drawdown most in **selloffs** — exactly the
+regime it targets — and is not costly (even helps) in calm periods.
 
 ## 13. Limitations & next steps
 
