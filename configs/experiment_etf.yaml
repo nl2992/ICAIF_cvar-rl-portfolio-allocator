@@ -8,7 +8,7 @@ dataset_version: yahoo_etf7_2008_2024
 seed: 42
 
 data:
-  source: yahoo
+  source: parquet          # frozen via: scripts/build_dataset.py --config <this> --out <parquet_path>; set to yahoo to refetch
   tickers: [SPY, TLT, HYG, DBC, GLD, UUP, BIL]   # equity, rates, credit, commodity, gold, fx, cash
   start: "2008-01-01"
   end: "2024-12-31"
@@ -47,8 +47,9 @@ model:
   entropy_coef: 0.01
   value_coef: 0.5
   log_std_init: -0.5
-  lagrange_lr: 0.05
-  cvar_budget: 0.0
+  cost_mode: breach        # breach (0/1 indicator) | magnitude
+  lagrange_lr: 1.0
+  cvar_budget: 0.05         # tolerated weekly CVaR breach rate
 
 training:
   n_episodes: 150

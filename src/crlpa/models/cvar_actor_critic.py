@@ -22,8 +22,9 @@ class ActorCriticConfig:
     value_coef: float = 0.5
     log_std_init: float = -0.5
     constrained: bool = True  # False reproduces an unconstrained A2C allocator
-    lagrange_lr: float = 0.05
-    cvar_budget: float = 0.0
+    cost_mode: str = "breach"  # "breach" (0/1 indicator) | "magnitude" (raw CVaR excess)
+    lagrange_lr: float = 1.0
+    cvar_budget: float = 0.05  # tolerated breach rate when cost_mode="breach"
     max_grad_norm: float = 1.0
 
 
@@ -115,6 +116,13 @@ class CVaRActorCritic:
         lam = self.lagrange.value if self.config.constrained else 0.0
         if self.config.constrained:
             cost_advantage = cost_to_go - safety_values.detach()
+            # Standardise the cost advantage to the same unit scale as the reward
+            # advantage. Without this the raw CVaR cost (~1e-3) is dwarfed by the
+            # standardised reward advantage (O(1)), so the constraint never binds
+            # for any reasonable Lagrange multiplier.
+            cost_advantage = (cost_advantage - cost_advantage.mean()) / (
+                cost_advantage.std() + 1e-8
+            )
             penalised = advantage - lam * cost_advantage
         else:
             penalised = advantage
