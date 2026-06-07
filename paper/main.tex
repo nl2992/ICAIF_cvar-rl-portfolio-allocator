@@ -82,13 +82,33 @@ Value-at-Risk, drawdown control, constrained MDP, differentiable optimisation}
 \section{Introduction}
 %% Context -> problem -> contributions -> scope/roadmap.
 
-Reinforcement learning (RL) for portfolio allocation is usually evaluated on
-return or Sharpe ratio, with risk handled implicitly. Practitioners, however,
-manage \emph{tail} risk explicitly. Markowitz mean--variance
+In the week of 16 March 2020, the S\&P 500 fell another 15\% in four days as
+COVID-19 lockdowns shut economies worldwide.  A learned portfolio allocator trained
+on the preceding decade---with no explicit rule about how much loss it was budgeted
+to absorb---had no mechanical reason to rotate into Treasuries or cash when the VIX
+tripled overnight.  Absent a tail limit, the policy kept holding equities through
+the worst losses.  An otherwise-identical allocator carrying an explicit
+Conditional Value-at-Risk (CVaR) limit had already rotated into the cash/rates leg
+before the trough and emerged with roughly half the drawdown: 11.8\% peak-to-trough
+versus 20.6\% for its unconstrained twin (Table~\ref{tab:stress}).
+
+That difference is the headline this paper defends: an explicit CVaR constraint is
+a safety layer that cuts tail losses of a \emph{learned} allocator without
+sacrificing risk-adjusted return.  There is, however, a catch.  In the first
+model-free implementation we tried---a standard Lagrangian actor--critic---the
+constraint was completely inert.  The constrained and unconstrained policies were
+numerically identical.  The culprit is a subtle scale mismatch that we describe,
+name, and fix in Section~\ref{sec:coupling}; it is likely present in any
+Lagrangian RL system that standardises the return advantage but not the cost
+advantage.
+
+Reinforcement learning for portfolio allocation is usually evaluated on return
+or Sharpe ratio, with risk handled implicitly.  Practitioners, however, manage
+\emph{tail} risk explicitly.  Markowitz mean--variance
 optimisation~\cite{markowitz1952portfolio} penalises upside and downside
-symmetrically and is silent on path-wise drawdown; Conditional Value-at-Risk
-(CVaR) is a coherent, convex tail measure~\cite{rockafellar2000optimization} that
-RL can optimise directly. We therefore ask a narrow, falsifiable question:
+symmetrically and is silent on path-wise drawdown; CVaR is a coherent, convex tail
+measure~\cite{rockafellar2000optimization} that RL can optimise directly.  We ask
+a narrow, falsifiable question:
 
 \begin{quote}
 \emph{Does an explicit CVaR constraint reduce the downside tail losses and
@@ -722,6 +742,38 @@ method overall is a classic rolling minimum-variance optimiser, not the learner.
 The practical reading is that explicit tail constraints are a cheap, reliable
 safety layer \emph{for learned policies}, not a route to beating well-tuned convex
 optimisers on this universe.
+
+%% =====================================================================
+\subsection{Practitioner Takeaways}
+
+Four lessons transfer directly to deployment.
+
+\textbf{(1) Explicit tail limits outperform implicit ones in crises.}  An
+unconstrained return-greedy policy has no brake.  It continues holding risk until
+the drawdown has already compounded.  The CVaR constraint gives it a mechanical
+de-risking signal: once the rolling tail estimate approaches the budget, the policy
+rotates into the cash/rates leg.  In our data that rotation happened \emph{before}
+the 2020 and 2022 troughs (Figure~\ref{fig:weights}).
+
+\textbf{(2) Check constraint coupling before deployment.}  Any Lagrangian-constrained
+policy should verify the multiplier actually rises during training
+(Figure~\ref{fig:lagrange}).  If it stays near zero the constraint is inert: check
+that the advantage signals are on the same scale, and that the dual is driven by
+breach rate rather than raw cost magnitude (Section~\ref{sec:coupling}).  This is a
+one-line diagnostic that takes seconds to run and can save a deployment that
+\emph{looks} constrained from being operationally unconstrained.
+
+\textbf{(3) Walk-forward, not single-window, is the honest benchmark.}  An apparent
+advantage over a rolling minimum-variance optimiser on a fixed stress window can
+invert entirely under rolling evaluation---our 31-asset test is a concrete example.
+Do not report single stress-split comparisons against convex optimisers without a
+walk-forward confirmation (Section~\ref{sec:protocol}).
+
+\textbf{(4) Position this as a safety layer, not an alpha source.}  The robust,
+pooled-significant effect is on tail risk ($p=10^{-4}$).  The Sharpe advantage
+does not survive a Deflated-Sharpe correction.  The honest practitioner pitch is:
+the CVaR constraint will make a learned allocation policy \emph{safer}; it will not
+reliably make it more \emph{profitable} than a rolling minimum-variance optimiser.
 
 %% =====================================================================
 \section{Limitations}
