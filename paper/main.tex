@@ -146,12 +146,7 @@ evaluation protocol (Section~\ref{sec:protocol}).
 
 We are explicit about scope: the learned allocator does \textbf{not} beat a
 rolling minimum-variance optimiser here; the positive result is the constraint's
-effect on the \emph{learned policy's} tail risk. The remainder formulates the
-problem (Section~\ref{sec:formulation}), details the method
-(Section~\ref{sec:method}) and the constraint-coupling fix
-(Section~\ref{sec:coupling}), describes the data (Section~\ref{sec:data}) and
-results (Section~\ref{sec:results}), and discusses limitations and future work
-(Sections~\ref{sec:limitations}--\ref{sec:conclusion}).
+effect on the \emph{learned policy's} tail risk.
 
 %% =====================================================================
 \section{Background and Related Work}
@@ -397,24 +392,7 @@ Breach rate     & $0.234$         & $\mathbf{0.189}$         & $-19\%$ \\
 A paired block bootstrap of the $\mathrm{CVaR}_{99}$ difference (constrained minus
 unconstrained, 2000 resamples, block 4) gives $-0.033$, 95\% CI
 $[-0.035,\,-0.008]$, $p\approx0$---the tail-risk reduction is statistically
-significant. Figures~\ref{fig:wealth} and~\ref{fig:drawdown} show the wealth and
-drawdown paths.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{wealth_curves.png}
-  \caption{Cumulative wealth on the stress window: the CVaR-constrained allocator
-  tracks the unconstrained learner's growth while avoiding its deep-loss weeks.}
-  \label{fig:wealth}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{drawdown_curves.png}
-  \caption{Drawdown on the stress window: the constraint roughly halves the
-  maximum drawdown.}
-  \label{fig:drawdown}
-\end{figure}
+significant.
 
 \begin{figure}[t]
   \centering
@@ -596,10 +574,8 @@ Sharpe objective         & 0.791 & 0.0273 & 0.108 \\
   \label{fig:robust}
 \end{figure}
 
-\subsection{Feature study}
-Rolling factor betas alone slightly hurt (redundant with momentum/vol); adding
-macro state (term spread, VIX) gives a marginal Sharpe/drawdown improvement
-($0.92\!\to\!0.94$, max-DD $0.105\!\to\!0.095$) but no tail gain.
+\paragraph{Features.} Rolling factor betas alone slightly hurt; adding macro state
+(term spread, VIX) gives marginal Sharpe/drawdown improvement but no tail gain.
 
 \subsection{Diagnostics: behaviour, not metric-gaming}
 Three diagnostics confirm the constraint changes \emph{behaviour} rather than gaming
@@ -623,31 +599,14 @@ policy stays long-only, diversified, and within the turnover cap.
 
 \subsection{Tuned model-free RL is still weak}
 \label{sec:modelfree}
-Is the model-free arms' weakness merely a tuning artefact? We sweep PPO (36 configs
-over learning rate, entropy bonus, discount, and training length) and SAC (8 configs
-over learning rate, discount, and entropy-temperature handling), \emph{select each by
-validation Sharpe} (no test leakage), retrain the winner across three seeds, and
-evaluate on the stress window against the differentiable allocators and the optimisers
-(Table~\ref{tab:modelfree}, Figure~\ref{fig:frontier}). Tuning does not rescue them.
-The selected PPO overfits the validation window (validation Sharpe $1.70$) and posts
-the \emph{worst} out-of-sample tail of any method (Sharpe $0.67$,
-$\mathrm{CVaR}_{99}=0.070$); the selected SAC collapses to a timid, near-static
-allocation (Sharpe $0.39$, turnover $0.005$). Neither approaches the differentiable
-CVaR-constrained allocator (Sharpe $0.91$, $\mathrm{CVaR}_{99}=0.032$) or minimum
-variance. The two families fail in opposite directions---PPO chases return into the
-tail, SAC under-allocates---consistent with score-function / off-policy RL being
-sample-inefficient on this short, weekly, heavy-tailed problem, and motivating the
-pathwise-differentiable allocator. Adding the CVaR Lagrangian to either model-free
-arm lowers its tail but at a steep return cost (PPO Sharpe $0.67\!\to\!0.63$; SAC
-$0.39\!\to\!0.18$), never reaching the differentiable allocator's frontier. The
-failure is one of \emph{generalisation}, not tuning effort: across the swept
-configurations validation Sharpe reaches $1.0$--$1.8$, yet the validation-selected
-winner collapses out-of-sample to $0.67$ (PPO) and $0.39$ (SAC), below the
-differentiable allocator's $0.91$ (Figure~\ref{fig:modelfree_gen}). On 887 weekly
-observations the model-free arms simply have too few effective samples to learn a
-stable policy, whereas the pathwise gradient extracts a usable signal from the same
-data. The grouped comparison in Figure~\ref{fig:modelfree_bars} makes the joint
-Sharpe/tail gap explicit.
+We sweep 36 PPO and 8 SAC configurations, select each by validation Sharpe, and
+evaluate on the stress window (Table~\ref{tab:modelfree}, Figure~\ref{fig:frontier}).
+Tuning does not rescue either family.  The selected PPO overfits the validation window
+(validation Sharpe $1.70$) then posts the \emph{worst} out-of-sample tail (Sharpe
+$0.67$, $\mathrm{CVaR}_{99}=0.070$); SAC collapses to near-zero turnover (Sharpe
+$0.39$).  The failure is one of \emph{generalisation}, not tuning effort: on 887
+weekly observations score-function and off-policy RL have too few effective samples,
+whereas the pathwise gradient extracts a usable signal from the same data.
 
 \begin{table}[t]
 \centering
@@ -690,15 +649,6 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
   the differentiable constrained allocator (dashed)---a generalisation gap, not a
   tuning failure.}
   \label{fig:modelfree_gen}
-\end{figure}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{modelfree_comparison.png}
-  \caption{Stress-window Sharpe and $\mathrm{CVaR}_{99}$ across all arms. The
-  differentiable constrained allocator matches minimum variance on Sharpe with the
-  lowest tail; the model-free arms are dominated on at least one axis.}
-  \label{fig:modelfree_bars}
 \end{figure}
 
 \subsection{Backtest-protocol sensitivity: a cautionary result}
