@@ -11,3 +11,7 @@
 *.pdf
 comment.cut
 build.log
+
+# latex preview rasterizations
+_pv/
+*.synctex.gz
