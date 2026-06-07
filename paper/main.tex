@@ -165,10 +165,21 @@ blends user preference with portfolio theory~\cite{chung2023mvecf}. These works
 improve the \emph{inputs} or \emph{recommendation} layer of a variance-based
 objective; we instead constrain a \emph{tail} risk measure on a learned policy.
 
-\paragraph{Conditional Value-at-Risk.} CVaR is a coherent risk measure with a
-convex Rockafellar--Uryasev representation~\cite{rockafellar2000optimization}
-amenable both to convex optimisation (we include a min-CVaR LP baseline) and to
-use as a differentiable RL penalty.
+\paragraph{Conditional Value-at-Risk.} $\mathrm{CVaR}_\alpha$ is the \emph{expected
+portfolio loss on the worst $(1{-}\alpha)$ fraction of outcomes}---the average of all
+losses that exceed the $\alpha$-quantile, known as Value-at-Risk ($\mathrm{VaR}_\alpha$).
+Unlike variance it ignores upside; unlike $\mathrm{VaR}$ it averages across the entire
+tail rather than reporting a single threshold.  Rockafellar and
+Uryasev~\cite{rockafellar2000optimization} show it has the tractable form
+\begin{equation}
+  \mathrm{CVaR}_\alpha(L) \;=\; \min_{\zeta\in\mathbb{R}}\!\left\{
+    \zeta + \frac{1}{1-\alpha}\,\mathbb{E}\!\left[\max(L-\zeta,\,0)\right]
+  \right\},
+\end{equation}
+where $L$ denotes the portfolio loss and the inner expectation is over the empirical
+loss distribution.  The minimum is achieved at $\zeta=\mathrm{VaR}_\alpha$, the
+representation admits a convex LP (we include this as a baseline) and a differentiable
+penalty via \texttt{topk}.
 
 \paragraph{Constrained and risk-sensitive RL.} We pose allocation as a constrained
 MDP and solve the Lagrangian with dual ascent, with a separate safety critic
@@ -185,15 +196,19 @@ RL.
 
 \paragraph{Deep hedging and differentiable risk control.} The closest methodological
 neighbour is deep hedging~\cite{buehler2019deephedging}, which trains a neural policy
-end-to-end to optimise a risk measure (often CVaR) of terminal P\&L by
-back-propagating through a simulated trajectory---the same pathwise-gradient idea we
-apply to multi-asset allocation under an explicit, separately-budgeted CVaR
-\emph{constraint} rather than a CVaR utility. Recent work makes such policies
-auditable: ProtoHedge~\cite{faloughi2025protohedge} replaces the black-box hedger
-with a transparent prototype-similarity policy at negligible performance cost. These
-results---and ours---point the same way: differentiating a risk objective through the
-trajectory is both more sample-efficient and more controllable than score-function RL
-on small, frictional financial data.
+end-to-end by back-propagating a CVaR utility through a simulated trajectory.  Their
+key insight---that the reward is a differentiable function of the action, so exact
+gradients dominate score-function estimates on small financial datasets---directly
+motivates our differentiable allocator.  We extend this from a CVaR \emph{utility}
+to an explicit CVaR \emph{constraint} with a separately budgeted tail limit, which
+lets the practitioner specify tolerable loss directly rather than tuning a risk
+aversion coefficient.  Recent work makes such policies auditable:
+ProtoHedge~\cite{faloughi2025protohedge} replaces the black-box hedger with a
+transparent prototype-similarity policy at negligible performance cost,
+showing interpretability need not be sacrificed for efficiency. Our finding is
+analogous: the differentiable constraint layer adds safety without sacrificing return
+because, by construction, its gradient pressure acts \emph{only} on the worst-tail
+weeks.
 
 %% =====================================================================
 \section{Problem Formulation}
@@ -209,11 +224,16 @@ realises $r_t = w_t^{\top}\rho_t - c\lVert w_t - w_{t-1}\rVert_1$, where $\rho_t
 are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead;
 enforced by tests).
 
-\paragraph{Constrained objective (CMDP).} Maximise risk-adjusted return subject to
-a tail constraint, $\max_\pi J(\pi)$ s.t.\ $\mathrm{CVaR}_\alpha(\text{loss}) \le
-d$, with $\alpha=0.95$ and a breach threshold on the rolling CVaR estimate. We
-solve the Lagrangian $J(\pi) - \lambda\,(\text{constraint violation})$ with dual
-ascent on $\lambda$.
+\paragraph{Constrained objective (CMDP).} A \emph{constrained Markov Decision
+Process} (CMDP)~\cite{achiam2017cpo} augments the standard MDP with one or more
+inequality constraints that the policy must satisfy on average.  We maximise
+risk-adjusted return subject to a tail budget: $\max_\pi J(\pi)$ s.t.\
+$\mathrm{CVaR}_\alpha(\text{loss})\le d$, with $\alpha=0.95$.  The Lagrangian
+relaxation converts the constraint into a penalty, $\mathcal{L}(\pi,\lambda)=J(\pi) -
+\lambda\,(\mathrm{CVaR}_\alpha - d)$, and a dual variable $\lambda\ge0$ is raised
+whenever the constraint is violated and lowered when slack remains.  In equilibrium
+$\lambda$ acts as a shadow price for tail risk: a higher $\lambda$ means the policy
+has been pushing against its tail budget.
 
 %% =====================================================================
 \section{Method}
@@ -228,8 +248,10 @@ the training series, the objective
   \;+\; \lambda\,\mathrm{ReLU}(\widehat{\mathrm{CVaR}} - d)
   \;+\; \kappa\,\text{turnover},
 \end{equation}
-where $\widehat{\mathrm{CVaR}}$ is the mean tail loss over the worst $(1-\alpha)$
-fraction of window net returns (a differentiable tail mean via \texttt{topk}). This
+where $\mathrm{Sharpe}=\bar{r}/\sigma_r$ is the annualised mean return divided by its
+standard deviation (reward per unit of risk), $\widehat{\mathrm{CVaR}}$ is the mean
+tail loss over the worst $(1{-}\alpha)$ fraction of window net returns (a differentiable
+tail mean via \texttt{topk}), and $d$ is the pre-specified tail budget.  This
 pathwise gradient is far more sample-efficient than score-function RL for this
 problem.
 
@@ -279,12 +301,16 @@ The first full model-free run produced \emph{constrained $\equiv$ unconstrained}
 choice: the reward advantage is standardised to unit scale, but the per-step CVaR
 cost is $\sim$$10^{-3}$, so $\lambda\cdot(\text{cost advantage})$ is negligible for
 any sane multiplier and the constraint can never bind; the dual, driven by the raw
-cost magnitude, stays $\lambda\approx0.01$. Two fixes (kept as defaults) resolve
-it: standardise the cost advantage to the reward-advantage scale, and drive the
-dual with a \textbf{breach indicator} against a breach-rate budget. The multiplier
-then reaches $O(1)$ and the constraint demonstrably binds
-(Figure~\ref{fig:lagrange}). We report this as a cautionary finding for Lagrangian
-RL practitioners.
+cost magnitude, stays $\lambda\approx0.01$. Two fixes (kept as defaults) resolve it: standardise the cost advantage to the
+reward-advantage scale, and drive the dual with a \textbf{breach indicator} against
+a breach-rate budget instead of the raw cost magnitude.  Formally, the update becomes
+$\lambda \leftarrow \lambda + \eta_\lambda(\mathbf{1}[\text{breach rate} > \beta^*] - \beta^*)$
+where $\beta^*$ is the target breach rate, keeping $\lambda$ on the same scale as
+the normalised advantage regardless of the cost's absolute units.  The multiplier
+then reaches $O(1)$ and the constraint demonstrably binds (Figure~\ref{fig:lagrange}).
+We report this as a cautionary finding: \emph{any} Lagrangian RL system that
+standardises the return advantage but not the cost advantage will silently produce
+a constraint that is mathematically present but numerically inert.
 
 %% =====================================================================
 \section{Data}
