@@ -41,3 +41,16 @@ def test_plot_rank_reversal_writes_file(tmp_path):
     ])
     p = plots.plot_rank_reversal(df, tmp_path / "rev.png", highlight={"min variance": "#2ca02c"})
     assert p.exists() and p.stat().st_size > 0
+
+
+def test_plot_dumbbell_writes_file(tmp_path):
+    df = pd.DataFrame([
+        {"universe": "macro", "unconstrained": 0.0142, "constrained": 0.0114},
+        {"universe": "sector", "unconstrained": 0.0336, "constrained": 0.0251},
+    ])
+    p = plots.plot_dumbbell(df, tmp_path / "db.png")
+    assert p.exists() and p.stat().st_size > 0
+
+
+def test_set_style_is_idempotent():
+    plots.set_style(); plots.set_style()  # should not raise

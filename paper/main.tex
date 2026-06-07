@@ -461,9 +461,12 @@ sector (10)     & 20 & 0.0336 & 0.0252 & 0.0004 & 0.00 \\
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{multiuniverse_cvar99.png}
-  \caption{Walk-forward $\mathrm{CVaR}_{99}$ (constrained vs.\ unconstrained) on both
-  universes; the constraint lowers the tail in each, with the larger, significant gap
-  on the sector universe.}
+  \caption{\textbf{The constraint's robust win.} Out-of-sample (walk-forward)
+  $\mathrm{CVaR}_{99}$ for the unconstrained learner (red) versus the
+  CVaR-constrained learner (blue) on each universe; the arrow length is the tail-risk
+  reduction. Unlike the learner-vs-optimiser comparison (Figure~\ref{fig:reversal}),
+  this reduction \emph{survives} walk-forward on both universes ($-20\%$ macro,
+  $-25\%$ sector; pooled 40-fold Wilcoxon $p<10^{-3}$).}
   \label{fig:multiuniverse}
 \end{figure}
 

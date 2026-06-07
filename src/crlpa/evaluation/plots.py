@@ -11,91 +11,170 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
+# Curated, color-blind-friendly palette; protagonists get saturated hues,
+# baselines stay muted so the eye lands on the learner vs. the optimiser.
 _COLORS = {
-    "rl_cvar_constrained": "#1f77b4",
-    "rl_unconstrained": "#d62728",
-    "min_variance": "#2ca02c",
-    "inverse_vol": "#9467bd",
-    "equal_weight": "#7f7f7f",
-    "ppo_best_unconstrained": "#ff7f0e",
-    "ppo_best_cvar_constrained": "#17becf",
-    "sac_best_unconstrained": "#bcbd22",
-    "sac_best_cvar_constrained": "#e377c2",
+    "rl_cvar_constrained": "#1b6ca8",   # ours (constrained)
+    "rl_unconstrained": "#d1495b",      # ours (unconstrained)
+    "min_variance": "#2e8b57",          # the optimiser that wins OOS
+    "cvar_optimizer": "#3aa37a",
+    "inverse_vol": "#9b8bd6",
+    "equal_weight": "#9aa0a6",
+    "ppo_best_unconstrained": "#e8853a",
+    "ppo_best_cvar_constrained": "#3bb3c3",
+    "sac_best_unconstrained": "#b3a829",
+    "sac_best_cvar_constrained": "#cf6fae",
 }
+_GRID = "#d9dde2"
+_INK = "#22262b"
+
+
+def set_style() -> None:
+    """Apply a consistent, publication-grade Matplotlib style for all figures."""
+    plt.rcParams.update({
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+        "axes.edgecolor": _INK,
+        "axes.labelcolor": _INK,
+        "axes.titlecolor": _INK,
+        "axes.titlesize": 12.5,
+        "axes.titleweight": "bold",
+        "axes.labelsize": 11,
+        "axes.linewidth": 0.9,
+        "axes.grid": True,
+        "axes.axisbelow": True,
+        "grid.color": _GRID,
+        "grid.linewidth": 0.8,
+        "xtick.color": _INK,
+        "ytick.color": _INK,
+        "xtick.labelsize": 9.5,
+        "ytick.labelsize": 9.5,
+        "font.family": "DejaVu Sans",
+        "legend.fontsize": 9,
+        "legend.frameon": True,
+        "legend.framealpha": 0.92,
+        "legend.edgecolor": _GRID,
+        "figure.dpi": 120,
+        "savefig.dpi": 220,
+        "savefig.bbox": "tight",
+    })
+
+
+set_style()
+
+
+def _despine(ax, keep=("left", "bottom")) -> None:
+    for side in ("top", "right", "left", "bottom"):
+        ax.spines[side].set_visible(side in keep)
+
+
+def _legend(ax, **kw):
+    leg = ax.legend(**kw)
+    if leg:
+        leg.get_frame().set_linewidth(0.8)
+    return leg
+
+
+def _pretty(name: str) -> str:
+    return name.replace("rl_", "").replace("_", " ")
 
 
 def _save(fig, path: str | Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(path, dpi=130, bbox_inches="tight")
+    fig.savefig(path, facecolor="white")
     plt.close(fig)
     return path
 
 
 def plot_wealth(returns: dict[str, pd.Series], path, title="Cumulative wealth (stress window)"):
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 4.6))
     for name, r in returns.items():
-        ax.plot((1 + r.reset_index(drop=True)).cumprod(), label=name,
-                color=_COLORS.get(name), lw=1.8)
-    ax.set_xlabel("week"); ax.set_ylabel("growth of $1"); ax.set_title(title)
-    ax.legend(fontsize=8); ax.grid(alpha=0.3)
+        lw = 2.6 if name.startswith("rl_") else 1.8
+        ax.plot((1 + r.reset_index(drop=True)).cumprod(), label=_pretty(name),
+                color=_COLORS.get(name), lw=lw, solid_capstyle="round")
+    ax.axhline(1.0, color=_GRID, lw=1.0, zorder=0)
+    ax.set_xlabel("week"); ax.set_ylabel("growth of \\$1"); ax.set_title(title)
+    ax.margins(x=0.01); _despine(ax); _legend(ax, loc="best")
     return _save(fig, path)
 
 
 def plot_drawdown(returns: dict[str, pd.Series], path, title="Drawdown (stress window)"):
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 4.6))
     for name, r in returns.items():
         w = (1 + r.reset_index(drop=True)).cumprod()
         dd = w / w.cummax() - 1
-        ax.plot(dd, label=name, color=_COLORS.get(name), lw=1.5)
+        c = _COLORS.get(name)
+        lw = 2.4 if name.startswith("rl_") else 1.6
+        ax.plot(dd, label=_pretty(name), color=c, lw=lw)
+        if name.startswith("rl_"):
+            ax.fill_between(range(len(dd)), dd, 0, color=c, alpha=0.10)
     ax.set_xlabel("week"); ax.set_ylabel("drawdown"); ax.set_title(title)
-    ax.legend(fontsize=8); ax.grid(alpha=0.3)
+    ax.margins(x=0.01); _despine(ax); _legend(ax, loc="lower left")
     return _save(fig, path)
 
 
 def plot_weights_area(weights: pd.DataFrame, path, title="Portfolio weights over time"):
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    fig, ax = plt.subplots(figsize=(8, 4.6))
     w = weights.reset_index(drop=True)
-    ax.stackplot(range(len(w)), *[w[c] for c in w.columns], labels=list(w.columns), alpha=0.85)
+    cmap = plt.get_cmap("tab20")
+    colors = [cmap(i % 20) for i in range(w.shape[1])]
+    ax.stackplot(range(len(w)), *[w[c] for c in w.columns], labels=list(w.columns),
+                 colors=colors, alpha=0.9, edgecolor="white", linewidth=0.2)
     ax.set_xlabel("week"); ax.set_ylabel("weight"); ax.set_ylim(0, 1); ax.set_title(title)
-    ax.legend(fontsize=7, ncol=4, loc="upper center"); ax.margins(x=0)
+    ax.margins(x=0); _despine(ax)
+    ncol = min(len(w.columns), 7)
+    _legend(ax, loc="upper center", ncol=ncol, fontsize=8, bbox_to_anchor=(0.5, -0.13))
     return _save(fig, path)
 
 
 def plot_series(series: dict[str, pd.Series], path, ylabel, title):
-    fig, ax = plt.subplots(figsize=(8, 4.0))
+    fig, ax = plt.subplots(figsize=(8, 4.2))
     for name, s in series.items():
-        ax.plot(s.reset_index(drop=True), label=name, color=_COLORS.get(name), lw=1.5)
+        ax.plot(s.reset_index(drop=True), label=_pretty(name),
+                color=_COLORS.get(name), lw=2.0)
     ax.set_xlabel("week"); ax.set_ylabel(ylabel); ax.set_title(title)
-    ax.legend(fontsize=8); ax.grid(alpha=0.3)
+    ax.margins(x=0.01); _despine(ax); _legend(ax, loc="best")
     return _save(fig, path)
 
 
 def plot_training_path(history: pd.DataFrame, path, cols=("lagrange", "cvar"),
-                       title="Training: Lagrange multiplier & CVaR"):
-    fig, ax1 = plt.subplots(figsize=(8, 4.0))
+                       title="Training dynamics: Lagrange multiplier vs. CVaR"):
+    fig, ax1 = plt.subplots(figsize=(8, 4.2))
     x = history["update"] if "update" in history else range(len(history))
-    ax1.plot(x, history[cols[0]], color="#1f77b4", lw=1.6, label=cols[0])
-    ax1.set_xlabel("update"); ax1.set_ylabel(cols[0], color="#1f77b4")
+    c0, c1 = "#1b6ca8", "#d1495b"
+    ax1.plot(x, history[cols[0]], color=c0, lw=2.2, label=cols[0])
+    ax1.set_xlabel("update"); ax1.set_ylabel(f"λ ({cols[0]})", color=c0)
+    ax1.tick_params(axis="y", colors=c0)
     ax2 = ax1.twinx()
-    ax2.plot(x, history[cols[1]], color="#d62728", lw=1.2, alpha=0.7, label=cols[1])
-    ax2.set_ylabel(cols[1], color="#d62728")
-    ax1.set_title(title); ax1.grid(alpha=0.3)
+    ax2.plot(x, history[cols[1]], color=c1, lw=1.6, alpha=0.85, label=cols[1])
+    ax2.set_ylabel(cols[1], color=c1); ax2.tick_params(axis="y", colors=c1)
+    ax2.grid(False)
+    for s in ("top",):
+        ax1.spines[s].set_visible(False); ax2.spines[s].set_visible(False)
+    ax1.set_title(title)
     return _save(fig, path)
 
 
-def plot_grouped_bars(df: pd.DataFrame, label_col, series, path, ylabel, title, colors=None):
+def plot_grouped_bars(df: pd.DataFrame, label_col, series, path, ylabel, title, colors=None,
+                      annotate=True):
     """Grouped bar chart: one group per ``label_col`` row, one bar per ``series`` column."""
-    fig, ax = plt.subplots(figsize=(max(7, 1.1 * len(df)), 4.2))
+    fig, ax = plt.subplots(figsize=(max(7.2, 1.15 * len(df)), 4.4))
     x = np.arange(len(df))
     width = 0.8 / len(series)
     for i, (col, lbl) in enumerate(series.items()):
-        ax.bar(x + i * width, df[col].to_numpy(), width, label=lbl,
-               color=(colors or {}).get(col))
+        vals = df[col].to_numpy(dtype=float)
+        bars = ax.bar(x + i * width, vals, width, label=lbl, zorder=3,
+                      color=(colors or {}).get(col), edgecolor="white", linewidth=0.6)
+        if annotate:
+            ax.bar_label(bars, fmt="%.3f", fontsize=7.5, padding=2, color=_INK)
     ax.set_xticks(x + width * (len(series) - 1) / 2)
-    ax.set_xticklabels(df[label_col].astype(str), rotation=30, ha="right", fontsize=8)
-    ax.set_ylabel(ylabel); ax.set_title(title); ax.legend(fontsize=8); ax.grid(alpha=0.3, axis="y")
+    ax.set_xticklabels(df[label_col].astype(str), rotation=25, ha="right")
+    ax.set_ylabel(ylabel); ax.set_title(title)
+    ax.margins(y=0.22)  # headroom so the legend clears the bars/value labels
+    _despine(ax); ax.grid(alpha=1.0, axis="y"); ax.grid(False, axis="x")
+    _legend(ax, loc="upper right", ncol=len(series))
     return _save(fig, path)
 
 
@@ -254,4 +333,58 @@ def plot_rank_reversal(
     ax.grid(alpha=0.25, axis="y")
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
+    return _save(fig, path)
+
+
+def plot_dumbbell(
+    df: pd.DataFrame,
+    path,
+    label_col: str = "universe",
+    unc_col: str = "unconstrained",
+    con_col: str = "constrained",
+    annotations: dict | None = None,
+    title: str = "The CVaR constraint reduces tail risk across universes",
+    xlabel: str = r"CVaR$_{99}$ (weekly; lower is better)",
+):
+    """Dumbbell/Cleveland chart: per group, a line from unconstrained to constrained.
+
+    The red dot (unconstrained) and blue dot (constrained) with the connecting arrow
+    make the size and direction of the tail-risk reduction obvious at a glance;
+    ``annotations`` maps a group label to a string drawn at the right (e.g. a p-value).
+    """
+    annotations = annotations or {}
+    c_unc, c_con = _COLORS["rl_unconstrained"], _COLORS["rl_cvar_constrained"]
+    n = len(df)
+    fig, ax = plt.subplots(figsize=(8.0, 1.05 * n + 1.8))
+    ys = np.arange(n)[::-1]
+    xmax = float(max(df[unc_col].max(), df[con_col].max()))
+    for y, (_, r) in zip(ys, df.iterrows()):
+        u, c = float(r[unc_col]), float(r[con_col])
+        ax.plot([c, u], [y, y], color="#b8bdc4", lw=3.0, zorder=1, solid_capstyle="round")
+        ax.annotate("", xy=(c, y), xytext=(u, y), zorder=2,
+                    arrowprops=dict(arrowstyle="-|>", color="#7a8089", lw=0))
+        ax.scatter([u], [y], s=150, color=c_unc, edgecolor="white", linewidth=1.2, zorder=3)
+        ax.scatter([c], [y], s=150, color=c_con, edgecolor="white", linewidth=1.2, zorder=3)
+        ax.annotate(f"{u:.4f}", (u, y), xytext=(6, 9), textcoords="offset points",
+                    fontsize=8, color=c_unc, ha="center")
+        ax.annotate(f"{c:.4f}", (c, y), xytext=(-6, 9), textcoords="offset points",
+                    fontsize=8, color=c_con, ha="center")
+        red = (u - c) / u * 100 if u else 0.0
+        note = annotations.get(str(r[label_col]), "")
+        ax.annotate(f"−{red:.0f}%" + (f"   {note}" if note else ""),
+                    (xmax, y), xytext=(14, 0), textcoords="offset points",
+                    fontsize=8.5, va="center", color=_INK, fontweight="bold")
+    ax.set_yticks(ys); ax.set_yticklabels(df[label_col].astype(str))
+    ax.set_xlim(0, xmax * 1.18)
+    ax.set_ylim(-0.6, n - 0.4)
+    ax.set_xlabel(xlabel); ax.set_title(title)
+    _despine(ax); ax.grid(alpha=1.0, axis="x"); ax.grid(False, axis="y")
+    from matplotlib.lines import Line2D
+    handles = [
+        Line2D([0], [0], marker="o", color="white", markerfacecolor=c_unc, markersize=10,
+               label="unconstrained learner"),
+        Line2D([0], [0], marker="o", color="white", markerfacecolor=c_con, markersize=10,
+               label="CVaR-constrained (ours)"),
+    ]
+    _legend(ax, handles=handles, loc="lower right")
     return _save(fig, path)
