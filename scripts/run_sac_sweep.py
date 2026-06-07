@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from crlpa.evaluation.backtest import rolling_weight_policy, run_policy, static_policy
+from crlpa.evaluation.backtest import rolling_weight_policy, run_policy
 from crlpa.experiment import load_returns, make_env
 from crlpa.policies import baselines as b
 from crlpa.training.sac import SACAllocator, SACConfig, train_sac

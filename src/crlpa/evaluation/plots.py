@@ -206,3 +206,52 @@ def plot_forest(df: pd.DataFrame, path, mean=None, ci=None,
     ax.legend(fontsize=8, loc="best", framealpha=0.9)
     ax.grid(alpha=0.3, axis="x")
     return _save(fig, path)
+
+
+def plot_rank_reversal(
+    df: pd.DataFrame,
+    path,
+    left_col: str = "stress",
+    right_col: str = "walkforward",
+    label_col: str = "strategy",
+    left_title: str = "Single stress split",
+    right_title: str = "Rolling walk-forward (OOS)",
+    highlight: dict[str, str] | None = None,
+    title: str = "Same data, opposite verdict: the strategy ranking inverts",
+):
+    """Slopegraph (bump chart) of a metric under two evaluation protocols.
+
+    Each strategy is a line from its left-protocol value to its right-protocol
+    value; crossing lines make a rank reversal unmistakable. ``highlight`` maps a
+    strategy name to a colour (others are drawn muted/grey), used to foreground the
+    protagonists — the learner that falls and the optimiser that rises.
+    """
+    highlight = highlight or {}
+    fig, ax = plt.subplots(figsize=(7.2, 5.0))
+    x0, x1 = 0.0, 1.0
+    for _, r in df.iterrows():
+        name = str(r[label_col])
+        lv, rv = float(r[left_col]), float(r[right_col])
+        color = highlight.get(name, "#b0b0b0")
+        lw = 3.2 if name in highlight else 1.6
+        z = 3 if name in highlight else 1
+        ax.plot([x0, x1], [lv, rv], color=color, lw=lw, zorder=z,
+                marker="o", markersize=7, markeredgecolor="white", markeredgewidth=1.0)
+        ax.annotate(f"{name}  {lv:.2f}", (x0, lv), xytext=(-8, 0),
+                    textcoords="offset points", ha="right", va="center",
+                    fontsize=8.5, color=color, fontweight="bold" if name in highlight else "normal")
+        ax.annotate(f"{rv:.2f}  {name}", (x1, rv), xytext=(8, 0),
+                    textcoords="offset points", ha="left", va="center",
+                    fontsize=8.5, color=color, fontweight="bold" if name in highlight else "normal")
+
+    ax.set_xlim(-0.55, 1.55)
+    ax.set_xticks([x0, x1])
+    ax.set_xticklabels([left_title, right_title], fontsize=10, fontweight="bold")
+    ax.set_ylabel("Sharpe ratio")
+    ax.set_title(title, fontsize=11)
+    for x in (x0, x1):
+        ax.axvline(x, color="#dddddd", lw=1.0, zorder=0)
+    ax.grid(alpha=0.25, axis="y")
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    return _save(fig, path)

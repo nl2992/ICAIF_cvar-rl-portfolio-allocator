@@ -694,10 +694,13 @@ diff.\ unconstrained     & 0.70 & 0.56 \\
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{eval_protocol_reversal.png}
-  \caption{Evaluation-protocol reversal on the 31-asset universe: minimum variance
-  looks weak on one stress split (Sharpe 0.23) yet dominates out-of-sample (1.40),
-  while the learner barely moves. Apparent learned-allocator advantages over
-  optimisers can be an artifact of the evaluation window.}
+  \caption{\textbf{Evaluation-protocol reversal} on the 31-asset universe
+  (slopegraph of Sharpe; each line is one strategy across two protocols). Under a
+  single stress split the learned allocator ranks \emph{first} (0.85) and minimum
+  variance \emph{last} (0.23); under a rolling walk-forward the ranking
+  \emph{inverts}---minimum variance rises to first (1.40) while the learner falls
+  (0.74). The crossing lines show an apparent learned-allocator advantage that is an
+  artifact of the evaluation window, not a property of the method.}
   \label{fig:reversal}
 \end{figure}
 

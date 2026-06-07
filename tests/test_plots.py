@@ -29,3 +29,15 @@ def test_plot_grouped_bars_writes_file(tmp_path):
     p = plots.plot_grouped_bars(df, "scenario", {"unc": "unconstrained", "con": "constrained"},
                                 tmp_path / "bars.png", "CVaR-99", "test")
     assert p.exists() and p.stat().st_size > 0
+
+
+def test_plot_rank_reversal_writes_file(tmp_path):
+    import pandas as pd
+
+    from crlpa.evaluation import plots
+    df = pd.DataFrame([
+        {"strategy": "min variance", "stress": 0.23, "walkforward": 1.40},
+        {"strategy": "ours", "stress": 0.85, "walkforward": 0.74},
+    ])
+    p = plots.plot_rank_reversal(df, tmp_path / "rev.png", highlight={"min variance": "#2ca02c"})
+    assert p.exists() and p.stat().st_size > 0
