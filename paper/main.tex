@@ -54,8 +54,10 @@ optimiser on this universe. The takeaway is that, for a learned allocator, expli
 tail control is a safety \emph{layer} to be added, not a return to be sacrificed:
 it cuts deep-loss weeks at little or no cost to risk-adjusted return. The
 contribution is therefore an explicit, well-behaved tail-control layer for learned
-allocators, plus a reproducible two-universe benchmark and a cautionary finding
-about constraint coupling in Lagrangian RL.
+allocators, plus a reproducible three-universe benchmark and two cautionary findings:
+a constraint-coupling failure in Lagrangian RL, and an evaluation-protocol reversal in
+which a learned allocator's apparent edge over classical optimisers vanishes---indeed
+inverts---under rolling walk-forward.
 \end{abstract}
 
 \begin{CCSXML}
@@ -115,6 +117,11 @@ families (A2C, PPO, SAC) each tuned by a validation-selected hyperparameter swee
 seed averaging, paired bootstrap, a two-universe rolling walk-forward with regime
 slices and Deflated-Sharpe / multiple-testing control, robustness to costs/universe,
 and ablations (Section~\ref{sec:results}).
+\item A \textbf{cautionary evaluation finding}: on a 31-asset universe, a single
+stress window ranks the learned allocator \emph{above} every optimiser, but a rolling
+walk-forward \emph{inverts} the ranking (minimum variance Sharpe $1.40$ vs $0.74$).
+Apparent ``beat-the-optimiser'' results for learned allocators can be artifacts of the
+evaluation protocol (Section~\ref{sec:protocol}).
 \end{enumerate}
 
 We are explicit about scope: the learned allocator does \textbf{not} beat a
@@ -643,6 +650,55 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
   differentiable constrained allocator matches minimum variance on Sharpe with the
   lowest tail; the model-free arms are dominated on at least one axis.}
   \label{fig:modelfree_bars}
+\end{figure}
+
+\subsection{Backtest-protocol sensitivity: a cautionary result}
+\label{sec:protocol}
+To probe how far the choice of \emph{evaluation protocol} alone can move conclusions,
+we add a third, deliberately high-dimensional universe---\textbf{31 cross-asset,
+sector, and industry ETFs} (same provenance, clock, and costs)---where covariance
+estimation is harder and a learner has, a priori, more room to help. On a single
+stress split (train pre-2018, test through 2024) the constrained learner appears to
+\emph{beat every optimiser}: Sharpe $0.85$ versus minimum variance $0.23$
+(Table~\ref{tab:protocol}). The same minimum-variance optimiser, however, is the
+\emph{best} method by a wide margin under a rolling walk-forward (20 out-of-sample
+folds, refit every 26 weeks): Sharpe $\mathbf{1.40}$ versus the learner's $0.74$. The
+ranking does not merely tighten---it \textbf{inverts} (Figure~\ref{fig:reversal}). The
+stress-split ``win'' was an artifact of one fixed period in which minimum variance
+concentrated badly; rolling refits remove it entirely. The constraint's robust effect
+survives both protocols (it still cuts $\mathrm{CVaR}_{99}$ versus the unconstrained
+learner fold-by-fold, Wilcoxon $p=6\times10^{-4}$), but the apparent
+\emph{beat-the-optimiser} result does not. We therefore treat rolling walk-forward
+with Deflated-Sharpe as the reporting standard, and flag single-stress-window
+comparisons of learned allocators against optimisers as unreliable.
+
+\begin{table}[t]
+\centering
+\caption{Same 31-asset universe, two evaluation protocols. A single stress split
+ranks the learner first; rolling walk-forward inverts the ranking and the optimiser
+dominates. Sharpe shown.}
+\label{tab:protocol}
+\small
+\begin{tabular}{lrr}
+\toprule
+strategy & stress split & walk-forward (OOS) \\
+\midrule
+minimum variance        & 0.23 & \textbf{1.40} \\
+inverse volatility       & 0.38 & 0.78 \\
+diff.\ constrained (ours) & \textbf{0.85} & 0.74 \\
+diff.\ unconstrained     & 0.70 & 0.56 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{eval_protocol_reversal.png}
+  \caption{Evaluation-protocol reversal on the 31-asset universe: minimum variance
+  looks weak on one stress split (Sharpe 0.23) yet dominates out-of-sample (1.40),
+  while the learner barely moves. Apparent learned-allocator advantages over
+  optimisers can be an artifact of the evaluation window.}
+  \label{fig:reversal}
 \end{figure}
 
 %% =====================================================================

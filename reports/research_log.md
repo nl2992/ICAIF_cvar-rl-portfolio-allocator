@@ -214,3 +214,14 @@ pays off for a *vectorised/batched* rollout. Phase-2 H5 therefore runs on CPU (t
 correct tool). `.venv-cuda` (torch cu124, RTX 4060) is reserved for a future batched
 encoder (H6) where it genuinely helps. Forcing a GPU port here would be a
 pessimisation, not an optimisation.
+
+### DECISION EXECUTED — evaluation-rigor finding integrated into the paper
+Rather than chase a likely-illusory learner-beats-optimiser win, the
+evaluation-protocol reversal is now a paper contribution: Section "Backtest-protocol
+sensitivity" (Table `tab:protocol` + `eval_protocol_reversal` figure), a 5th
+contribution bullet, and an abstract line. Paper is now **8 pages** (the cap),
+0 overfull / 0 undefined (TeX Live 2024). The paper stands on three honest findings
+across three universes: (i) an explicit tail-control layer for learned policies;
+(ii) the constraint-coupling failure in Lagrangian RL; (iii) the evaluation-protocol
+reversal. H1/H6 remain available but are not pursued absent a new angle, to avoid
+p-hacking against consistent OOS evidence that minimum variance is hard to beat.
