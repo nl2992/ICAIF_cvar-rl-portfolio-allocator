@@ -23,16 +23,10 @@
 \title{A Differentiable CVaR-Constrained Allocator: Explicit Tail Control
 for Learned Portfolio Policies}
 
-%% Replace with the final author block before submission.
-\author{Nigel Li}
-\affiliation{%
-  \institution{Columbia University}
-  \city{New York}
-  \state{NY}
-  \country{USA}}
-\email{nl2992@columbia.edu}
+\author{Anonymous Author(s)}
+\affiliation{\institution{Anonymous Institution}\country{Anonymous}}
 
-\renewcommand{\shortauthors}{Li}
+\renewcommand{\shortauthors}{Anonymous}
 
 \begin{abstract}
 We study whether an explicit Conditional-Value-at-Risk (CVaR) constraint reduces
@@ -43,17 +37,19 @@ an equal-weight portfolio, and---because of a scale mismatch in the constraint
 coupling---its CVaR constraint is inert. After (i) fixing the coupling and
 (ii) replacing the score-function learner with a \textbf{differentiable
 allocator} that back-propagates a risk-adjusted objective and a differentiable
-CVaR penalty through the rollout, the constraint becomes a meaningful control:
-on a stress out-of-sample window (trained pre-2018, tested through the 2020 and
-2022 drawdowns) it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and maximum drawdown by
-$43\%$ relative to an unconstrained learner, while \emph{improving} Sharpe by
-$40\%$, and---critically---it reduces hard constraint violations from $7.2$ to
-\textbf{zero}. The tail reduction holds in \textbf{7/7 robustness scenarios}
-(cost scaling, asset removal, limit tightening). A 40-fold, two-universe
-walk-forward confirms the effect is not a single-window artefact: constrained
-CVaR$_{99}$ is lower in $26/40$ folds, Wilcoxon $p = 8.8 \times 10^{-6}$,
+CVaR penalty through the rollout, the constraint becomes a meaningful control.
+On a dedicated \emph{stress evaluation window} (trained pre-2018, tested
+through the 2020 COVID crash and the 2022 rates selloff), it cuts
+$\mathrm{CVaR}_{99}$ by $49\%$ and maximum drawdown by $43\%$ relative to an
+unconstrained learner, while \emph{improving} Sharpe by $40\%$, and---critically---reduces hard constraint violations from $7.2$ to \textbf{zero}.
+The tail reduction holds in \textbf{7/7 robustness scenarios}
+(cost scaling, asset removal, limit tightening).
+A 40-fold, two-universe walk-forward confirms the stress-window result is not a
+single-window artefact: constrained CVaR$_{99}$ is lower in $26/40$ folds,
+Wilcoxon $p = 8.8 \times 10^{-6}$,
 bootstrap 95\% CI $[-0.0089,\,-0.0041]$, with Benjamini--Hochberg rejection on
-both universes. An ablation shows that tightening the constraint further
+both universes; and CVaR$_{99}$ reduction vs.\ unconstrained RL is consistent
+across all three market regimes (calm $-29\%$, high-vol $-21\%$, selloff $-27\%$). An ablation shows that tightening the constraint further
 \emph{simultaneously} improves CVaR and Sharpe monotonically, with the tightest
 configuration (budget$_{\text{tight}}$: Sharpe $1.27$, CVaR$_{99}$~$1.4\%$)
 competitive with a rolling minimum-variance optimiser. We additionally surface
@@ -878,6 +874,13 @@ model-free RL; the model-free A2C/PPO/SAC arms remain weak even after a proper
 hyperparameter sweep (Section~\ref{sec:modelfree}). Constrained turnover
 ($\sim$0.04/wk) exceeds the optimisers'; the supported turnover penalty should be
 tuned.
+
+\textbf{Minimum-variance dominance.}
+Rolling minimum-variance consistently achieves higher Sharpe in calm and selloff regimes.
+This is expected: with a 7-asset universe that includes BIL (cash) and TLT (long-duration bonds), a solver with access to the full covariance matrix has a structural advantage in low-signal environments over a policy that learns from returns alone.
+The paper does not claim to beat minimum-variance overall.
+The contribution is \emph{within the learned-policy class}: relative to an unconstrained RL allocator, the CVaR-constrained variant reduces tail risk reliably (Wilcoxon $p=8.8\times10^{-6}$ over 40 folds, 20-29\% CVaR$_{99}$ reduction across all three market regimes), eliminates constraint violations, and adds Sharpe in the high-volatility regime ($+0.501$ vs min-var).
+A practitioner who already uses minimum-variance for calm and selloff periods can layer the constrained RL policy as a high-volatility overlay, exploiting the regime-conditional decomposition in Table~\ref{tab:regime}.
 
 %% =====================================================================
 \section{Conclusion and Future Work}
