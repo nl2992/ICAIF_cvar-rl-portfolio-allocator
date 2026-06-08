@@ -11,4 +11,12 @@ dist/
 .mypy_cache/
 results/*
 !results/.gitkeep
+!results/tables/
+results/tables/*
+!results/tables/*.csv
+!results/tables/*.json
+!results/tables_ablations/
+results/tables_ablations/*
+!results/tables_ablations/*.csv
+!results/tables_ablations/*.json
 notebooks/.ipynb_checkpoints/
