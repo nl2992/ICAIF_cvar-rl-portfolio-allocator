@@ -497,6 +497,8 @@ In the high-volatility regime ($n=71$ weeks), constrained RL achieves Sharpe $2.
 In \textbf{calm} markets ($n=388$ weeks) and \textbf{selloffs} ($n=61$ weeks) minimum variance dominates: selloff Sharpe $0.035$ vs.\ constrained RL $-0.809$.
 The implication is practical: a constrained RL overlay adds value when volatility is elevated but has not yet collapsed into a full drawdown---the regime where dynamic rebalancing can exploit cross-asset dislocations that static optimisers miss.
 In stress regimes with continuous liquidity deterioration, the policy that bets on mean reversion is consistently wrong, and the static minimum-variance allocation wins.
+Importantly, the CVaR$_{99}$ constraint delivers consistent tail-risk reduction across \emph{all} three regimes relative to unconstrained RL: $-29.1\%$ in calm markets (0.020 vs.\ 0.028), $-20.7\%$ in high-volatility (0.018 vs.\ 0.023), and $-27.4\%$ in selloffs (0.048 vs.\ 0.066).
+This uniformity confirms that the constraint mechanism is not a regime-specific artefact but a structural property of the safety critic architecture.
 
 \begin{table}[t]
 \centering

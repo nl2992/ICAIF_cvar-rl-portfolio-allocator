@@ -1,0 +1,3 @@
+comparison,sharpe_diff,ci_low,ci_high,p_value
+constrained_minus_rl_unconstrained,-0.07917394729499272,-0.2254020258119828,0.0663273570344776,0.2905
+constrained_minus_equal_weight,-0.03505386531384125,-0.1167908220831312,0.04614332361685837,0.4165

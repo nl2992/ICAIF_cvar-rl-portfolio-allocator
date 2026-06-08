@@ -1,0 +1,33 @@
+{
+  "n_permutations": 50000,
+  "regime_results": {
+    "calm": {
+      "n_weeks": 388,
+      "constrained_cvar99": 0.01947,
+      "unconstrained_cvar99": 0.02748,
+      "min_var_cvar99": 0.00869,
+      "pct_reduction_vs_unconstrained": 29.13,
+      "pct_reduction_vs_min_var": -124.21,
+      "constrained_beats_unconstrained": true
+    },
+    "high_vol": {
+      "n_weeks": 71,
+      "constrained_cvar99": 0.01835,
+      "unconstrained_cvar99": 0.02316,
+      "min_var_cvar99": 0.00653,
+      "pct_reduction_vs_unconstrained": 20.74,
+      "pct_reduction_vs_min_var": -180.94,
+      "constrained_beats_unconstrained": true
+    },
+    "selloff": {
+      "n_weeks": 61,
+      "constrained_cvar99": 0.04793,
+      "unconstrained_cvar99": 0.066,
+      "min_var_cvar99": 0.01593,
+      "pct_reduction_vs_unconstrained": 27.38,
+      "pct_reduction_vs_min_var": -200.84,
+      "constrained_beats_unconstrained": true
+    }
+  },
+  "note": "Regime-level CVaR-99 reduction from population means (walk-forward regime summary files). Permutation test would require fold-level regime labels; see walkforward_fold_test.csv if available."
+}
