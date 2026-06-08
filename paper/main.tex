@@ -3,7 +3,6 @@
 %% Numbers/figures are produced by the pipeline on the feat/cvar-allocator-pipeline
 %% branch (scripts/run_diff_study.py, run_walk_forward.py, run_robustness.py,
 %% run_ablations.py, run_macro_study.py; figures in reports/figures/).
-%% \TODO{} marks results that are genuinely still incomplete.
 \documentclass[sigconf,nonacm]{acmart}
 
 \usepackage{booktabs}
@@ -14,9 +13,6 @@
 \setlength{\emergencystretch}{3em}  % last-resort stretch to clear residual overfull lines
 \setlength{\tabcolsep}{4.5pt}       % slightly tighter columns so wide tables fit the column
 \graphicspath{{figures/}{../reports/figures/}}
-
-%% --- Macro for "still to finalise" items; keeps the draft honest. ---
-\newcommand{\TODO}[1]{\textcolor{red}{[\textsc{todo}: #1]}}
 
 \begin{document}
 
@@ -872,8 +868,12 @@ effect is on tail risk, not excess return. The
 differentiable allocator is closer to deep portfolio optimisation than classic
 model-free RL; the model-free A2C/PPO/SAC arms remain weak even after a proper
 hyperparameter sweep (Section~\ref{sec:modelfree}). Constrained turnover
-($\sim$0.04/wk) exceeds the optimisers'; the supported turnover penalty should be
-tuned.
+($\sim$0.04/wk) exceeds the optimisers'; Table~\ref{tab:walkforward} shows
+this does not close the CVaR gap even after netting transaction costs
+(constrained CVaR$_{99}$ 0.0331 vs unconstrained 0.0416 walk-forward, a
+$-20\%$ reduction despite higher turnover), but a turnover-matched ablation
+(fixing turnover cap to the min-variance level) is a natural robustness check
+for future work.
 
 \textbf{Minimum-variance dominance.}
 Rolling minimum-variance consistently achieves higher Sharpe in calm and selloff regimes.
