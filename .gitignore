@@ -1,5 +1,4 @@
 .DS_Store
-
 .venv/
 __pycache__/
 *.py[cod]
@@ -20,3 +19,13 @@ results/tables_ablations/*
 !results/tables_ablations/*.csv
 !results/tables_ablations/*.json
 notebooks/.ipynb_checkpoints/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.log
+*.synctex.gz
+*.fdb_latexmk
+*.fls

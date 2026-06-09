@@ -101,7 +101,7 @@ Focus (user-selected): **H5/H6**, GPU-enabled (`.venv-cuda`, torch cu124, RTX 40
   **Benjamini–Hochberg** across hypotheses.
 - A result is "winning" **only** if it beats the optimiser on the untouched hold-out
   and survives DSR>0 + FDR control. Otherwise it joins this log as another documented
-  non-result (per repo `project notes`: "Do not force a positive result").
+  non-result, following the project principle: do not force a positive result.
 
 ---
 
