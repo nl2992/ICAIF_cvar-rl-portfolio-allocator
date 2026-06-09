@@ -25,43 +25,35 @@ for Learned Portfolio Policies}
 \renewcommand{\shortauthors}{Anonymous}
 
 \begin{abstract}
-We study whether an explicit Conditional-Value-at-Risk (CVaR) constraint reduces
-the downside tail risk of a \emph{learned} multi-asset allocator without
-sacrificing net performance. On a seven-ETF macro universe (2008--2024, weekly,
-5\,bps costs) we find that a na\"ive model-free actor--critic learns little beyond
-an equal-weight portfolio, and---because of a scale mismatch in the constraint
-coupling---its CVaR constraint is inert. After (i) fixing the coupling and
-(ii) replacing the score-function learner with a \textbf{differentiable
-allocator} that back-propagates a risk-adjusted objective and a differentiable
-CVaR penalty through the rollout, the constraint becomes a meaningful control.
-On a dedicated \emph{stress evaluation window} (trained pre-2018, tested
-through the 2020 COVID crash and the 2022 rates selloff), it cuts
-$\mathrm{CVaR}_{99}$ by $49\%$ and maximum drawdown by $43\%$ relative to an
-unconstrained learner, while \emph{improving} Sharpe by $40\%$, and---critically---reduces hard constraint violations from $7.2$ to \textbf{zero}.
-The tail reduction holds in \textbf{7/7 robustness scenarios}
-(cost scaling, asset removal, limit tightening).
-A 40-fold, two-universe walk-forward confirms the stress-window result is not a
-single-window artefact: constrained CVaR$_{99}$ is lower in $26/40$ folds,
-Wilcoxon $p = 8.8 \times 10^{-6}$,
-bootstrap 95\% CI $[-0.0089,\,-0.0041]$, with Benjamini--Hochberg rejection on
-both universes; and CVaR$_{99}$ reduction vs.\ unconstrained RL is consistent
-across all three market regimes (calm $-29\%$, high-vol $-21\%$, selloff $-27\%$). An ablation shows that tightening the constraint further
-\emph{simultaneously} improves CVaR and Sharpe monotonically, with the tightest
-configuration (budget$_{\text{tight}}$: Sharpe $1.27$, CVaR$_{99}$~$1.4\%$)
-competitive with a rolling minimum-variance optimiser.
-Crucially, constrained RL and min-variance are not uniformly ordered: in
-high-volatility weeks (15\% of OOS) constrained RL achieves Sharpe $1.415$
-versus min-variance's $0.564$ ($2.5\times$ advantage).
-A regime-switching hybrid---constrained RL in high-vol, min-var otherwise---achieves
-walk-forward Sharpe $\mathbf{1.316}$ versus pure min-variance $1.209$, converting
-the ``which is better?'' question into a tractable regime-classification problem.
-In the COVID crash, the constrained policy entered drawdown 2~weeks before the
-trough and limited peak loss to $9.5\%$ versus SPY's $31.8\%$; full-OOS CVaR$_{99}$
-is $49\%$ lower than unconstrained RL.
-We additionally surface a constraint-coupling failure in Lagrangian RL, and an
-evaluation-protocol reversal where a single stress window ranks the learner above
-all optimisers while rolling walk-forward inverts the ranking---cautionary findings
-that transfer to any RL-based financial system.
+An explicit CVaR constraint is a safety layer that cuts the tail losses of a
+\emph{learned} portfolio allocator without sacrificing risk-adjusted return.
+On a seven-ETF macro universe (2008--2024, weekly, 5\,bps costs) we show this
+with two complementary tests.
+
+\emph{Walk-forward (primary):} A 40-fold, two-universe evaluation confirms that
+constrained $\mathrm{CVaR}_{99}$ is lower in 26/40 folds (Wilcoxon
+$p=8.8\!\times\!10^{-6}$, bootstrap 95\,\% CI $[-0.0089,\,-0.0041]$,
+Benjamini--Hochberg rejection on both universes), with consistent gains across
+all three market regimes (calm $-29\%$, high-vol $-21\%$, selloff $-27\%$).
+\emph{Stress window:} Trained pre-2018 and tested through the 2020 COVID crash
+and 2022 rates selloff, the constrained allocator cuts $\mathrm{CVaR}_{99}$
+by $49\%$ and max drawdown by $43\%$ while \emph{improving} Sharpe by $40\%$
+and eliminating hard constraint violations entirely (7.2 $\to$ 0); the
+tail reduction holds in 7/7 robustness scenarios.
+
+The pure learned allocator does \textbf{not} beat rolling minimum-variance in
+aggregate; however, constrained RL and min-variance are not uniformly ordered.
+In high-volatility weeks (15\% of OOS), constrained RL achieves Sharpe $1.415$
+versus min-variance's $0.564$ ($2.5\times$ advantage). A regime-switching
+hybrid---constrained RL in high-vol, min-var otherwise---achieves walk-forward
+Sharpe $\mathbf{1.316}$ versus pure min-variance $1.209$, converting the
+``which is better?'' question into a tractable regime-classification problem.
+
+We additionally identify two cautionary findings that transfer to any RL-based
+financial system: a Lagrangian constraint-coupling failure that renders the
+constraint inert until fixed, and an evaluation-protocol reversal where a single
+stress window ranks the learner \emph{above} all optimisers while rolling
+walk-forward \emph{inverts} the ranking.
 \end{abstract}
 
 \begin{CCSXML}
