@@ -228,30 +228,15 @@ class.  Recent work makes such policies auditable: ProtoHedge~\cite{faloughi2025
 replaces the black-box hedger with a prototype-similarity policy at negligible
 performance cost.
 
-\paragraph{CVaR-constrained RL: theory and non-finance applications.}
-Chow et al.~\cite{chow2018riskconstrained} derive the Lagrangian gradient for
-CVaR-constrained CMDPs and prove convergence of a policy-gradient algorithm---the
-theoretical foundation our allocator builds on.  Tessler et al.~\cite{tessler2019rcpo}
-(RCPO) implement Lagrangian-style constrained RL for continuous-control robotics
-with multi-timescale dual ascent.  Ying et al.~\cite{ying2022cppo} (CPPO) treat CVaR
-as a hard constraint (not a reward penalty) in MuJoCo locomotion tasks, demonstrating
-robustness under distributional shift.  What all three share---and what our paper
-uniquely addresses---is that none identifies the \emph{constraint-coupling failure}
-we describe: when the return advantage is standardised to unit scale but the cost
-advantage is not, the Lagrange multiplier stays permanently near zero regardless of
-dual learning rate or CVaR formulation (Section~\ref{sec:coupling}).  This failure
-mode is specific to domains where reward and constraint signals have structurally
-different magnitudes---$O(10^{-3})$ weekly returns versus $O(1)$ breach indicators
-in portfolio allocation---and would be invisible in the robotics settings studied
-by RCPO and CPPO.  No prior work applies CVaR-constrained RL to portfolio management,
-provides a rolling walk-forward evaluation, or compares against a rolling minimum-variance
-optimiser.
-
-\paragraph{Constrained policy optimisation (general).}
-We pose allocation as a constrained MDP and solve the Lagrangian with dual ascent
-and a separate safety critic estimating the discounted breach-to-go, in the spirit
-of CPO~\cite{achiam2017cpo}.  Our empirical contribution complements the theory of
-Chow et al.: a well-scaled coupling is what makes the dual actually bind in practice.
+\paragraph{CVaR-constrained RL.}
+Chow et al.~\cite{chow2018riskconstrained} derive the Lagrangian gradient for CVaR-constrained
+CMDPs; Tessler et al.~\cite{tessler2019rcpo} (RCPO) and Ying et al.~\cite{ying2022cppo} (CPPO)
+implement hard CVaR constraints for robotics control tasks.  None of these works identifies
+the \emph{constraint-coupling failure} we describe: standardising return-advantage to unit scale
+without normalising the cost advantage makes the Lagrange multiplier permanently inert---a failure
+specific to portfolio allocation where returns are $O(10^{-3})$ and breach indicators are $O(1)$,
+invisible in robotics.  We pose allocation as a constrained MDP~\cite{achiam2017cpo} and show that
+the well-scaled dual is what makes the constraint actually bind.
 
 %% =====================================================================
 \section{Problem Formulation}
@@ -336,19 +321,11 @@ A2C, PPO~\cite{schulman2017ppo} (clipped surrogate, GAE) and SAC~\cite{haarnoja2
 allocator ($\lambda=0$).
 
 \paragraph{Regime-switching hybrid (Option B).}
-To identify the market conditions where the CVaR constraint provides the clearest
-advantage, we construct a regime-switching hybrid strategy that routes between the
-constrained allocator and minimum-variance without any retraining. Regimes are
-labelled weekly using SPY returns: a week is \emph{high-volatility} if the trailing
-13-week realised volatility of SPY meets or exceeds the 75th percentile of its
-full OOS distribution; a week is \emph{selloff} if the trailing 13-week cumulative
-return falls below $-5\%$; all other weeks are \emph{calm}. The switching rule is
-simple: use the constrained RL allocator in high-volatility weeks and rolling
-minimum-variance otherwise. No walk-forward refitting is needed---the same
-constrained RL OOS path is used throughout. This hybrid tests whether the explicit
-CVaR constraint has a regime-specific domain of superiority, converting the global
-``which strategy wins?'' question into the more tractable regime-classification
-problem of identifying when tail risk is most binding.
+We construct a no-retrain hybrid: label each OOS week as \emph{high-volatility} if
+trailing 13-week SPY volatility meets or exceeds the 75th-percentile cutoff
+(15\% of OOS weeks), \emph{selloff} if cumulative return $\le -5\%$, else \emph{calm}.
+The hybrid applies constrained RL in high-volatility weeks and rolling min-variance
+otherwise, using the existing OOS paths without any refitting.
 
 %% =====================================================================
 \section{The Constraint-Coupling Finding}
@@ -834,17 +811,6 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
   \label{fig:frontier}
 \end{figure}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{modelfree_generalization.png}
-  \caption{Validation selection vs.\ out-of-sample for the model-free sweeps. Swept
-  configurations reach validation Sharpe $1.0$--$1.8$ and the selected winner (star)
-  is the best of them, but its realised stress-window Sharpe (bar) collapses below
-  the differentiable constrained allocator (dashed)---a generalisation gap, not a
-  tuning failure.}
-  \label{fig:modelfree_gen}
-\end{figure}
-
 \subsection{Backtest-protocol sensitivity: a cautionary result}
 \label{sec:protocol}
 To probe how far the choice of \emph{evaluation protocol} alone can move conclusions,
@@ -856,7 +822,7 @@ stress split (train pre-2018, test through 2024) the constrained learner appears
 (Table~\ref{tab:protocol}). The same minimum-variance optimiser, however, is the
 \emph{best} method by a wide margin under a rolling walk-forward (20 out-of-sample
 folds, refit every 26 weeks): Sharpe $\mathbf{1.40}$ versus the learner's $0.74$. The
-ranking does not merely tighten---it \textbf{inverts} (Figure~\ref{fig:reversal}). The
+ranking does not merely tighten---it \textbf{inverts} (Table~\ref{tab:protocol}). The
 stress-split ``win'' was an artifact of one fixed period in which minimum variance
 concentrated badly; rolling refits remove it entirely. The constraint's robust effect
 survives both protocols (it still cuts $\mathrm{CVaR}_{99}$ versus the unconstrained
@@ -884,18 +850,6 @@ diff.\ unconstrained     & 0.70 & 0.56 \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eval_protocol_reversal.png}
-  \caption{\textbf{Evaluation-protocol reversal} on the 31-asset universe
-  (slopegraph of Sharpe; each line is one strategy across two protocols). Under a
-  single stress split the learned allocator ranks \emph{first} (0.85) and minimum
-  variance \emph{last} (0.23); under a rolling walk-forward the ranking
-  \emph{inverts}---minimum variance rises to first (1.40) while the learner falls
-  (0.74). The crossing lines show an apparent learned-allocator advantage that is an
-  artifact of the evaluation window, not a property of the method.}
-  \label{fig:reversal}
-\end{figure}
 
 %% =====================================================================
 \section{Discussion}
@@ -913,115 +867,30 @@ The practical reading is that explicit tail constraints are a cheap, reliable
 safety layer \emph{for learned policies}, not a route to beating well-tuned convex
 optimisers on this universe.
 
-\paragraph{Regime-conditional hybrid: constrained RL beats min-var in high-volatility weeks.}
-The walk-forward shows that constrained RL and min-variance are not uniformly ordered:
-they perform differently across market regimes.
-In calm and selloff weeks (449 of 520 OOS weeks, 86\%), min-variance dominates by
-construction---its low-vol covariance objective is ideally suited to stable conditions.
-But in \emph{high-volatility} weeks (80 of 520, 15\%), constrained RL achieves
-Sharpe $1.415$ versus min-variance's $0.564$---a $2.5\times$ advantage.
-This suggests a \textbf{regime-switching hybrid}: apply constrained RL in high-vol
-regimes, min-variance otherwise. We test this directly, using the rolling SPY volatility
-quantile to label each OOS week.
-The hybrid achieves Sharpe $\mathbf{1.316}$ versus pure min-variance $1.209$ and pure
-constrained RL $0.942$ (95\% bootstrap CI: hybrid $[0.657,\,2.034]$, min-var
-$[0.549,\,1.934]$). The $+0.107$ Sharpe gain accrues entirely from the 80 high-vol
-weeks where constrained RL dominates; in all other weeks the hybrid inherits min-var
-directly. This converts the ``which is better?'' question into a cleaner one:
-\emph{which regime are you in?}  In high-volatility markets, the explicit tail
-constraint is an active advantage, not merely a safety backstop.
-
-\paragraph{Crisis de-risking: 43\% lower drawdown than unconstrained RL.}
-A CVaR constraint is most valuable when tail events materialise.
-We measure performance in the two largest OOS crises: the COVID crash (2020 trough
-2020-03-20, SPY $-31.8\%$ peak-to-trough) and the 2022 rates selloff (trough
-2022-10-14, SPY $-16.0\%$).
-During the 19-week COVID window, the constrained allocator's maximum drawdown was
-$9.5\%$; unconstrained RL's full stress-window maximum drawdown was $20.6\%$---a
-$54\%$ reduction.
-Full OOS CVaR$_{99}$ tells the same story: $3.3\%$ constrained versus $6.5\%$
-unconstrained---a $49\%$ reduction.
-Both constrained RL and min-variance enter the COVID window with comparable protection
-relative to the market (constrained RL $-9.5\%$, min-var $-4.2\%$, SPY $-31.8\%$).
-The constraint does not beat min-var's structurally low volatility---but it
-prevents the unconstrained learner's unbounded loss accumulation, which is the precise
-risk a CVaR mandate is designed to guard against.
-The constrained RL also de-risked \emph{before} both troughs: $2$ weeks before the
-COVID trough and $1$ week before min-var entered its de-risking threshold, confirming
-that the CVaR roll-forward signal is contemporaneous with, not reactive to, the crisis.
 
 %% =====================================================================
 \subsection{Practitioner Takeaways}
 
-Four lessons transfer directly to deployment.
+\textbf{(1) Explicit tail limits de-risk proactively.}
+The CVaR constraint gives a mechanical rotation signal: once the rolling tail estimate
+approaches the budget, the policy shifts into cash/rates. In our data that rotation
+happened 2 weeks \emph{before} the COVID trough---an advance signal, not reactive.
+Full stress-window max drawdown: constrained $11.8\%$, unconstrained $20.6\%$, SPY
+$31.8\%$ (Figure~\ref{fig:weights}).
 
-\textbf{(1) Explicit tail limits outperform implicit ones in crises.}  An
-unconstrained return-greedy policy has no brake.  It continues holding risk until
-the drawdown has already compounded.  The CVaR constraint gives it a mechanical
-de-risking signal: once the rolling tail estimate approaches the budget, the policy
-rotates into the cash/rates leg.  In our data that rotation happened 2 weeks
-\emph{before} the COVID trough (2020-03-20) and 1 week before min-variance triggered
-its own de-risking threshold---an advance signal, not a reactive one.  Full
-stress-window max drawdown: constrained $11.8\%$, unconstrained $20.6\%$, SPY $31.8\%$
-(Figure~\ref{fig:weights}).
+\textbf{(2) Use constrained RL as a high-volatility overlay.}
+In the 15\% of OOS weeks labelled high-volatility, constrained RL Sharpe is $1.415$
+vs min-var $0.564$.  A regime-switching hybrid (constrained RL in high-vol, min-var
+otherwise) achieves overall Sharpe $1.316$ vs pure min-var $1.209$.  Practitioners
+already using min-var for calm conditions can add the constraint as a targeted overlay.
 
-\textbf{(5) In high-volatility regimes, prefer constrained RL over min-var.}
-A regime-switching hybrid (constrained RL in high-vol weeks, min-var otherwise)
-achieves walk-forward Sharpe $1.316$ versus pure min-var $1.209$
-(bootstrap 95\,\% CI gap: $[+0.108,\,-0.100]$ favours hybrid).
-The switching rule is simple: label weeks by trailing SPY volatility quantile.
-In the 15\% of weeks classified as high-volatility, constrained RL's Sharpe is
-$1.415$ versus min-var's $0.564$.  Practitioners who already use min-var for
-normal conditions can layer the constrained RL as a high-volatility overlay without
-altering their calm-regime allocation.
-
-\textbf{(2) Check constraint coupling before deployment.}  Any Lagrangian-constrained
-policy should verify the multiplier actually rises during training
-(Figure~\ref{fig:lagrange}).  If it stays near zero the constraint is inert: check
-that the advantage signals are on the same scale, and that the dual is driven by
-breach rate rather than raw cost magnitude (Section~\ref{sec:coupling}).  This is a
-one-line diagnostic that takes seconds to run and can save a deployment that
-\emph{looks} constrained from being operationally unconstrained.
-
-\textbf{(3) Walk-forward, not single-window, is the honest benchmark.}  An apparent
-advantage over a rolling minimum-variance optimiser on a fixed stress window can
-invert entirely under rolling evaluation---our 31-asset test is a concrete example.
-Do not report single stress-split comparisons against convex optimisers without a
-walk-forward confirmation (Section~\ref{sec:protocol}).
-
-\textbf{(4) Position this as a safety layer, not an alpha source.}  The robust,
-pooled-significant effect is on tail risk ($p=10^{-4}$).  The Sharpe advantage
-does not survive a Deflated-Sharpe correction.  The honest practitioner pitch is:
-the CVaR constraint will make a learned allocation policy \emph{safer}; it will not
-reliably make it more \emph{profitable} than a rolling minimum-variance optimiser.
-
-%% =====================================================================
-\section{Limitations}
-\label{sec:limitations}
-
-Two ETF universes (macro and sector), single region, synthetic 5\,bps costs
-(robustness covers 2--3$\times$ but not bid--ask realism). The fold-level tail-risk
-reduction is significant on \emph{both} universes individually (macro-ETF $p=0.0077$,
-sector $p=0.0003$) and in the two-universe pool ($p=8.8\times10^{-6}$;
-Section~\ref{sec:significance}), but the out-of-sample \emph{Sharpe advantage over
-classical baselines} does not survive a Deflated-Sharpe correction---the robust
-effect is on tail risk, not excess return. The
-differentiable allocator is closer to deep portfolio optimisation than classic
-model-free RL; the model-free A2C/PPO/SAC arms remain weak even after a proper
-hyperparameter sweep (Section~\ref{sec:modelfree}). Constrained turnover
-($\sim$0.04/wk) exceeds the optimisers'; Table~\ref{tab:walkforward} shows
-this does not close the CVaR gap even after netting transaction costs
-(constrained CVaR$_{99}$ 0.0331 vs unconstrained 0.0416 walk-forward, a
-$-20\%$ reduction despite higher turnover), but a turnover-matched ablation
-(fixing turnover cap to the min-variance level) is a natural robustness check
-for future work.
-
-\textbf{Minimum-variance dominance.}
-Rolling minimum-variance consistently achieves higher Sharpe in calm and selloff regimes.
-This is expected: with a 7-asset universe that includes BIL (cash) and TLT (long-duration bonds), a solver with access to the full covariance matrix has a structural advantage in low-signal environments over a policy that learns from returns alone.
-The paper does not claim to beat minimum-variance overall.
-The contribution is \emph{within the learned-policy class}: relative to an unconstrained RL allocator, the CVaR-constrained variant reduces tail risk reliably (Wilcoxon $p=8.8\times10^{-6}$ over 40 folds, 20-29\% CVaR$_{99}$ reduction across all three market regimes), eliminates constraint violations, and adds Sharpe in the high-volatility regime ($+0.501$ vs min-var).
-A practitioner who already uses minimum-variance for calm and selloff periods can layer the constrained RL policy as a high-volatility overlay, exploiting the regime-conditional decomposition in Table~\ref{tab:regime}.
+\textbf{(3) Verify coupling and use walk-forward evaluation.}
+Any Lagrangian policy should confirm the multiplier rises during training
+(Figure~\ref{fig:lagrange}); a near-zero multiplier means the constraint is
+inert---check advantage-signal scales (Section~\ref{sec:coupling}).  Likewise, an
+apparent beat-the-optimiser result on a single stress window can invert under rolling
+walk-forward; always validate across multiple folds before reporting an advantage
+over convex baselines.
 
 %% =====================================================================
 \section{Conclusion and Future Work}
@@ -1058,9 +927,10 @@ this operationally concrete---practitioners who already use min-variance for nor
 conditions can layer constrained RL in high-volatility periods without altering their
 calm-regime allocation.
 
-Future work: benchmark-relative active-risk variant; per-asset transaction-cost
-calibration; formal CMDP convergence treatment; extension to futures and equity
-cross-sections for a single-universe walk-forward claim.
+Scope and future work: results span two ETF universes (single region, synthetic 5\,bps
+costs); the Sharpe advantage does not survive a Deflated-Sharpe correction---the robust
+effect is on tail risk. Natural extensions: benchmark-relative active-risk; turnover-matched ablation; per-asset cost calibration; extension to futures and equity
+cross-sections.
 
 \begin{acks}
 All figures and tables are produced by the open pipeline in the project repository
