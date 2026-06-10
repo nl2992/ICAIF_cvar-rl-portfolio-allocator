@@ -94,7 +94,7 @@ that we describe, name, and fix in Section~\ref{sec:coupling}. It is likely pres
 in any Lagrangian RL system that standardises the return advantage but not the cost
 advantage. (As Section~\ref{sec:coupling} shows, the constrained \emph{architecture}
 still regularises the tail through its safety-critic and projection structure even
-when the multiplier is inert; the policies are \emph{not} numerically identical, but
+when the multiplier is inert, the policies are \emph{not} numerically identical, but
 the Lagrangian mechanism itself never engages.)
 
 Reinforcement learning for portfolio allocation is usually evaluated on return
@@ -238,7 +238,7 @@ weights $w_t$ on the long-only simplex. The environment projects $w_t$ onto the
 admissible set $\mathcal{W}$ (max weight 0.40, turnover cap 0.50, optional cash
 floor), charges proportional cost $c\lVert w_t - w_{t-1}\rVert_1$ ($c=5$\,bps), and
 realises $r_t = w_t^{\top}\rho_t - c\lVert w_t - w_{t-1}\rVert_1$, where $\rho_t$
-are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead;
+are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead,
 enforced by tests).
 
 \paragraph{Constrained objective (CMDP)} A \emph{constrained Markov Decision
@@ -318,7 +318,7 @@ otherwise, using the existing OOS paths without any refitting.
 
 \emph{Threshold sensitivity.} Because the switch depends on two labelling
 thresholds, we sweep them ($\text{vol-quantile}\in\{0.65,\dots,0.85\}$,
-$\text{selloff}\in\{-0.04,-0.05,-0.06\}$; 15 configurations, no retraining). The
+$\text{selloff}\in\{-0.04,-0.05,-0.06\}$, 15 configurations, no retraining). The
 hybrid beats pure min-variance in \textbf{10/15} configurations (mean Sharpe gain
 $+0.077$) and is \emph{robust across the entire volatility-quantile axis}, it wins
 at every cutoff from $0.65$ to $0.85$ when the selloff threshold is $-0.04$ or
@@ -421,8 +421,8 @@ Significance & 2000-sample block bootstrap (block 4), Wilcoxon, BH, Deflated-Sha
 Seven liquid ETFs spanning the major macro blocks, SPY (equity), TLT (rates), HYG
 (credit), DBC (commodity), GLD (gold), UUP (US dollar), BIL (cash), from Yahoo
 adjusted close, resampled to \textbf{887 weekly returns, 2008--2024}. Splits are
-chronological (train $\approx$2008--2018 incl.\ the GFC; validation
-$\approx$2018--2021; test $\approx$2021--2024). For the stress study we retrain on
+chronological. Train covers $\approx$2008--2018 (incl.\ the GFC), validation
+$\approx$2018--2021, and test $\approx$2021--2024. For the stress study we retrain on
 2008--2018 and test on the 267-week window containing the 2020 COVID crash and the
 2022 selloff. Macro covariates (10y$-$3m term spread, VIX) are sourced from index
 proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}). A FRED loader is also
@@ -633,7 +633,7 @@ on both universes (near-certain positive Sharpe), but, as an honest null, the
 out-of-sample \emph{Sharpe advantage over classical baselines} does not survive a
 Deflated-Sharpe correction for the number of configurations tried. The robust,
 pooled-significant effect is on \emph{tail risk}, consistent with the paper's claim
-that the constraint is a safety layer, not an alpha source. The signed-rank significance reflects magnitude, not fold count. Per-universe mean fold $\Delta\mathrm{CVaR}_{99}$ is $-0.0041$ (macro-ETF) and $-0.0087$ (sector); the few losing folds are small, so the test correctly favours the constrained policy.
+that the constraint is a safety layer, not an alpha source. The signed-rank significance reflects magnitude, not fold count. Per-universe mean fold $\Delta\mathrm{CVaR}_{99}$ is $-0.0041$ (macro-ETF) and $-0.0087$ (sector). The few losing folds are small, so the test correctly favours the constrained policy.
 
 \begin{table}[t]
 \centering
