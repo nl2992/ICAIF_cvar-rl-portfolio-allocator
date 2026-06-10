@@ -76,18 +76,22 @@ to absorb, had no mechanical reason to rotate into Treasuries or cash when the V
 tripled overnight.  Absent a tail limit, the policy kept holding equities through
 the worst losses.  An otherwise-identical allocator carrying an explicit
 Conditional Value-at-Risk (CVaR) limit had already rotated into the cash/rates leg
-before the trough and emerged with roughly half the drawdown. 11.8\% peak-to-trough
+before the trough and emerged with roughly half the drawdown: 11.8\% peak-to-trough
 versus 20.6\% for its unconstrained twin (Table~\ref{tab:stress}).
 
 That difference is a result, not the headline. An explicit CVaR constraint is
 a safety layer that cuts tail losses of a \emph{learned} allocator without
 sacrificing risk-adjusted return.  There is, however, a catch.  In the first
 model-free implementation we tried, a standard Lagrangian
-actor--critic, the constraint was completely inert.  The Lagrange multiplier stayed pinned near zero,
-so the constrained policy collapsed onto its unconstrained twin.  The culprit is a subtle scale mismatch that we describe,
-name, and fix in Section~\ref{sec:coupling}. It is likely present in any
-Lagrangian RL system that standardises the return advantage but not the cost
-advantage.
+actor--critic, the \emph{dual channel was inert}: the Lagrange multiplier stayed
+pinned near zero, so the constraint exerted no explicit tail pressure through the
+mechanism that was supposed to enforce it. The culprit is a subtle scale mismatch
+that we describe, name, and fix in Section~\ref{sec:coupling}. It is likely present
+in any Lagrangian RL system that standardises the return advantage but not the cost
+advantage. (As Section~\ref{sec:coupling} shows, the constrained \emph{architecture}
+still regularises the tail through its safety-critic and projection structure even
+when the multiplier is inert; the policies are \emph{not} numerically identical, but
+the Lagrangian mechanism itself never engages.)
 
 Reinforcement learning for portfolio allocation is usually evaluated on return
 or Sharpe ratio, with risk handled implicitly.  Practitioners, however, manage
@@ -168,7 +172,7 @@ representation admits a convex LP (we include this as a baseline) and a differen
 penalty via \texttt{topk}.
 
 \paragraph{RL for portfolio management}
-The dominant pattern in RL-for-portfolio literature is. Train on a single historical
+The dominant pattern in RL-for-portfolio literature is to train on a single historical
 window, evaluate on one held-out test split, and compare against equal-weight or
 buy-and-hold.
 Jiang et al.~\cite{jiang2017deep} introduce the EIIE architecture for cryptocurrency
@@ -230,8 +234,8 @@ weights $w_t$ on the long-only simplex. The environment projects $w_t$ onto the
 admissible set $\mathcal{W}$ (max weight 0.40, turnover cap 0.50, optional cash
 floor), charges proportional cost $c\lVert w_t - w_{t-1}\rVert_1$ ($c=5$\,bps), and
 realises $r_t = w_t^{\top}\rho_t - c\lVert w_t - w_{t-1}\rVert_1$, where $\rho_t$
-are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead.
-Enforced by tests).
+are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead;
+enforced by tests).
 
 \paragraph{Constrained objective (CMDP)} A \emph{constrained Markov Decision
 Process} (CMDP)~\cite{achiam2017cpo} augments the standard MDP with one or more
@@ -268,7 +272,7 @@ problem.
 $\mathcal{L}$ is a differentiable function of the rollout, so the policy is trained
 by exact back-propagation through the simplex map and the reward, no score-function
 estimator. With net returns $r_t = w_t^{\top}\rho_t - c\lVert w_t-w_{t-1}\rVert_1$
-and tail set $\mathcal{T}=\{t. R_t \text{ among the worst } \lceil(1-\alpha)T\rceil
+and tail set $\mathcal{T}=\{t: R_t \text{ among the worst } \lceil(1-\alpha)T\rceil
 \text{ of the window}\}$,
 \begin{equation}
 \frac{\partial \mathcal{L}}{\partial \theta}
@@ -294,9 +298,9 @@ anchor (a strong, regime-robust prior). Training learns a state-dependent tilt.
 Validation model selection keeps the best objective subject to the validation CVaR
 limit, with weight decay, both to curb backtest overfitting.
 
-\paragraph{Baselines} Deterministic, re-estimated weekly. Cash, equal weight,
+\paragraph{Baselines} Deterministic, re-estimated weekly: cash, equal weight,
 inverse vol, minimum variance, mean--variance, risk parity, and a min-CVaR
-Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned. Model-free
+Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned: model-free
 A2C, PPO~\cite{schulman2017ppo} (clipped surrogate, GAE) and SAC~\cite{haarnoja2018soft}
 (off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable
 allocator ($\lambda=0$).
@@ -310,7 +314,7 @@ otherwise, using the existing OOS paths without any refitting.
 
 \emph{Threshold sensitivity.} Because the switch depends on two labelling
 thresholds, we sweep them ($\text{vol-quantile}\in\{0.65,\dots,0.85\}$,
-$\text{selloff}\in\{-0.04,-0.05,-0.06\}$. 15 configurations, no retraining). The
+$\text{selloff}\in\{-0.04,-0.05,-0.06\}$; 15 configurations, no retraining). The
 hybrid beats pure min-variance in \textbf{10/15} configurations (mean Sharpe gain
 $+0.077$) and is \emph{robust across the entire volatility-quantile axis}, it wins
 at every cutoff from $0.65$ to $0.85$ when the selloff threshold is $-0.04$ or
@@ -332,7 +336,7 @@ finding.  The scale mismatch IS confirmed. With the misscaled learning rate
 theoretical prediction that the dual cannot bind when cost and reward advantages
 are on different scales.  Two fixes scale the dual correctly. Standardise the cost
 advantage to the reward-advantage scale, and drive $\lambda$ with a \textbf{breach
-indicator} against a breach-rate budget.  Formally.
+indicator} against a breach-rate budget.  Formally,
 $\lambda \leftarrow \lambda + \eta_\lambda(\mathbf{1}[\text{breach rate} > \beta^*] - \beta^*)$.
 The multiplier then reaches $O(1)$.
 
@@ -413,8 +417,8 @@ Significance & 2000-sample block bootstrap (block 4), Wilcoxon, BH, Deflated-Sha
 Seven liquid ETFs spanning the major macro blocks, SPY (equity), TLT (rates), HYG
 (credit), DBC (commodity), GLD (gold), UUP (US dollar), BIL (cash), from Yahoo
 adjusted close, resampled to \textbf{887 weekly returns, 2008--2024}. Splits are
-chronological (train $\approx$2008--2018 incl.\ the GFC. Validation
-$\approx$2018--2021. Test $\approx$2021--2024). For the stress study we retrain on
+chronological (train $\approx$2008--2018 incl.\ the GFC; validation
+$\approx$2018--2021; test $\approx$2021--2024). For the stress study we retrain on
 2008--2018 and test on the 267-week window containing the 2020 COVID crash and the
 2022 selloff. Macro covariates (10y$-$3m term spread, VIX) are sourced from index
 proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}). A FRED loader is also
@@ -476,7 +480,7 @@ better. Best in bold. Constraint violations are hard CVaR-limit breaches per run
 The constrained allocator eliminates them entirely.}
 \label{tab:stress}
 \small
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
 metric & unconstr. & \textbf{constr.} & change \\
 \midrule
@@ -641,7 +645,7 @@ universe & folds & $\mathrm{CVaR}_{99}^{\text{unc}}$ & $\mathrm{CVaR}_{99}^{\tex
 \midrule
 macro ETF (7)   & 20 & 0.0143 & 0.0102 &  9/20 & 0.0077              & 0.997 \\
 sector (10)     & 20 & 0.0336 & 0.0250 & 17/20 & 0.0003              & 0.990 \\
-\textbf{pooled} & 40 &, &, & 26/40 & $\mathbf{8.8\times10^{-6}}$ &, \\
+\textbf{pooled} & 40 & --- & --- & 26/40 & $\mathbf{8.8\times10^{-6}}$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}

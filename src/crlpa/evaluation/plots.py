@@ -14,19 +14,19 @@ import pandas as pd  # noqa: E402
 # Curated, color-blind-friendly palette; protagonists get saturated hues,
 # baselines stay muted so the eye lands on the learner vs. the optimiser.
 _COLORS = {
-    "rl_cvar_constrained": "#1b6ca8",   # ours (constrained)
+    "rl_cvar_constrained": "#1D4F91",   # ours (constrained) — Columbia navy, the protagonist
     "rl_unconstrained": "#d1495b",      # ours (unconstrained)
     "min_variance": "#2e8b57",          # the optimiser that wins OOS
     "cvar_optimizer": "#3aa37a",
     "inverse_vol": "#9b8bd6",
-    "equal_weight": "#9aa0a6",
+    "equal_weight": "#8895a7",          # blue-grey (harmonised with Columbia palette)
     "ppo_best_unconstrained": "#e8853a",
     "ppo_best_cvar_constrained": "#3bb3c3",
     "sac_best_unconstrained": "#b3a829",
     "sac_best_cvar_constrained": "#cf6fae",
 }
-_GRID = "#d9dde2"
-_INK = "#22262b"
+_GRID = "#C9DCEA"  # light Columbia blue grid
+_INK = "#0A1F44"   # deep Columbia navy ink (axes / text)
 
 
 def set_style() -> None:
@@ -57,6 +57,7 @@ def set_style() -> None:
         "figure.dpi": 120,
         "savefig.dpi": 220,
         "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.03,
     })
 
 
