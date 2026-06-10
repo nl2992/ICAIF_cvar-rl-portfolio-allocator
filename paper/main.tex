@@ -882,18 +882,18 @@ outcomes. Three affirmative findings. The CVaR constraint reliably reduces tail 
 violations entirely in stress. A regime-switching hybrid attains walk-forward Sharpe
 $1.316$ vs $1.209$ for pure min-variance, with a $2.5\times$ edge in high-volatility
 weeks. And the constraint de-risks \emph{before} crisis troughs (two weeks ahead of
-the COVID trough). Two cautionary findings should caution any group reporting
+the COVID trough). Two cautionary findings transfer beyond this paper to any group reporting
 single-window RL comparisons against convex baselines. A constraint-coupling failure
 in Lagrangian RL (an inert multiplier from advantage-scale mismatch), and an
 evaluation-protocol reversal in which an apparent beat-the-optimiser result inverts
 under rolling walk-forward.
 
-The practical message. Position constrained RL as a \emph{safety layer and
-high-volatility overlay}, not a universal alpha source, practitioners already using
+The practical takeaway is to position constrained RL as a \emph{safety layer and
+high-volatility overlay}, not a universal alpha source. Practitioners already using
 min-variance in calm conditions can layer it in without altering their calm-regime
-allocation. Scope and future work. Results span two ETF universes (single region,
+allocation. Results span two ETF universes (single region,
 synthetic 5\,bps costs) and the Sharpe edge does not survive a Deflated-Sharpe
-correction, the robust effect is on tail risk. Natural extensions. Benchmark-relative
+correction. The robust effect is on tail risk. Natural extensions include benchmark-relative
 active risk, turnover-matched ablation, per-asset cost calibration, and futures/equity
 cross-sections.
 
