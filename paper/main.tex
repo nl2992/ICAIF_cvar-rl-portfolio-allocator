@@ -16,7 +16,7 @@
 
 \begin{document}
 
-\title{Tail Constraints That Bind: A Differentiable CVaR Allocator and Two
+\title{Tail Constraints That Bind. A Differentiable CVaR Allocator and Two
 Failure Modes in Evaluating Constrained RL for Finance}
 
 \author{Anonymous Author(s)}
@@ -26,23 +26,23 @@ Failure Modes in Evaluating Constrained RL for Finance}
 
 \begin{abstract}
 Reinforcement learning is increasingly applied to portfolio allocation, yet two
-questions are rarely asked: does an explicit risk constraint actually \emph{bind},
+questions are rarely asked. Does an explicit risk constraint actually \emph{bind},
 and does a reported win survive the \emph{evaluation protocol}? We study a
 differentiable Conditional Value-at-Risk (CVaR) constrained allocator on a
 seven-ETF macro universe (2008--2024, weekly, 5\,bps costs) and make the
-methodology the contribution. First, the constraint works as a tail safety layer:
-a 40-fold two-universe walk-forward shows constrained $\mathrm{CVaR}_{99}$ lower in
+methodology the contribution. First, the constraint works as a tail safety layer.
+A 40-fold two-universe walk-forward shows constrained $\mathrm{CVaR}_{99}$ lower in
 26/40 folds ($p=8.8\!\times\!10^{-6}$), and through the 2020 crash and 2022 selloff
 it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$ while improving
-Sharpe by $40\%$ and eliminating hard constraint violations. Second---and this is
-what transfers to \emph{any} constrained financial RL---we surface two failure
-modes. (i)~A \textbf{Lagrangian constraint-coupling failure}: standardising the
+Sharpe by $40\%$ and eliminating hard constraint violations. Second, and this is
+what transfers to \emph{any} constrained financial RL, we surface two failure
+modes. (i)~A \textbf{Lagrangian constraint-coupling failure}. Standardising the
 reward advantage but not the cost advantage renders the constraint silently inert
-for any reasonable multiplier; we name and fix it. (ii)~An \textbf{evaluation-protocol
-reversal}: on a 31-asset universe a single stress window ranks the learner above
-every optimiser, while a rolling walk-forward inverts the ranking---so apparent
+for any reasonable multiplier. We name and fix it. (ii)~An \textbf{evaluation-protocol
+reversal}. On a 31-asset universe a single stress window ranks the learner above
+every optimiser, while a rolling walk-forward inverts the ranking, so apparent
 ``beat-the-optimiser'' claims can be protocol artifacts. We are explicit about
-scope: the pure learned allocator does not beat rolling minimum-variance in
+scope. The pure learned allocator does not beat rolling minimum-variance in
 aggregate (a regime-switching hybrid does, $+0.107$ Sharpe). The contribution is
 the constraint mechanism and the two evaluation failure modes, not a horse-race win.
 \end{abstract}
@@ -71,21 +71,21 @@ Value-at-Risk, drawdown control, constrained MDP, differentiable optimisation}
 
 In the week of 16 March 2020, the S\&P 500 fell another 15\% in four days as
 COVID-19 lockdowns shut economies worldwide.  A learned portfolio allocator trained
-on the preceding decade---with no explicit rule about how much loss it was budgeted
-to absorb---had no mechanical reason to rotate into Treasuries or cash when the VIX
+on the preceding decade, with no explicit rule about how much loss it was budgeted
+to absorb, had no mechanical reason to rotate into Treasuries or cash when the VIX
 tripled overnight.  Absent a tail limit, the policy kept holding equities through
 the worst losses.  An otherwise-identical allocator carrying an explicit
 Conditional Value-at-Risk (CVaR) limit had already rotated into the cash/rates leg
-before the trough and emerged with roughly half the drawdown: 11.8\% peak-to-trough
+before the trough and emerged with roughly half the drawdown. 11.8\% peak-to-trough
 versus 20.6\% for its unconstrained twin (Table~\ref{tab:stress}).
 
-That difference is a result, not the headline: an explicit CVaR constraint is
+That difference is a result, not the headline. An explicit CVaR constraint is
 a safety layer that cuts tail losses of a \emph{learned} allocator without
 sacrificing risk-adjusted return.  There is, however, a catch.  In the first
-model-free implementation we tried---a standard Lagrangian
-actor--critic---the constraint was completely inert.  The constrained and unconstrained policies were
+model-free implementation we tried, a standard Lagrangian
+actor--critic, the constraint was completely inert.  The constrained and unconstrained policies were
 numerically identical.  The culprit is a subtle scale mismatch that we describe,
-name, and fix in Section~\ref{sec:coupling}; it is likely present in any
+name, and fix in Section~\ref{sec:coupling}. It is likely present in any
 Lagrangian RL system that standardises the return advantage but not the cost
 advantage.
 
@@ -93,9 +93,9 @@ Reinforcement learning for portfolio allocation is usually evaluated on return
 or Sharpe ratio, with risk handled implicitly.  Practitioners, however, manage
 \emph{tail} risk explicitly.  Markowitz mean--variance
 optimisation~\cite{markowitz1952portfolio} penalises upside and downside
-symmetrically and is silent on path-wise drawdown; CVaR is a coherent, convex tail
+symmetrically and is silent on path-wise drawdown. CVaR is a coherent, convex tail
 measure~\cite{rockafellar2000optimization} that RL can optimise directly.  We ask
-a narrow, falsifiable question:
+a narrow, falsifiable question.
 
 \begin{quote}
 \emph{Does an explicit CVaR constraint reduce the downside tail losses and
@@ -104,32 +104,32 @@ unconstrained learner, while remaining competitive with standard portfolio
 optimisers after costs?}
 \end{quote}
 
-\noindent\textbf{Our main contributions are:}
+\noindent\textbf{Our main contributions are.}
 \begin{enumerate}
 \item A \textbf{leak-free, tested portfolio-control environment} with transaction
 costs, an admissible-set projection (long-only, max-weight, turnover cap, cash
 floor), and a rolling CVaR state/constraint signal (Section~\ref{sec:method}).
-\item A \textbf{differentiable CVaR-constrained allocator}: rather than
+\item A \textbf{differentiable CVaR-constrained allocator}. Rather than
 score-function policy gradients, we exploit that the per-step reward
 $w^{\top}r - \text{cost}$ is a known, differentiable function of the weights, and
 back-propagate a Sharpe/return objective plus a differentiable CVaR penalty
 through the rollout, with a Lagrangian dual on a breach-rate budget and a residual
 policy over an adaptive anchor for generalisation (Section~\ref{sec:method}).
-\item A \textbf{negative methodological finding}: in the model-free Lagrangian
+\item A \textbf{negative methodological finding}. In the model-free Lagrangian
 actor--critic, standardising the reward advantage but not the cost advantage
-makes the constraint inert for any reasonable multiplier; we identify and fix the
+makes the constraint inert for any reasonable multiplier. We identify and fix the
 coupling (Section~\ref{sec:coupling}).
-\item A \textbf{rigorous evaluation}: deterministic optimisers, three model-free RL
+\item A \textbf{rigorous evaluation}. Deterministic optimisers, three model-free RL
 families (A2C, PPO, SAC) each tuned by a validation-selected hyperparameter sweep,
 seed averaging, paired bootstrap, a two-universe rolling walk-forward with regime
 slices and Deflated-Sharpe / multiple-testing control, robustness to costs/universe,
 and ablations (Section~\ref{sec:results}).
-\item A \textbf{cautionary evaluation finding}: on a 31-asset universe, a single
+\item A \textbf{cautionary evaluation finding}. On a 31-asset universe, a single
 stress window ranks the learned allocator \emph{above} every optimiser, but a rolling
 walk-forward \emph{inverts} the ranking (minimum variance Sharpe $1.40$ vs $0.74$).
 Apparent ``beat-the-optimiser'' results for learned allocators can be artifacts of the
 evaluation protocol (Section~\ref{sec:protocol}).
-\item A \textbf{regime-switching hybrid strategy}: routing the constrained RL allocator
+\item A \textbf{regime-switching hybrid strategy}. Routing the constrained RL allocator
 to high-volatility weeks (15\,\% of OOS, labelled by trailing SPY volatility quantile)
 and min-variance otherwise achieves walk-forward Sharpe $1.316$ vs $1.209$ for pure
 min-variance, with a $2.5\times$ Sharpe advantage in high-volatility weeks
@@ -138,12 +138,12 @@ tractable regime-classification problem and demonstrates that constrained RL has
 clearly defined domain of superiority (Section~\ref{sec:discussion}).
 \end{enumerate}
 
-We are explicit about scope: the pure learned allocator does \textbf{not} beat a
-rolling minimum-variance optimiser in aggregate; the hybrid \textbf{does} ($+0.107$
+We are explicit about scope. The pure learned allocator does \textbf{not} beat a
+rolling minimum-variance optimiser in aggregate. The hybrid \textbf{does} ($+0.107$
 Sharpe), exploiting the regime in which the tail constraint is most active. But a
 horse-race win is \emph{not} the contribution. The contribution is methodological
-and transferable: a differentiable constraint mechanism that demonstrably binds and
-cuts tails, and two failure modes---constraint-coupling and protocol-reversal---that
+and transferable. A differentiable constraint mechanism that demonstrably binds and
+cuts tails, and two failure modes, constraint-coupling and protocol-reversal, that
 any constrained-RL-for-finance study must control for or risk reporting an artifact.
 The allocator is the testbed that makes both failure modes visible and fixable.
 
@@ -152,17 +152,17 @@ The allocator is the testbed that makes both failure modes visible and fixable.
 \label{sec:related}
 
 \paragraph{Mean--variance optimisation and its inputs.} MVO~\cite{markowitz1952portfolio}
-is sensitive to input estimates; decision-focused learning trains return
+is sensitive to input estimates. Decision-focused learning trains return
 predictors to improve downstream MVO decisions rather than raw forecast
 accuracy~\cite{lee2024dfl}, and mean--variance-efficient collaborative filtering
 blends user preference with portfolio theory~\cite{chung2023mvecf}. These works
 improve the \emph{inputs} or \emph{recommendation} layer of a variance-based
-objective; we instead constrain a \emph{tail} risk measure on a learned policy.
+objective. We instead constrain a \emph{tail} risk measure on a learned policy.
 
 \paragraph{Conditional Value-at-Risk.} $\mathrm{CVaR}_\alpha$ is the \emph{expected
-portfolio loss on the worst $(1{-}\alpha)$ fraction of outcomes}---the average of all
+portfolio loss on the worst $(1{-}\alpha)$ fraction of outcomes}, the average of all
 losses that exceed the $\alpha$-quantile, known as Value-at-Risk ($\mathrm{VaR}_\alpha$).
-Unlike variance it ignores upside; unlike $\mathrm{VaR}$ it averages across the entire
+Unlike variance it ignores upside. Unlike $\mathrm{VaR}$ it averages across the entire
 tail rather than reporting a single threshold.  Rockafellar and
 Uryasev~\cite{rockafellar2000optimization} show it has the tractable form
 \begin{equation}
@@ -176,12 +176,12 @@ representation admits a convex LP (we include this as a baseline) and a differen
 penalty via \texttt{topk}.
 
 \paragraph{RL for portfolio management.}
-The dominant pattern in RL-for-portfolio literature is: train on a single historical
+The dominant pattern in RL-for-portfolio literature is. Train on a single historical
 window, evaluate on one held-out test split, and compare against equal-weight or
 buy-and-hold.
 Jiang et al.~\cite{jiang2017deep} introduce the EIIE architecture for cryptocurrency
 portfolio allocation, comparing against twelve classical strategies on a single
-$\approx$50-day test window---no walk-forward, no statistical testing, no tail-risk
+$\approx$50-day test window, no walk-forward, no statistical testing, no tail-risk
 constraint, and no minimum-variance baseline.
 Ye et al.~\cite{ye2020sarl} augment the state with sentiment signals (SARL) and report
 higher accumulated return on a fixed evaluation period, again with no cross-validation
@@ -203,26 +203,26 @@ single-window evaluations conceal.
 \paragraph{Direct reinforcement and pathwise gradients.}
 Moody and Saffell~\cite{moody2001learning} first trained a recurrent trading policy
 by back-propagating the \emph{differential Sharpe ratio} directly through the return
-function---an exact pathwise gradient predating deep learning.  Buehler et
+function, an exact pathwise gradient predating deep learning.  Buehler et
 al.~\cite{buehler2019deephedging} (Deep Hedging) extend this to neural derivative
 hedging, back-propagating CVaR as a \emph{utility} (a risk-aversion coefficient)
 through a simulated trajectory.  Our differentiable allocator inherits the
 pathwise-gradient insight from both, but replaces the risk-aversion coefficient
-with an explicit CVaR \emph{budget constraint}: the practitioner specifies a
+with an explicit CVaR \emph{budget constraint}. The practitioner specifies a
 tolerable loss threshold directly, and a dual variable enforces it.  Model-free
 policy gradients (A2C/PPO~\cite{schulman2017ppo}) and off-policy actor--critics
 (SAC~\cite{haarnoja2018soft}) ignore the differentiable structure of the portfolio
-reward entirely; our allocator is strictly more sample-efficient for this problem
-class.  Recent work makes such policies auditable: ProtoHedge~\cite{faloughi2025protohedge}
+reward entirely. Our allocator is strictly more sample-efficient for this problem
+class.  Recent work makes such policies auditable. ProtoHedge~\cite{faloughi2025protohedge}
 replaces the black-box hedger with a prototype-similarity policy at negligible
 performance cost.
 
 \paragraph{CVaR-constrained RL.}
 Chow et al.~\cite{chow2018riskconstrained} derive the Lagrangian gradient for CVaR-constrained
-CMDPs; Tessler et al.~\cite{tessler2019rcpo} (RCPO) and Ying et al.~\cite{ying2022cppo} (CPPO)
+CMDPs. Tessler et al.~\cite{tessler2019rcpo} (RCPO) and Ying et al.~\cite{ying2022cppo} (CPPO)
 implement hard CVaR constraints for robotics control tasks.  None of these works identifies
-the \emph{constraint-coupling failure} we describe: standardising return-advantage to unit scale
-without normalising the cost advantage makes the Lagrange multiplier permanently inert---a failure
+the \emph{constraint-coupling failure} we describe. Standardising return-advantage to unit scale
+without normalising the cost advantage makes the Lagrange multiplier permanently inert, a failure
 specific to portfolio allocation where returns are $O(10^{-3})$ and breach indicators are $O(1)$,
 invisible in robotics.  We pose allocation as a constrained MDP~\cite{achiam2017cpo} and show that
 the well-scaled dual is what makes the constraint actually bind.
@@ -238,18 +238,18 @@ weights $w_t$ on the long-only simplex. The environment projects $w_t$ onto the
 admissible set $\mathcal{W}$ (max weight 0.40, turnover cap 0.50, optional cash
 floor), charges proportional cost $c\lVert w_t - w_{t-1}\rVert_1$ ($c=5$\,bps), and
 realises $r_t = w_t^{\top}\rho_t - c\lVert w_t - w_{t-1}\rVert_1$, where $\rho_t$
-are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead;
-enforced by tests).
+are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead.
+Enforced by tests).
 
 \paragraph{Constrained objective (CMDP).} A \emph{constrained Markov Decision
 Process} (CMDP)~\cite{achiam2017cpo} augments the standard MDP with one or more
 inequality constraints that the policy must satisfy on average.  We maximise
-risk-adjusted return subject to a tail budget: $\max_\pi J(\pi)$ s.t.\
+risk-adjusted return subject to a tail budget. $\max_\pi J(\pi)$ s.t.\
 $\mathrm{CVaR}_\alpha(\text{loss})\le d$, with $\alpha=0.95$.  The Lagrangian
 relaxation converts the constraint into a penalty, $\mathcal{L}(\pi,\lambda)=J(\pi) -
 \lambda\,(\mathrm{CVaR}_\alpha - d)$, and a dual variable $\lambda\ge0$ is raised
 whenever the constraint is violated and lowered when slack remains.  In equilibrium
-$\lambda$ acts as a shadow price for tail risk: a higher $\lambda$ means the policy
+$\lambda$ acts as a shadow price for tail risk. A higher $\lambda$ means the policy
 has been pushing against its tail budget.
 
 %% =====================================================================
@@ -274,9 +274,9 @@ problem.
 
 \paragraph{Pathwise gradient and where the constraint acts.} Every term in
 $\mathcal{L}$ is a differentiable function of the rollout, so the policy is trained
-by exact back-propagation through the simplex map and the reward---no score-function
+by exact back-propagation through the simplex map and the reward, no score-function
 estimator. With net returns $r_t = w_t^{\top}\rho_t - c\lVert w_t-w_{t-1}\rVert_1$
-and tail set $\mathcal{T}=\{t : r_t \text{ among the worst } \lceil(1-\alpha)T\rceil
+and tail set $\mathcal{T}=\{t. R_t \text{ among the worst } \lceil(1-\alpha)T\rceil
 \text{ of the window}\}$,
 \begin{equation}
 \frac{\partial \mathcal{L}}{\partial \theta}
@@ -289,7 +289,7 @@ and tail set $\mathcal{T}=\{t : r_t \text{ among the worst } \lceil(1-\alpha)T\r
 \end{equation}
 where $\partial w_t/\partial\theta$ flows through the residual softmax
 (below). The \texttt{topk} subgradient routes the dual pressure to \emph{exactly}
-the worst-$(1-\alpha)$ weeks, and only while the constraint is breached: the penalty
+the worst-$(1-\alpha)$ weeks, and only while the constraint is breached. The penalty
 lifts the deep-loss weeks without distorting the bulk of the path. This locality is
 what makes the constraint bind cleanly once the coupling is correctly scaled
 (Section~\ref{sec:coupling}).
@@ -298,19 +298,19 @@ what makes the constraint bind cleanly once the coupling is correctly scaled
 rather than overfit one price path, weights are $w_t = \mathrm{softmax}(\log a_t +
 f_\theta(s_t))$, where $a_t$ is an adaptive inverse-volatility anchor computed from
 recent returns. At initialisation $f_\theta \approx 0$, so the policy \emph{is} the
-anchor (a strong, regime-robust prior); training learns a state-dependent tilt.
+anchor (a strong, regime-robust prior). Training learns a state-dependent tilt.
 Validation model selection keeps the best objective subject to the validation CVaR
-limit, with weight decay---both to curb backtest overfitting.
+limit, with weight decay, both to curb backtest overfitting.
 
-\paragraph{Baselines.} Deterministic, re-estimated weekly: cash, equal weight,
+\paragraph{Baselines.} Deterministic, re-estimated weekly. Cash, equal weight,
 inverse vol, minimum variance, mean--variance, risk parity, and a min-CVaR
-Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned: model-free
+Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned. Model-free
 A2C, PPO~\cite{schulman2017ppo} (clipped surrogate, GAE) and SAC~\cite{haarnoja2018soft}
 (off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable
 allocator ($\lambda=0$).
 
 \paragraph{Regime-switching hybrid (Option B).}
-We construct a no-retrain hybrid: label each OOS week as \emph{high-volatility} if
+We construct a no-retrain hybrid. Label each OOS week as \emph{high-volatility} if
 trailing 13-week SPY volatility meets or exceeds the 75th-percentile cutoff
 (15\% of OOS weeks), \emph{selloff} if cumulative return $\le -5\%$, else \emph{calm}.
 The hybrid applies constrained RL in high-volatility weeks and rolling min-variance
@@ -318,15 +318,15 @@ otherwise, using the existing OOS paths without any refitting.
 
 \emph{Threshold sensitivity.} Because the switch depends on two labelling
 thresholds, we sweep them ($\text{vol-quantile}\in\{0.65,\dots,0.85\}$,
-$\text{selloff}\in\{-0.04,-0.05,-0.06\}$; 15 configurations, no retraining). The
+$\text{selloff}\in\{-0.04,-0.05,-0.06\}$. 15 configurations, no retraining). The
 hybrid beats pure min-variance in \textbf{10/15} configurations (mean Sharpe gain
-$+0.077$) and is \emph{robust across the entire volatility-quantile axis}---it wins
+$+0.077$) and is \emph{robust across the entire volatility-quantile axis}, it wins
 at every cutoff from $0.65$ to $0.85$ when the selloff threshold is $-0.04$ or
-$-0.05$. The advantage is, however, \emph{sensitive to the selloff cut}: a deeper
+$-0.05$. The advantage is, however, \emph{sensitive to the selloff cut}. A deeper
 $-0.06$ threshold reclassifies the constrained allocator's most valuable
 high-volatility weeks as selloffs (routing them to min-variance) and erases the
 gain in all five cases. The headline $+0.107$ at the default $(0.75,-0.05)$ is thus
-representative rather than cherry-picked, with an explicit scope condition: the
+representative rather than cherry-picked, with an explicit scope condition. The
 edge holds for volatility-defined stress but not when the selloff label absorbs it.
 
 %% =====================================================================
@@ -334,13 +334,13 @@ edge holds for volatility-defined stress but not when the selloff label absorbs 
 \label{sec:coupling}
 
 The coupling ablation (Table~\ref{tab:coupling}) reveals an unexpected but instructive
-finding.  The scale mismatch IS confirmed: with the misscaled learning rate
+finding.  The scale mismatch IS confirmed. With the misscaled learning rate
 ($\eta_\lambda=0.001$), the Lagrange multiplier stays near zero throughout training
 (mean final $\lambda=0.022$ vs $0.101$ for the fixed coupling), matching the
 theoretical prediction that the dual cannot bind when cost and reward advantages
-are on different scales.  Two fixes scale the dual correctly: standardise the cost
+are on different scales.  Two fixes scale the dual correctly. Standardise the cost
 advantage to the reward-advantage scale, and drive $\lambda$ with a \textbf{breach
-indicator} against a breach-rate budget.  Formally:
+indicator} against a breach-rate budget.  Formally.
 $\lambda \leftarrow \lambda + \eta_\lambda(\mathbf{1}[\text{breach rate} > \beta^*] - \beta^*)$.
 The multiplier then reaches $O(1)$.
 
@@ -349,12 +349,12 @@ architecture, even with a near-zero multiplier, reduces CVaR$_{99}$ by $\mathbf{
 relative to the unconstrained baseline ($0.025$ vs $0.065$, 5-seed mean) and Sharpe
 by $57\%$ improvement ($0.987$ vs $0.626$).  The safety-critic training structure and
 constrained action projection provide substantial \emph{implicit} tail regularisation
-beyond the Lagrange penalty alone.  A second unexpected result: the ``fixed'' coupling
+beyond the Lagrange penalty alone.  A second unexpected result. The ``fixed'' coupling
 ($\eta_\lambda=5.0$) enforces the training constraint but produces a \emph{higher}
 OOS breach rate ($75\%$) than the buggy variant ($8\%$), because the tight $1.2\%$
-CVaR limit is unachievable in the stress test period---the policy that satisfies it
+CVaR limit is unachievable in the stress test period, the policy that satisfies it
 in-sample generalises poorly OOS.  This non-monotonicity is itself a cautionary
-finding: fixing the coupling is necessary for the constraint to bind in training, but
+finding. Fixing the coupling is necessary for the constraint to bind in training, but
 the binding tightness must be set to a level the OOS distribution can satisfy.
 
 \begin{table}[t]
@@ -372,57 +372,57 @@ unconstrained (baseline) & $0.626$ & $0.065$ & $1.000$ & $0.000$ \\
 buggy ($\eta_\lambda=0.001$, misscaled) & $0.987$ & $0.025$ & $0.079$ & $0.022$ \\
 fixed ($\eta_\lambda=5.0$, correct scale) & $0.911$ & $0.028$ & $0.751$ & $0.101$ \\
 \midrule
-\multicolumn{5}{l}{\footnotesize Buggy reduces CVaR$_{99}$ by 61\% vs unconstrained despite near-zero $\lambda$: implicit architectural regularisation.}\\
-\multicolumn{5}{l}{\footnotesize Fixed raises $\lambda$ to $O(0.1)$ and binds in training, but OOS breach rate jumps to 75\% — limit too tight for test.}\\
+\multicolumn{5}{l}{\footnotesize Buggy reduces CVaR$_{99}$ by 61\% vs unconstrained despite near-zero $\lambda$. Implicit architectural regularisation.}\\
+\multicolumn{5}{l}{\footnotesize Fixed raises $\lambda$ to $O(0.1)$ and binds in training, but OOS breach rate jumps to 75\% ,  limit too tight for test.}\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-We report this as a compound cautionary finding: \emph{(i)} any Lagrangian RL system that
+We report this as a compound cautionary finding. \emph{(i)} any Lagrangian RL system that
 standardises the return advantage but not the cost advantage will silently produce
-a near-inert multiplier; \emph{(ii)} the constrained architecture nonetheless provides
-implicit regularisation even with a near-zero multiplier; and \emph{(iii)} fixing
-the coupling scale alone does not guarantee OOS constraint satisfaction---the limit
+a near-inert multiplier. \emph{(ii)} the constrained architecture nonetheless provides
+implicit regularisation even with a near-zero multiplier. And \emph{(iii)} fixing
+the coupling scale alone does not guarantee OOS constraint satisfaction, the limit
 must be set to a level the test distribution can achieve.
 
 \paragraph{Statistical significance of the implicit regularisation effect.}
-The $61\%$ CVaR$_{99}$ reduction (buggy constrained vs.\ unconstrained) is confirmed by a two-sample permutation test on the 5-seed distributions: observed difference $-0.039$, one-sided $p=0.0044$ ($n=50{,}000$ permutations), two-sided $p=0.0083$.
+The $61\%$ CVaR$_{99}$ reduction (buggy constrained vs.\ unconstrained) is confirmed by a two-sample permutation test on the 5-seed distributions. Observed difference $-0.039$, one-sided $p=0.0044$ ($n=50{,}000$ permutations), two-sided $p=0.0083$.
 The effect is significant at $\alpha=0.05$ on both tails.
-This matters because 5 seeds per variant is a small sample; the permutation test confirms the separation is not sampling noise.
+This matters because 5 seeds per variant is a small sample. The permutation test confirms the separation is not sampling noise.
 The fixed-coupling variant produces a similar reduction ($p=0.0037$ vs.\ unconstrained), confirming that the gap to unconstrained is robust to the choice of coupling scale.
 
 %% =====================================================================
 \section{Data}
 \label{sec:data}
 
-Seven liquid ETFs spanning the major macro blocks---SPY (equity), TLT (rates), HYG
-(credit), DBC (commodity), GLD (gold), UUP (US dollar), BIL (cash)---from Yahoo
+Seven liquid ETFs spanning the major macro blocks, SPY (equity), TLT (rates), HYG
+(credit), DBC (commodity), GLD (gold), UUP (US dollar), BIL (cash), from Yahoo
 adjusted close, resampled to \textbf{887 weekly returns, 2008--2024}. Splits are
-chronological (train $\approx$2008--2018 incl.\ the GFC; validation
-$\approx$2018--2021; test $\approx$2021--2024). For the stress study we retrain on
+chronological (train $\approx$2008--2018 incl.\ the GFC. Validation
+$\approx$2018--2021. Test $\approx$2021--2024). For the stress study we retrain on
 2008--2018 and test on the 267-week window containing the 2020 COVID crash and the
 2022 selloff. Macro covariates (10y$-$3m term spread, VIX) are sourced from index
-proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}); a FRED loader is also
+proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}). A FRED loader is also
 provided.
 
 For the cross-universe significance test (Section~\ref{sec:significance}) we add a
 second universe of ten S\&P sector ETFs (XLK, XLF, XLE, XLV, XLY, XLP, XLU, XLI, XLB,
-plus a BIL cash leg), identical in every other respect---same provider, weekly
+plus a BIL cash leg), identical in every other respect, same provider, weekly
 W-FRI clock, 2008--2024 window, and 5\,bps cost assumption. Every series is a free,
 public daily market series (no licensed feeds or API keys), so both universes share
 one data provenance and the second functions as a clean replication rather than a
-confound; the pipeline rebuilds them from a clean checkout.
+confound. The pipeline rebuilds them from a clean checkout.
 
 %% =====================================================================
 \section{Results}
 \label{sec:results}
 
-\subsection{Calm chronological split: the constraint is non-binding}
+\subsection{Calm chronological split, constraint non-binding}
 On the comparatively calm 2021--2024 test split, deterministic minimum-variance
-(Sharpe 2.52, $\mathrm{CVaR}_{95}$ 0.0064) and the min-CVaR LP (2.24) dominate; the
+(Sharpe 2.52, $\mathrm{CVaR}_{95}$ 0.0064) and the min-CVaR LP (2.24) dominate. The
 differentiable allocator reaches Sharpe 1.24 (vs equal weight 0.82, inverse vol
 1.45), and model-free A2C only $\approx$0.79. No strategy breaches the CVaR limit,
-so constrained $\approx$ unconstrained---the constraint is a near-free insurance
+so constrained $\approx$ unconstrained, the constraint is a near-free insurance
 premium with nothing to insure. Table~\ref{tab:baselines} reports the full
 deterministic baseline suite on this split.
 
@@ -446,19 +446,19 @@ risk parity           & 0.70 & 0.0182 & 0.134 \\
 \end{tabular}
 \end{table}
 
-\subsection{Stress window: the constraint binds}
+\subsection{Stress window, the constraint binds}
 Table~\ref{tab:stress} contrasts a return-greedy unconstrained learner with the
 CVaR-constrained allocator on the stress window (mean $\pm$ std over 5 seeds). The
 constraint roughly halves tail risk and drawdown while \emph{improving} Sharpe, by
-removing the deep-loss weeks; the constrained policy rotates into the cash/rates
+removing the deep-loss weeks. The constrained policy rotates into the cash/rates
 leg under stress (Figure~\ref{fig:weights}).
 
 \begin{table}[t]
 \centering
 \caption{Stress window (train pre-2018, test through 2020 \& 2022), mean $\pm$ std
-over 5 seeds. Lower CVaR/max-DD/violations/breach is better; higher Sharpe is
-better. Best in bold. Constraint violations are hard CVaR-limit breaches per run;
-the constrained allocator eliminates them entirely.}
+over 5 seeds. Lower CVaR/max-DD/violations/breach is better. Higher Sharpe is
+better. Best in bold. Constraint violations are hard CVaR-limit breaches per run.
+The constrained allocator eliminates them entirely.}
 \label{tab:stress}
 \small
 \begin{tabular}{lrrrr}
@@ -477,9 +477,9 @@ Breach rate          & $0.234$          & $\mathbf{0.189}$         & $-19\%$ \\
 
 A paired block bootstrap of the $\mathrm{CVaR}_{99}$ difference (constrained minus
 unconstrained, 2000 resamples, block 4) gives $-0.033$, 95\% CI
-$[-0.035,\,-0.008]$, $p\approx 0$---the tail-risk reduction is statistically
+$[-0.035,\,-0.008]$, $p\approx 0$, the tail-risk reduction is statistically
 significant. Most strikingly, the constrained allocator eliminates hard constraint
-violations entirely ($7.2 \to 0.0$): whereas the unconstrained policy repeatedly
+violations entirely ($7.2 \to 0.0$). Whereas the unconstrained policy repeatedly
 exceeds its theoretical loss budget during the 2020 and 2022 drawdowns, the
 constrained policy never does.
 
@@ -487,13 +487,13 @@ constrained policy never does.
   \centering
   \includegraphics[width=\textwidth]{figure_cvar_hero.png}
   \caption{\textbf{The CVaR constraint as a safety layer.}
-  \emph{Left}: stress-window risk--return plane (CVaR$_{99}$ axis inverted so right = safer).
+  \emph{Left}. Stress-window risk--return plane (CVaR$_{99}$ axis inverted so right = safer).
   The CVaR-constrained allocator (green diamond) moves decisively away from the
-  unconstrained learner (red circle): Sharpe $+40\%$, CVaR$_{99}$ $-49\%$,
+  unconstrained learner (red circle). Sharpe $+40\%$, CVaR$_{99}$ $-49\%$,
   max-DD $-43\%$, and hard violations reduced from $7.2$ to \textbf{zero}.
-  \emph{Right}: ablation monotonicity --- tightening the tail budget from \emph{loose}
-  to \emph{tight} improves \emph{both} CVaR$_{99}$ and Sharpe simultaneously;
-  the tightest configuration (Sharpe~$1.27$, CVaR$_{99}$~$1.4\%$) is competitive
+  \emph{Right}. Ablation monotonicity, tightening the tail budget from \emph{loose}
+  to \emph{tight} improves \emph{both} CVaR$_{99}$ and Sharpe simultaneously.
+  The tightest configuration (Sharpe~$1.27$, CVaR$_{99}$~$1.4\%$) is competitive
   with the rolling minimum-variance optimiser (blue triangle), without sacrificing
   the safety guarantee.}
   \label{fig:hero}
@@ -502,7 +502,7 @@ constrained policy never does.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{weights_constrained.png}
-  \caption{Constrained allocator weights: it de-risks into the cash/rates leg
+  \caption{Constrained allocator weights. It de-risks into the cash/rates leg
   through the 2020 and 2022 drawdowns.}
   \label{fig:weights}
 \end{figure}
@@ -510,30 +510,30 @@ constrained policy never does.
 \subsection{Walk-forward across regimes (10 OOS folds, $\approx$2010--2024)}
 Refitting every 52 weeks on a rolling 312-week window and concatenating 10
 out-of-sample folds (Table~\ref{tab:walkforward}), the constraint beats
-unconstrained RL out-of-sample: Sharpe $+18\%$ (0.70\,$\to$\,0.83),
+unconstrained RL out-of-sample. Sharpe $+18\%$ (0.70\,$\to$\,0.83),
 $\mathrm{CVaR}_{99}$ $-20\%$, max-DD $-25\%$ (15.1\%\,$\to$\,11.4\%). The
 fold-level Wilcoxon on $\mathrm{CVaR}_{99}$ is marginal on the macro universe
-alone ($p=0.06$; improved 5/10 folds), and the reduction concentrates in
+alone ($p=0.06$. Improved 5/10 folds), and the reduction concentrates in
 \textbf{selloffs} ($\mathrm{CVaR}_{99}$ $0.066\!\to\!0.048$, max-DD
-$0.218\!\to\!0.137$; Table~\ref{tab:regime}). Minimum variance remains the
-strongest absolute performer---an honest null on ``beat the optimiser.'' A
+$0.218\!\to\!0.137$. Table~\ref{tab:regime}). Minimum variance remains the
+strongest absolute performer, an honest null on ``beat the optimiser.'' A
 two-universe 40-fold analysis pushes significance to $p=8.8\times10^{-6}$
 (Section~\ref{sec:significance}).
 
-\paragraph{When RL adds value: regime-conditional breakdown.}
+\paragraph{When RL adds value. Regime-conditional breakdown.}
 The aggregate numbers mask a meaningful pattern.
-Table~\ref{tab:regime} decomposes by regime: \textbf{high-volatility periods} are where the constrained policy earns its keep on risk-adjusted returns.
-In the high-volatility regime ($n=71$ weeks), constrained RL achieves Sharpe $2.169$ versus minimum variance's $1.668$---a $+0.501$ advantage---while CVaR$_{99}$ remains within $0.012$ of minimum variance's floor.
-In \textbf{calm} markets ($n=388$ weeks) and \textbf{selloffs} ($n=61$ weeks) minimum variance dominates: selloff Sharpe $0.035$ vs.\ constrained RL $-0.809$.
-The implication is practical: a constrained RL overlay adds value when volatility is elevated but has not yet collapsed into a full drawdown---the regime where dynamic rebalancing can exploit cross-asset dislocations that static optimisers miss.
+Table~\ref{tab:regime} decomposes by regime. \textbf{High-volatility periods} are where the constrained policy earns its keep on risk-adjusted returns.
+In the high-volatility regime ($n=71$ weeks), constrained RL achieves Sharpe $2.169$ versus minimum variance's $1.668$, a $+0.501$ advantage, while CVaR$_{99}$ remains within $0.012$ of minimum variance's floor.
+In \textbf{calm} markets ($n=388$ weeks) and \textbf{selloffs} ($n=61$ weeks) minimum variance dominates. Selloff Sharpe $0.035$ vs.\ constrained RL $-0.809$.
+The implication is practical. A constrained RL overlay adds value when volatility is elevated but has not yet collapsed into a full drawdown, the regime where dynamic rebalancing can exploit cross-asset dislocations that static optimisers miss.
 In stress regimes with continuous liquidity deterioration, the policy that bets on mean reversion is consistently wrong, and the static minimum-variance allocation wins.
-Importantly, the CVaR$_{99}$ constraint delivers consistent tail-risk reduction across \emph{all} three regimes relative to unconstrained RL: $-29.1\%$ in calm markets (0.020 vs.\ 0.028), $-20.7\%$ in high-volatility (0.018 vs.\ 0.023), and $-27.4\%$ in selloffs (0.048 vs.\ 0.066).
+Importantly, the CVaR$_{99}$ constraint delivers consistent tail-risk reduction across \emph{all} three regimes relative to unconstrained RL. $-29.1\%$ in calm markets (0.020 vs.\ 0.028), $-20.7\%$ in high-volatility (0.018 vs.\ 0.023), and $-27.4\%$ in selloffs (0.048 vs.\ 0.066).
 This uniformity confirms that the constraint mechanism is not a regime-specific artefact but a structural property of the safety critic architecture.
 
 \begin{table}[t]
 \centering
 \caption{Regime-conditional Sharpe and CVaR$_{99}$ (walk-forward weeks by regime label).
-  RL constrained leads in high-volatility; minimum variance leads in calm and selloffs.}
+  RL constrained leads in high-volatility. Minimum variance leads in calm and selloffs.}
 \label{tab:regime}
 \small
 \setlength{\tabcolsep}{3pt}
@@ -567,7 +567,7 @@ minimum variance      & 1.45 & 0.057 & 0.0106 \\
 \midrule
 hybrid (B+C)$^\dagger$ & \textbf{1.32} & 0.057 & 0.013 \\
 \bottomrule
-\multicolumn{4}{l}{\footnotesize $^\dagger$ Hybrid: constrained RL in high-vol weeks (15\%), min-var otherwise.}
+\multicolumn{4}{l}{\footnotesize $^\dagger$ Hybrid. Constrained RL in high-vol weeks (15\%), min-var otherwise.}
 \end{tabular}
 \end{table}
 
@@ -588,7 +588,7 @@ Constrained RL (pure) & 0.942 & [0.29, 1.68] & 4.0\% & 0.025 \\
 Min-variance (pure)   & 1.209 & [0.55, 1.93] & 2.9\% & 0.012 \\
 \textbf{Hybrid}       & \textbf{1.316} & [0.66, 2.03] & 3.5\% & 0.013 \\
 \bottomrule
-\multicolumn{5}{l}{\footnotesize High-vol regime Sharpe: constrained RL $1.415$, min-var $0.564$ (+$2.5\times$).}
+\multicolumn{5}{l}{\footnotesize High-vol regime Sharpe. Constrained RL $1.415$, min-var $0.564$ (+$2.5\times$).}
 \end{tabular}
 \end{table}
 
@@ -599,16 +599,16 @@ ETFs (XLK, XLF, \dots, plus a cash leg) and shorten the walk-forward test fold t
 26~weeks for more independent observations (20 folds per universe), then pool the
 fold-level $\mathrm{CVaR}_{99}$ differences (Table~\ref{tab:stats},
 Figure~\ref{fig:multiuniverse}). \textbf{Both universes individually show significant
-fold-level reduction}: macro-ETF Wilcoxon $p=0.0077$ (improved 9/20 folds),
-sector Wilcoxon $p=0.0003$ (improved 17/20 folds); a Benjamini--Hochberg
+fold-level reduction}. Macro-ETF Wilcoxon $p=0.0077$ (improved 9/20 folds),
+sector Wilcoxon $p=0.0003$ (improved 17/20 folds). A Benjamini--Hochberg
 multiple-testing correction rejects the null on \emph{both} universes
 ($\text{BH-reject}=\text{True}$). Pooling all 40 folds (Figure~\ref{fig:forest}),
-the effect is strongly significant: Wilcoxon $p=8.8\times10^{-6}$, bootstrap
+the effect is strongly significant. Wilcoxon $p=8.8\times10^{-6}$, bootstrap
 95\,\% CI $[-0.0089,\,-0.0041]$ on the mean fold difference, with 26/40 folds
 improved. The Probabilistic Sharpe Ratio of the constrained allocator is $\geq 0.99$
-on both universes (near-certain positive Sharpe), but---as an honest null---the
+on both universes (near-certain positive Sharpe), but, as an honest null, the
 out-of-sample \emph{Sharpe advantage over classical baselines} does not survive a
-Deflated-Sharpe correction for the number of configurations tried: the robust,
+Deflated-Sharpe correction for the number of configurations tried. The robust,
 pooled-significant effect is on \emph{tail risk}, consistent with the paper's claim
 that the constraint is a safety layer, not an alpha source.
 
@@ -616,7 +616,7 @@ that the constraint is a safety layer, not an alpha source.
 \centering
 \caption{Walk-forward CVaR$_{99}$ across two universes (26-week folds).
 Both universes individually pass the Wilcoxon test and survive Benjamini--Hochberg
-multiple-testing correction; pooled 40-fold significance is $8.8\times10^{-6}$.
+multiple-testing correction. Pooled 40-fold significance is $8.8\times10^{-6}$.
 PSR = Probabilistic Sharpe Ratio of constrained allocator.}
 \label{tab:stats}
 \small
@@ -626,7 +626,7 @@ universe & folds & $\mathrm{CVaR}_{99}^{\text{unc}}$ & $\mathrm{CVaR}_{99}^{\tex
 \midrule
 macro ETF (7)   & 20 & 0.0143 & 0.0102 &  9/20 & 0.0077              & 0.997 \\
 sector (10)     & 20 & 0.0336 & 0.0250 & 17/20 & 0.0003              & 0.990 \\
-\textbf{pooled} & 40 & ---    & ---    & 26/40 & $\mathbf{8.8\times10^{-6}}$ & --- \\
+\textbf{pooled} & 40 &, &, & 26/40 & $\mathbf{8.8\times10^{-6}}$ &, \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -636,7 +636,7 @@ sector (10)     & 20 & 0.0336 & 0.0250 & 17/20 & 0.0003              & 0.990 \\
   \includegraphics[width=\linewidth]{multiuniverse_cvar99.png}
   \caption{\textbf{The constraint's robust win.} Out-of-sample (walk-forward)
   $\mathrm{CVaR}_{99}$ for the unconstrained learner (red) versus the
-  CVaR-constrained learner (blue) on each universe; arrow length is the tail-risk
+  CVaR-constrained learner (blue) on each universe. Arrow length is the tail-risk
   reduction. The reduction survives walk-forward on \emph{both} universes
   (macro-ETF $p=0.0077$, sector $p=0.0003$, pooled 40-fold
   $p=8.8\times10^{-6}$), with Benjamini--Hochberg correction passing on both.}
@@ -647,25 +647,25 @@ sector (10)     & 20 & 0.0336 & 0.0250 & 17/20 & 0.0003              & 0.990 \\
   \centering
   \includegraphics[width=\linewidth]{fold_forest_cvar99.png}
   \caption{Per-fold $\mathrm{CVaR}_{99}$ difference (constrained $-$ unconstrained)
-  across all 40 walk-forward folds; left of zero means the constraint reduced the
-  tail. Sector folds (orange) sit firmly left; macro folds (blue) are also
+  across all 40 walk-forward folds. Left of zero means the constraint reduced the
+  tail. Sector folds (orange) sit firmly left. Macro folds (blue) are also
   predominantly left (improved 9/20). The pooled mean ($-0.0064$, dashed) with its
-  bootstrap 95\% CI $[-0.0089,-0.0041]$ (band) excludes zero; Wilcoxon
+  bootstrap 95\% CI $[-0.0089,-0.0041]$ (band) excludes zero. Wilcoxon
   $p=8.8\times10^{-6}$.}
   \label{fig:forest}
 \end{figure}
 
-\subsection{Generalization: the stress result replicates on sector ETFs}
+\subsection{Generalization to sector ETFs}
 \label{sec:generalize}
 Re-running the stress study unchanged on the ten-sector universe
-(Table~\ref{tab:stress_sector}) replicates the headline effect: the constraint cuts
+(Table~\ref{tab:stress_sector}) replicates the headline effect. The constraint cuts
 $\mathrm{CVaR}_{99}$ by $30\%$ ($0.109\!\to\!0.076$), maximum drawdown by $30\%$
-($0.295\!\to\!0.208$), and the breach rate by $47\%$ ($0.75\!\to\!0.40$)---at
+($0.295\!\to\!0.208$), and the breach rate by $47\%$ ($0.75\!\to\!0.40$), at
 \emph{no} Sharpe cost ($0.752\!\to\!0.748$). A paired block bootstrap of the
 $\mathrm{CVaR}_{99}$ difference gives $-0.044$, 95\% CI $[-0.050,\,-0.014]$,
-$p\approx0$. The one honest difference from the macro universe: there the constraint
+$p\approx0$. The one honest difference from the macro universe. There the constraint
 \emph{improved} Sharpe (the avoided tail dominated), whereas on sectors it is
-Sharpe-neutral---the robust, replicating effect is the tail and drawdown reduction,
+Sharpe-neutral, the robust, replicating effect is the tail and drawdown reduction,
 not a return gain.
 
 \begin{table}[t]
@@ -689,23 +689,23 @@ Breach rate     & 0.752  & \textbf{0.401}  & $-47\%$ \\
 
 \subsection{Robustness and ablations}
 The $\mathrm{CVaR}_{99}$ reduction holds in \textbf{7/7} perturbations, including
-2$\times$ and 3$\times$ costs and dropped assets; the
+2$\times$ and 3$\times$ costs and dropped assets. The
 constrained allocator's higher turnover still wins net. Ablations
 (Table~\ref{tab:ablation}) reveal a striking \textbf{monotone pattern}
-(Figure~\ref{fig:hero}, right panel): tightening the tail budget from loose
+(Figure~\ref{fig:hero}, right panel). Tightening the tail budget from loose
 ($\alpha=0.95$, limit $1.92\%$) through the base ($\alpha=0.95$, limit $1.2\%$)
 to tight ($\alpha=0.99$ or limit $0.72\%$) \emph{simultaneously} improves both
 CVaR$_{99}$ and Sharpe at every step. The tightest configuration achieves
-Sharpe~$1.27$, CVaR$_{99}=1.4\%$---competitive with the rolling min-variance
-optimiser (Sharpe~1.45)---without relaxing the safety guarantee. This is not what
-Sharpe-objective trading heuristics predict: tighter risk limits commonly hurt
-return; here they help, because the constraint's gradient pressure acts only on
+Sharpe~$1.27$, CVaR$_{99}=1.4\%$, competitive with the rolling min-variance
+optimiser (Sharpe~1.45), without relaxing the safety guarantee. This is not what
+Sharpe-objective trading heuristics predict. Tighter risk limits commonly hurt
+return. Here they help, because the constraint's gradient pressure acts only on
 deep-loss weeks, improving the Sharpe numerator (removing crashes) while barely
 touching the mean.
 
 \begin{table}[t]
 \centering
-\caption{Ablations (constrained allocator, stress window; vary one factor).}
+\caption{Ablations (constrained allocator, stress window. Vary one factor).}
 \label{tab:ablation}
 \small
 \begin{tabular}{lrrr}
@@ -723,15 +723,15 @@ Sharpe objective         & 0.791 & 0.0273 & 0.108 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Features.} Rolling factor betas alone slightly hurt; adding macro state
+\paragraph{Features.} Rolling factor betas alone slightly hurt. Adding macro state
 (term spread, VIX) gives marginal Sharpe/drawdown improvement but no tail gain.
 
-\subsection{Diagnostics: behaviour, not metric-gaming}
+\subsection{Diagnostics, behaviour not metric-gaming}
 Three diagnostics confirm the constraint changes \emph{behaviour} rather than gaming
 the tail metric. The unconstrained allocator
-concentrates and rides the 2020/2022 drawdowns; the constrained one rotates into the
+concentrates and rides the 2020/2022 drawdowns. The constrained one rotates into the
 cash/rates leg and holds a lower, steadier rolling CVaR estimate. The tail control is
-paid for with modestly higher turnover---not leverage or a single-asset bet: the
+paid for with modestly higher turnover, not leverage or a single-asset bet. The
 policy stays long-only, diversified, and within the turnover cap.
 
 \subsection{Tuned model-free RL is still weak}
@@ -740,8 +740,8 @@ We sweep 36 PPO and 8 SAC configurations, select each by validation Sharpe, and
 evaluate on the stress window (Table~\ref{tab:modelfree}).
 Tuning does not rescue either family.  The selected PPO overfits the validation window
 (validation Sharpe $1.70$) then posts the \emph{worst} out-of-sample tail (Sharpe
-$0.67$, $\mathrm{CVaR}_{99}=0.070$); SAC collapses to near-zero turnover (Sharpe
-$0.39$).  The failure is one of \emph{generalisation}, not tuning effort: on 887
+$0.67$, $\mathrm{CVaR}_{99}=0.070$). SAC collapses to near-zero turnover (Sharpe
+$0.39$).  The failure is one of \emph{generalisation}, not tuning effort. On 887
 weekly observations score-function and off-policy RL have too few effective samples,
 whereas the pathwise gradient extracts a usable signal from the same data.
 
@@ -767,20 +767,20 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
 \end{tabular}
 \end{table}
 
-\subsection{Backtest-protocol sensitivity: a cautionary result}
+\subsection{Backtest-protocol sensitivity, a cautionary result}
 \label{sec:protocol}
 To probe how far the choice of \emph{evaluation protocol} alone can move conclusions,
-we add a third, deliberately high-dimensional universe---\textbf{31 cross-asset,
-sector, and industry ETFs} (same provenance, clock, and costs)---where covariance
+we add a third, deliberately high-dimensional universe, \textbf{31 cross-asset,
+sector, and industry ETFs} (same provenance, clock, and costs), where covariance
 estimation is harder and a learner has, a priori, more room to help. On a single
 stress split (train pre-2018, test through 2024) the constrained learner appears to
-\emph{beat every optimiser}: Sharpe $0.85$ versus minimum variance $0.23$
+\emph{beat every optimiser}. Sharpe $0.85$ versus minimum variance $0.23$
 (Table~\ref{tab:protocol}). The same minimum-variance optimiser, however, is the
 \emph{best} method by a wide margin under a rolling walk-forward (20 out-of-sample
-folds, refit every 26 weeks): Sharpe $\mathbf{1.40}$ versus the learner's $0.74$. The
-ranking does not merely tighten---it \textbf{inverts} (Table~\ref{tab:protocol}). The
+folds, refit every 26 weeks). Sharpe $\mathbf{1.40}$ versus the learner's $0.74$. The
+ranking does not merely tighten, it \textbf{inverts} (Table~\ref{tab:protocol}). The
 stress-split ``win'' was an artifact of one fixed period in which minimum variance
-concentrated badly; rolling refits remove it entirely. The constraint's robust effect
+concentrated badly. Rolling refits remove it entirely. The constraint's robust effect
 survives both protocols (it still cuts $\mathrm{CVaR}_{99}$ versus the unconstrained
 learner fold-by-fold, Wilcoxon $p=6\times10^{-4}$), but the apparent
 \emph{beat-the-optimiser} result does not. We therefore treat rolling walk-forward
@@ -790,7 +790,7 @@ comparisons of learned allocators against optimisers as unreliable.
 \begin{table}[t]
 \centering
 \caption{Same 31-asset universe, two evaluation protocols. A single stress split
-ranks the learner first; rolling walk-forward inverts the ranking and the optimiser
+ranks the learner first. Rolling walk-forward inverts the ranking and the optimiser
 dominates. Sharpe shown.}
 \label{tab:protocol}
 \small
@@ -811,13 +811,13 @@ diff.\ unconstrained     & 0.70 & 0.56 \\
 \section{Discussion}
 \label{sec:discussion}
 
-The explicit CVaR layer does what it is designed to do---remove deep-loss
-weeks---and on a risk-seeking learner this \emph{also} improves Sharpe, because the
+The explicit CVaR layer does what it is designed to do, remove deep-loss
+weeks, and on a risk-seeking learner this \emph{also} improves Sharpe, because the
 avoided tail dominates the modest return give-up. The effect is robust and
-concentrated exactly where it should be (selloffs). Two honesty checks matter:
+concentrated exactly where it should be (selloffs). Two honesty checks matter.
 (i) the headline contrast uses a return-greedy unconstrained baseline and a
-tightened limit so the constraint binds---against a Sharpe-objective learner the
-gap narrows because that objective already controls variance; (ii) the strongest
+tightened limit so the constraint binds, against a Sharpe-objective learner the
+gap narrows because that objective already controls variance. (ii) the strongest
 method overall is a classic rolling minimum-variance optimiser, not the learner.
 The practical reading is that explicit tail constraints are a cheap, reliable
 safety layer \emph{for learned policies}, not a route to beating well-tuned convex
@@ -828,10 +828,10 @@ optimisers on this universe.
 \subsection{Practitioner Takeaways}
 
 \textbf{(1) Explicit tail limits de-risk proactively.}
-The CVaR constraint gives a mechanical rotation signal: once the rolling tail estimate
+The CVaR constraint gives a mechanical rotation signal. Once the rolling tail estimate
 approaches the budget, the policy shifts into cash/rates. In our data that rotation
-happened 2 weeks \emph{before} the COVID trough---an advance signal, not reactive.
-Full stress-window max drawdown: constrained $11.8\%$, unconstrained $20.6\%$, SPY
+happened 2 weeks \emph{before} the COVID trough, an advance signal, not reactive.
+Full stress-window max drawdown. Constrained $11.8\%$, unconstrained $20.6\%$, SPY
 $31.8\%$ (Figure~\ref{fig:weights}).
 
 \textbf{(2) Use constrained RL as a high-volatility overlay.}
@@ -841,11 +841,11 @@ otherwise) achieves overall Sharpe $1.316$ vs pure min-var $1.209$.  Practitione
 already using min-var for calm conditions can add the constraint as a targeted overlay.
 
 \textbf{(3) Verify coupling and use walk-forward evaluation.}
-Any Lagrangian policy should confirm the multiplier rises during training;
-a near-zero multiplier means the constraint is
-inert---check advantage-signal scales (Section~\ref{sec:coupling}).  Likewise, an
+Any Lagrangian policy should confirm the multiplier rises during training.
+A near-zero multiplier means the constraint is
+inert, check advantage-signal scales (Section~\ref{sec:coupling}).  Likewise, an
 apparent beat-the-optimiser result on a single stress window can invert under rolling
-walk-forward; always validate across multiple folds before reporting an advantage
+walk-forward. Always validate across multiple folds before reporting an advantage
 over convex baselines.
 
 %% =====================================================================
@@ -854,23 +854,23 @@ over convex baselines.
 
 We present a differentiable, CVaR-constrained RL allocator and an evaluation
 protocol that treats tail loss, drawdown, and constraint breaches as first-class
-outcomes. Three affirmative findings: the CVaR constraint reliably reduces tail risk
+outcomes. Three affirmative findings. The CVaR constraint reliably reduces tail risk
 ($26/40$ folds, Wilcoxon $p=8.8\times10^{-6}$) and eliminates hard constraint
-violations entirely in stress; a regime-switching hybrid attains walk-forward Sharpe
+violations entirely in stress. A regime-switching hybrid attains walk-forward Sharpe
 $1.316$ vs $1.209$ for pure min-variance, with a $2.5\times$ edge in high-volatility
-weeks; and the constraint de-risks \emph{before} crisis troughs (two weeks ahead of
+weeks. And the constraint de-risks \emph{before} crisis troughs (two weeks ahead of
 the COVID trough). Two cautionary findings should caution any group reporting
-single-window RL comparisons against convex baselines: a constraint-coupling failure
+single-window RL comparisons against convex baselines. A constraint-coupling failure
 in Lagrangian RL (an inert multiplier from advantage-scale mismatch), and an
 evaluation-protocol reversal in which an apparent beat-the-optimiser result inverts
 under rolling walk-forward.
 
-The practical message: position constrained RL as a \emph{safety layer and
-high-volatility overlay}, not a universal alpha source---practitioners already using
+The practical message. Position constrained RL as a \emph{safety layer and
+high-volatility overlay}, not a universal alpha source, practitioners already using
 min-variance in calm conditions can layer it in without altering their calm-regime
-allocation. Scope and future work: results span two ETF universes (single region,
+allocation. Scope and future work. Results span two ETF universes (single region,
 synthetic 5\,bps costs) and the Sharpe edge does not survive a Deflated-Sharpe
-correction---the robust effect is on tail risk. Natural extensions: benchmark-relative
+correction, the robust effect is on tail risk. Natural extensions. Benchmark-relative
 active risk, turnover-matched ablation, per-asset cost calibration, and futures/equity
 cross-sections.
 
