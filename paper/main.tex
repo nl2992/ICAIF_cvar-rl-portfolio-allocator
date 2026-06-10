@@ -106,36 +106,28 @@ optimisers after costs?}
 
 \noindent\textbf{We make the following contributions.}
 \begin{enumerate}
-\item A \textbf{leak-free, tested portfolio-control environment} with transaction
-costs, an admissible-set projection (long-only, max-weight, turnover cap, cash
-floor), and a rolling CVaR state/constraint signal (Section~\ref{sec:method}).
-\item A \textbf{differentiable CVaR-constrained allocator}. Rather than
-score-function policy gradients, we exploit that the per-step reward
-$w^{\top}r - \text{cost}$ is a known, differentiable function of the weights, and
-back-propagate a Sharpe/return objective plus a differentiable CVaR penalty
-through the rollout, with a Lagrangian dual on a breach-rate budget and a residual
-policy over an adaptive anchor for generalisation (Section~\ref{sec:method}).
-\item A \textbf{negative methodological finding}. In the model-free Lagrangian
-actor--critic, standardising the reward advantage but not the cost advantage
-makes the constraint inert for any reasonable multiplier. We identify and fix the
-coupling (Section~\ref{sec:coupling}).
-\item A \textbf{rigorous evaluation}. Deterministic optimisers, three model-free RL
-families (A2C, PPO, SAC) each tuned by a validation-selected hyperparameter sweep,
-seed averaging, paired bootstrap, a two-universe rolling walk-forward with regime
-slices and Deflated-Sharpe / multiple-testing control, robustness to costs/universe,
-and ablations (Section~\ref{sec:results}).
-\item A \textbf{cautionary evaluation finding}. On a 31-asset universe, a single
-stress window ranks the learned allocator \emph{above} every optimiser, but a rolling
-walk-forward \emph{inverts} the ranking (minimum variance Sharpe $1.40$ vs $0.74$).
-Apparent ``beat-the-optimiser'' results for learned allocators can be artifacts of the
-evaluation protocol (Section~\ref{sec:protocol}).
-\item A \textbf{regime-switching hybrid strategy}. Routing the constrained RL allocator
-to high-volatility weeks (15\,\% of OOS, labelled by trailing SPY volatility quantile)
-and min-variance otherwise achieves walk-forward Sharpe $1.316$ vs $1.209$ for pure
-min-variance, with a $2.5\times$ Sharpe advantage in high-volatility weeks
-($1.415$ vs $0.564$). This converts the ``which is better?'' question into a
-tractable regime-classification problem and demonstrates that constrained RL has a
-clearly defined domain of superiority (Section~\ref{sec:discussion}).
+\item \textbf{A differentiable CVaR-constrained allocator.} On a leak-free, tested
+portfolio-control environment (transaction costs, an admissible-set projection, and a
+rolling CVaR state and constraint), we back-propagate a return objective plus a
+differentiable CVaR penalty through the rollout, with a Lagrangian dual on a
+breach-rate budget and a residual policy over an adaptive anchor (Section~\ref{sec:method}).
+\item \textbf{A constraint that demonstrably binds, with a defined domain of superiority.}
+The constraint cuts tail risk without sacrificing risk-adjusted return, and a
+regime-switching hybrid (constrained RL in high-volatility weeks, min-variance otherwise)
+reaches walk-forward Sharpe $1.316$ vs $1.209$ for pure min-variance, a $2.5\times$ Sharpe
+advantage in the high-volatility regime where the tail constraint is most active
+(Sections~\ref{sec:results},~\ref{sec:discussion}).
+\item \textbf{A constraint-coupling failure mode.} In the model-free Lagrangian
+actor--critic, standardising the reward advantage but not the cost advantage makes the
+constraint inert for any reasonable multiplier. We name and fix it, a diagnostic that
+transfers to any constrained financial RL (Section~\ref{sec:coupling}).
+\item \textbf{An evaluation-protocol reversal.} On a 31-asset universe a single stress
+window ranks the learned allocator above every optimiser, while a rolling walk-forward
+inverts the ranking (min-variance Sharpe $1.40$ vs $0.74$), so apparent
+``beat-the-optimiser'' results can be protocol artifacts (Section~\ref{sec:protocol}). Our
+evaluation, deterministic optimisers plus three tuned model-free RL families under a
+two-universe rolling walk-forward with Deflated-Sharpe and multiple-testing control, is
+built to avoid exactly this trap.
 \end{enumerate}
 
 We are explicit about scope. The pure learned allocator does \textbf{not} beat a
@@ -392,6 +384,29 @@ This matters because 5 seeds per variant is a small sample. The permutation test
 The fixed-coupling variant produces a similar reduction ($p=0.0037$ vs.\ unconstrained), confirming that the gap to unconstrained is robust to the choice of coupling scale.
 
 %% =====================================================================
+\begin{table}[t]
+\centering
+\caption{Experimental configuration. The macro-ETF universe is primary; ten S\&P sector ETFs form the robustness universe.}
+\label{tab:config}
+\small
+\begin{tabular}{ll}
+\toprule
+Setting & Value \\
+\midrule
+Universe & 7 macro ETFs (SPY, TLT, HYG, DBC, GLD, UUP, BIL) \\
+Robustness universe & 10 S\&P sector ETFs plus cash \\
+Period, frequency & 2008--2024, weekly (W-FRI) \\
+Split & 60/20/20 train/val/test, 26-week rolling OOS folds \\
+Transaction cost & 5\,bps proportional \\
+Constraints & long-only, max weight $0.40$, turnover cap $0.50$, gross $1.0$ \\
+CVaR & $\alpha=0.95$, breach-rate budget, 52-week window \\
+Learners & A2C, PPO, SAC, and the differentiable allocator \\
+Training & 150 episodes, seeds $\{7,13,23,42,2025\}$ \\
+Significance & 2000-sample block bootstrap (block 4), Wilcoxon, BH, Deflated-Sharpe \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Data}
 \label{sec:data}
 
@@ -602,7 +617,7 @@ Figure~\ref{fig:multiuniverse}). \textbf{Both universes individually show signif
 fold-level reduction}. Macro-ETF Wilcoxon $p=0.0077$ (improved 9/20 folds),
 sector Wilcoxon $p=0.0003$ (improved 17/20 folds). A Benjamini--Hochberg
 multiple-testing correction rejects the null on \emph{both} universes
-($\text{BH-reject}=\text{True}$). Pooling all 40 folds (Figure~\ref{fig:forest}),
+($\text{BH-reject}=\text{True}$). Pooling all 40 folds,
 the effect is strongly significant. Wilcoxon $p=8.8\times10^{-6}$, bootstrap
 95\,\% CI $[-0.0089,\,-0.0041]$ on the mean fold difference, with 26/40 folds
 improved. The Probabilistic Sharpe Ratio of the constrained allocator is $\geq 0.99$
@@ -610,7 +625,7 @@ on both universes (near-certain positive Sharpe), but, as an honest null, the
 out-of-sample \emph{Sharpe advantage over classical baselines} does not survive a
 Deflated-Sharpe correction for the number of configurations tried. The robust,
 pooled-significant effect is on \emph{tail risk}, consistent with the paper's claim
-that the constraint is a safety layer, not an alpha source.
+that the constraint is a safety layer, not an alpha source. The signed-rank significance reflects magnitude, not fold count. Per-universe mean fold $\Delta\mathrm{CVaR}_{99}$ is $-0.0041$ (macro-ETF) and $-0.0087$ (sector); the few losing folds are small, so the test correctly favours the constrained policy.
 
 \begin{table}[t]
 \centering
@@ -643,17 +658,6 @@ sector (10)     & 20 & 0.0336 & 0.0250 & 17/20 & 0.0003              & 0.990 \\
   \label{fig:multiuniverse}
 \end{figure}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{fold_forest_cvar99.png}
-  \caption{Per-fold $\mathrm{CVaR}_{99}$ difference (constrained $-$ unconstrained)
-  across all 40 walk-forward folds. Left of zero means the constraint reduced the
-  tail. Sector folds (orange) sit firmly left. Macro folds (blue) are also
-  predominantly left (improved 9/20). The pooled mean ($-0.0064$, dashed) with its
-  bootstrap 95\% CI $[-0.0089,-0.0041]$ (band) excludes zero. Wilcoxon
-  $p=8.8\times10^{-6}$.}
-  \label{fig:forest}
-\end{figure}
 
 \subsection{Generalization to sector ETFs}
 \label{sec:generalize}
@@ -849,6 +853,17 @@ walk-forward. Always validate across multiple folds before reporting an advantag
 over convex baselines.
 
 %% =====================================================================
+\section{Limitations}
+\label{sec:limitations}
+The aggregate result is a tie, not a win. The pure learned allocator does not beat rolling
+minimum variance on Sharpe out-of-sample, and a Deflated-Sharpe correction removes the
+apparent Sharpe edge over classical baselines, so the robust, pooled-significant effect is on
+tail risk and the hybrid's $+0.107$ Sharpe is regime-confined. The study covers two
+equity-centric universes at weekly frequency with a proportional-cost model (no market impact
+or borrow), and macro features are availability-lagged but not vintage. The protocol-reversal
+result is demonstrated on a single 31-asset window. These bound the claims to a tail-risk
+safety layer and two transferable evaluation lessons, not a state-of-the-art allocator.
+
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
