@@ -30,17 +30,17 @@ questions are rarely asked. Does an explicit risk constraint actually \emph{bind
 and does a reported win survive the \emph{evaluation protocol}? We study a
 differentiable Conditional Value-at-Risk (CVaR) constrained allocator on a
 seven-ETF macro universe (2008--2024, weekly, 5\,bps costs) and make the
-methodology the contribution. First, the constraint works as a tail safety layer.
-A 40-fold two-universe walk-forward shows constrained $\mathrm{CVaR}_{99}$ lower in
+methodology the contribution. First, the constraint works as a tail safety layer, with
+a 40-fold two-universe walk-forward showing constrained $\mathrm{CVaR}_{99}$ lower in
 26/40 folds ($p=8.8\!\times\!10^{-6}$), and through the 2020 crash and 2022 selloff
 it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$ while improving
 Sharpe by $40\%$ and eliminating hard constraint violations. Second, and this is
 what transfers to \emph{any} constrained financial RL, we surface two failure
-modes. (i)~A \textbf{Lagrangian constraint-coupling failure}. Standardising the
+modes. (i)~A \textbf{Lagrangian constraint-coupling failure}, where standardising the
 reward advantage but not the cost advantage renders the constraint silently inert
-for any reasonable multiplier. We name and fix it. (ii)~An \textbf{evaluation-protocol
-reversal}. On a 31-asset universe a single stress window ranks the learner above
-every optimiser, while a rolling walk-forward inverts the ranking, so apparent
+for any reasonable multiplier, which we name and fix. (ii)~An \textbf{evaluation-protocol
+reversal}, where, on a 31-asset universe, a single stress window ranks the learner above
+every optimiser while a rolling walk-forward inverts the ranking, so apparent
 ``beat-the-optimiser'' claims can be protocol artifacts. We are explicit about
 scope. The pure learned allocator does not beat rolling minimum-variance in
 aggregate (a regime-switching hybrid does, $+0.107$ Sharpe). The contribution is
@@ -705,7 +705,7 @@ touching the mean.
 
 \begin{table}[t]
 \centering
-\caption{Ablations (constrained allocator, stress window. Vary one factor).}
+\caption{Ablations (constrained allocator, stress window, vary one factor).}
 \label{tab:ablation}
 \small
 \begin{tabular}{lrrr}
