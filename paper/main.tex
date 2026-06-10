@@ -83,8 +83,8 @@ That difference is a result, not the headline. An explicit CVaR constraint is
 a safety layer that cuts tail losses of a \emph{learned} allocator without
 sacrificing risk-adjusted return.  There is, however, a catch.  In the first
 model-free implementation we tried, a standard Lagrangian
-actor--critic, the constraint was completely inert.  The constrained and unconstrained policies were
-numerically identical.  The culprit is a subtle scale mismatch that we describe,
+actor--critic, the constraint was completely inert.  The Lagrange multiplier stayed pinned near zero,
+so the constrained policy collapsed onto its unconstrained twin.  The culprit is a subtle scale mismatch that we describe,
 name, and fix in Section~\ref{sec:coupling}. It is likely present in any
 Lagrangian RL system that standardises the return advantage but not the cost
 advantage.
@@ -104,7 +104,7 @@ unconstrained learner, while remaining competitive with standard portfolio
 optimisers after costs?}
 \end{quote}
 
-\noindent\textbf{Our main contributions are.}
+\noindent\textbf{We make the following contributions.}
 \begin{enumerate}
 \item A \textbf{leak-free, tested portfolio-control environment} with transaction
 costs, an admissible-set projection (long-only, max-weight, turnover cap, cash
@@ -151,7 +151,7 @@ The allocator is the testbed that makes both failure modes visible and fixable.
 \section{Background and Related Work}
 \label{sec:related}
 
-\paragraph{Mean--variance optimisation and its inputs.} MVO~\cite{markowitz1952portfolio}
+\paragraph{Mean--variance optimisation and its inputs} MVO~\cite{markowitz1952portfolio}
 is sensitive to input estimates. Decision-focused learning trains return
 predictors to improve downstream MVO decisions rather than raw forecast
 accuracy~\cite{lee2024dfl}, and mean--variance-efficient collaborative filtering
@@ -159,7 +159,7 @@ blends user preference with portfolio theory~\cite{chung2023mvecf}. These works
 improve the \emph{inputs} or \emph{recommendation} layer of a variance-based
 objective. We instead constrain a \emph{tail} risk measure on a learned policy.
 
-\paragraph{Conditional Value-at-Risk.} $\mathrm{CVaR}_\alpha$ is the \emph{expected
+\paragraph{Conditional Value-at-Risk} $\mathrm{CVaR}_\alpha$ is the \emph{expected
 portfolio loss on the worst $(1{-}\alpha)$ fraction of outcomes}, the average of all
 losses that exceed the $\alpha$-quantile, known as Value-at-Risk ($\mathrm{VaR}_\alpha$).
 Unlike variance it ignores upside. Unlike $\mathrm{VaR}$ it averages across the entire
@@ -175,7 +175,7 @@ loss distribution.  The minimum is achieved at $\zeta=\mathrm{VaR}_\alpha$, the
 representation admits a convex LP (we include this as a baseline) and a differentiable
 penalty via \texttt{topk}.
 
-\paragraph{RL for portfolio management.}
+\paragraph{RL for portfolio management}
 The dominant pattern in RL-for-portfolio literature is. Train on a single historical
 window, evaluate on one held-out test split, and compare against equal-weight or
 buy-and-hold.
@@ -200,7 +200,7 @@ two-universe rolling walk-forward with Wilcoxon testing and Benjamini--Hochberg
 multiple-testing control,} directly exposing the protocol-reversal artefact that
 single-window evaluations conceal.
 
-\paragraph{Direct reinforcement and pathwise gradients.}
+\paragraph{Direct reinforcement and pathwise gradients}
 Moody and Saffell~\cite{moody2001learning} first trained a recurrent trading policy
 by back-propagating the \emph{differential Sharpe ratio} directly through the return
 function, an exact pathwise gradient predating deep learning.  Buehler et
@@ -217,7 +217,7 @@ class.  Recent work makes such policies auditable. ProtoHedge~\cite{faloughi2025
 replaces the black-box hedger with a prototype-similarity policy at negligible
 performance cost.
 
-\paragraph{CVaR-constrained RL.}
+\paragraph{CVaR-constrained RL}
 Chow et al.~\cite{chow2018riskconstrained} derive the Lagrangian gradient for CVaR-constrained
 CMDPs. Tessler et al.~\cite{tessler2019rcpo} (RCPO) and Ying et al.~\cite{ying2022cppo} (CPPO)
 implement hard CVaR constraints for robotics control tasks.  None of these works identifies
@@ -231,7 +231,7 @@ the well-scaled dual is what makes the constraint actually bind.
 \section{Problem Formulation}
 \label{sec:formulation}
 
-\paragraph{MDP.} At weekly step $t$ the agent observes state $s_t$ (per-asset
+\paragraph{MDP} At weekly step $t$ the agent observes state $s_t$ (per-asset
 26-week momentum and volatility, current weights, drawdown, a rolling 95\% CVaR
 estimate, and optional exogenous macro/factor features) and chooses post-trade
 weights $w_t$ on the long-only simplex. The environment projects $w_t$ onto the
@@ -241,7 +241,7 @@ realises $r_t = w_t^{\top}\rho_t - c\lVert w_t - w_{t-1}\rVert_1$, where $\rho_t
 are next-week asset returns. Features at $t$ use only $\rho_{<t}$ (no look-ahead.
 Enforced by tests).
 
-\paragraph{Constrained objective (CMDP).} A \emph{constrained Markov Decision
+\paragraph{Constrained objective (CMDP)} A \emph{constrained Markov Decision
 Process} (CMDP)~\cite{achiam2017cpo} augments the standard MDP with one or more
 inequality constraints that the policy must satisfy on average.  We maximise
 risk-adjusted return subject to a tail budget. $\max_\pi J(\pi)$ s.t.\
@@ -256,7 +256,7 @@ has been pushing against its tail budget.
 \section{Method}
 \label{sec:method}
 
-\paragraph{Differentiable allocator.} The actor is an MLP mapping $s_t$ to simplex
+\paragraph{Differentiable allocator} The actor is an MLP mapping $s_t$ to simplex
 weights via softmax. Because the environment's reward and a sample-CVaR are
 differentiable in $w$, we train by back-propagating, over randomised windows of
 the training series, the objective
@@ -272,7 +272,7 @@ tail mean via \texttt{topk}), and $d$ is the pre-specified tail budget.  This
 pathwise gradient is far more sample-efficient than score-function RL for this
 problem.
 
-\paragraph{Pathwise gradient and where the constraint acts.} Every term in
+\paragraph{Pathwise gradient and where the constraint acts} Every term in
 $\mathcal{L}$ is a differentiable function of the rollout, so the policy is trained
 by exact back-propagation through the simplex map and the reward, no score-function
 estimator. With net returns $r_t = w_t^{\top}\rho_t - c\lVert w_t-w_{t-1}\rVert_1$
@@ -294,7 +294,7 @@ lifts the deep-loss weeks without distorting the bulk of the path. This locality
 what makes the constraint bind cleanly once the coupling is correctly scaled
 (Section~\ref{sec:coupling}).
 
-\paragraph{Residual policy over an adaptive anchor.} To generalise across regimes
+\paragraph{Residual policy over an adaptive anchor} To generalise across regimes
 rather than overfit one price path, weights are $w_t = \mathrm{softmax}(\log a_t +
 f_\theta(s_t))$, where $a_t$ is an adaptive inverse-volatility anchor computed from
 recent returns. At initialisation $f_\theta \approx 0$, so the policy \emph{is} the
@@ -302,14 +302,14 @@ anchor (a strong, regime-robust prior). Training learns a state-dependent tilt.
 Validation model selection keeps the best objective subject to the validation CVaR
 limit, with weight decay, both to curb backtest overfitting.
 
-\paragraph{Baselines.} Deterministic, re-estimated weekly. Cash, equal weight,
+\paragraph{Baselines} Deterministic, re-estimated weekly. Cash, equal weight,
 inverse vol, minimum variance, mean--variance, risk parity, and a min-CVaR
 Rockafellar--Uryasev LP~\cite{rockafellar2000optimization}. Learned. Model-free
 A2C, PPO~\cite{schulman2017ppo} (clipped surrogate, GAE) and SAC~\cite{haarnoja2018soft}
 (off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable
 allocator ($\lambda=0$).
 
-\paragraph{Regime-switching hybrid (Option B).}
+\paragraph{Regime-switching hybrid (Option B)}
 We construct a no-retrain hybrid. Label each OOS week as \emph{high-volatility} if
 trailing 13-week SPY volatility meets or exceeds the 75th-percentile cutoff
 (15\% of OOS weeks), \emph{selloff} if cumulative return $\le -5\%$, else \emph{calm}.
@@ -385,7 +385,7 @@ implicit regularisation even with a near-zero multiplier. And \emph{(iii)} fixin
 the coupling scale alone does not guarantee OOS constraint satisfaction, the limit
 must be set to a level the test distribution can achieve.
 
-\paragraph{Statistical significance of the implicit regularisation effect.}
+\paragraph{Statistical significance of the implicit regularisation effect}
 The $61\%$ CVaR$_{99}$ reduction (buggy constrained vs.\ unconstrained) is confirmed by a two-sample permutation test on the 5-seed distributions. Observed difference $-0.039$, one-sided $p=0.0044$ ($n=50{,}000$ permutations), two-sided $p=0.0083$.
 The effect is significant at $\alpha=0.05$ on both tails.
 This matters because 5 seeds per variant is a small sample. The permutation test confirms the separation is not sampling noise.
@@ -520,7 +520,7 @@ strongest absolute performer, an honest null on ``beat the optimiser.'' A
 two-universe 40-fold analysis pushes significance to $p=8.8\times10^{-6}$
 (Section~\ref{sec:significance}).
 
-\paragraph{When RL adds value. Regime-conditional breakdown.}
+\paragraph{When RL adds value. Regime-conditional breakdown}
 The aggregate numbers mask a meaningful pattern.
 Table~\ref{tab:regime} decomposes by regime. \textbf{High-volatility periods} are where the constrained policy earns its keep on risk-adjusted returns.
 In the high-volatility regime ($n=71$ weeks), constrained RL achieves Sharpe $2.169$ versus minimum variance's $1.668$, a $+0.501$ advantage, while CVaR$_{99}$ remains within $0.012$ of minimum variance's floor.
@@ -723,7 +723,7 @@ Sharpe objective         & 0.791 & 0.0273 & 0.108 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Features.} Rolling factor betas alone slightly hurt. Adding macro state
+\paragraph{Features} Rolling factor betas alone slightly hurt. Adding macro state
 (term spread, VIX) gives marginal Sharpe/drawdown improvement but no tail gain.
 
 \subsection{Diagnostics, behaviour not metric-gaming}
