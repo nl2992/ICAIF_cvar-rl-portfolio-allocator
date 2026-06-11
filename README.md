@@ -1,5 +1,7 @@
 # CVaR-Constrained RL Portfolio Allocator
 
+[![CI](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml/badge.svg)](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](environment.yml)
+
 <p align="center">
   <img src="paper/figures/figure_cvar_hero.png" width="760" alt="An explicit CVaR constraint cuts the tail of a *learned* allocator (constrained "/>
 </p>
@@ -148,7 +150,7 @@ into the same environment, baseline, and evaluation interfaces.
 
 ## Reproduce (data → analysis → paper)
 
-**Prerequisites.** Python 3.11+, then:
+**Prerequisites.** Python 3.11. For the exact pinned environment use conda — `conda env create -f environment.yml && conda activate crlpa` — or with pip:
 ```bash
 pip install -e .
 ```
