@@ -833,29 +833,20 @@ safety layer \emph{for learned policies}, not a route to beating well-tuned conv
 optimisers on this universe.
 
 
-%% =====================================================================
-\subsection{Practitioner Takeaways}
-
-\textbf{(1) Explicit tail limits de-risk proactively.}
-The CVaR constraint gives a mechanical rotation signal. Once the rolling tail estimate
-approaches the budget, the policy shifts into cash/rates. In our data that rotation
-happened 2 weeks \emph{before} the COVID trough, an advance signal, not reactive.
-Full stress-window max drawdown. Constrained $11.8\%$, unconstrained $20.6\%$, SPY
-$31.8\%$ (Figure~\ref{fig:weights}).
-
-\textbf{(2) Use constrained RL as a high-volatility overlay.}
-In the 15\% of OOS weeks labelled high-volatility, constrained RL Sharpe is $1.415$
-vs min-var $0.564$.  A regime-switching hybrid (constrained RL in high-vol, min-var
-otherwise) achieves overall Sharpe $1.316$ vs pure min-var $1.209$.  Practitioners
-already using min-var for calm conditions can add the constraint as a targeted overlay.
-
-\textbf{(3) Verify coupling and use walk-forward evaluation.}
-Any Lagrangian policy should confirm the multiplier rises during training.
-A near-zero multiplier means the constraint is
-inert, check advantage-signal scales (Section~\ref{sec:coupling}).  Likewise, an
-apparent beat-the-optimiser result on a single stress window can invert under rolling
-walk-forward. Always validate across multiple folds before reporting an advantage
-over convex baselines.
+Three points follow for practitioners. First, explicit tail limits de-risk
+\emph{proactively}: the CVaR constraint gives a mechanical rotation signal, shifting into
+cash/rates once the rolling tail estimate approaches the budget---in our data, two weeks
+\emph{before} the COVID trough (stress-window max drawdown $11.8\%$ constrained vs.\ $20.6\%$
+unconstrained and $31.8\%$ for SPY, Figure~\ref{fig:weights}). Second, the constraint is best
+used as a \emph{high-volatility overlay}: in the 15\% of OOS weeks labelled high-volatility,
+constrained-RL Sharpe is $1.415$ vs.\ min-variance $0.564$, and a regime-switching hybrid
+(constrained RL in high-vol, min-variance otherwise) reaches overall Sharpe $1.316$ vs.\ $1.209$,
+so a desk already running min-variance in calm conditions can bolt the constraint on as a targeted
+overlay. Third, verify the coupling and evaluate out-of-sample: any Lagrangian policy should
+confirm the multiplier actually rises during training (a near-zero multiplier means an inert
+constraint---check the advantage-signal scales, Section~\ref{sec:coupling}), and an apparent
+beat-the-optimiser result on a single stress window can invert under rolling walk-forward, so
+validate across folds before claiming an edge over convex baselines.
 
 %% =====================================================================
 \section{Limitations}
