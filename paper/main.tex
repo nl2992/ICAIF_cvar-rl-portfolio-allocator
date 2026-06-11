@@ -362,7 +362,7 @@ $\lambda$ near zero, but the constrained architecture still provides implicit ta
 regularisation. The ``fixed'' coupling binds in training but over-constrains OOS.}
 \label{tab:coupling}
 \small
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrr}
 \toprule
 variant & Sharpe & CVaR$_{99}$ & breach rate & final $\lambda$ \\
 \midrule
@@ -370,8 +370,7 @@ unconstrained (baseline) & $0.626$ & $0.065$ & $1.000$ & $0.000$ \\
 buggy ($\eta_\lambda=0.001$, misscaled) & $0.987$ & $0.025$ & $0.079$ & $0.022$ \\
 fixed ($\eta_\lambda=5.0$, correct scale) & $0.911$ & $0.028$ & $0.751$ & $0.101$ \\
 \midrule
-\multicolumn{5}{l}{\footnotesize Buggy reduces CVaR$_{99}$ by 61\% vs unconstrained despite near-zero $\lambda$. Implicit architectural regularisation.}\\
-\multicolumn{5}{l}{\footnotesize Fixed raises $\lambda$ to $O(0.1)$ and binds in training, but OOS breach rate jumps to 75\% ,  limit too tight for test.}\\
+\multicolumn{5}{@{}p{0.96\columnwidth}@{}}{\footnotesize Buggy reduces CVaR$_{99}$ by 61\% vs.\ unconstrained despite near-zero $\lambda$ (implicit architectural regularisation); fixed raises $\lambda$ to $O(0.1)$ and binds in training, but OOS breach rate jumps to 75\%---the limit is too tight for the test distribution.}\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -395,7 +394,7 @@ The fixed-coupling variant produces a similar reduction ($p=0.0037$ vs.\ unconst
 \caption{Experimental configuration. The macro-ETF universe is primary. Ten S\&P sector ETFs form the robustness universe.}
 \label{tab:config}
 \small
-\begin{tabular}{ll}
+\begin{tabular}{@{}l p{0.63\columnwidth}@{}}
 \toprule
 Setting & Value \\
 \midrule
