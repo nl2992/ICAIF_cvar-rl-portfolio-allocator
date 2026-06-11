@@ -1,5 +1,10 @@
 # TODO — cvar-rl-portfolio-allocator
-# Reviewer Score: 4.8 / 10 — Reject → Target: 7.0 / Accept
+
+> **STATUS (2026-06-11): SUBMISSION-READY.** All referee items below are addressed; paper compiles at 8pp (ICAIF '26, ACM sigconf). Reframed as a methods/cautionary paper: a differentiable CVaR-constrained allocator (cuts CVaR99 by 49% through 2020/2022) plus two transferable failure modes — Lagrangian constraint-coupling and evaluation-protocol reversal. Min-variance dominance in calm markets is scoped honestly, not hidden. Planning notes below are a historical record of the review-defense pass.
+
+---
+
+# Reviewer Score: 4.8 / 10 — Reject → Target: 7.0 / Accept *(historical, pre-revision)*
 
 ---
 
