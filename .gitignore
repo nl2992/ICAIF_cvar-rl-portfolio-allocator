@@ -29,3 +29,6 @@ notebooks/.ipynb_checkpoints/
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+
+# internal planning docs (kept locally, not published)
+docs/internal/
