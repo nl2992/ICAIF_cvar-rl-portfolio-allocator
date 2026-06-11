@@ -29,26 +29,24 @@ in Evaluating Constrained Reinforcement Learning for Finance}
 \renewcommand{\shortauthors}{Anonymous}
 
 \begin{abstract}
-Reinforcement learning is increasingly applied to portfolio allocation, yet two
-questions are rarely asked. Does an explicit risk constraint actually \emph{bind},
-and does a reported win survive the \emph{evaluation protocol}? We study a
-differentiable Conditional Value-at-Risk (CVaR) constrained allocator on a
-seven-ETF macro universe (2008--2024, weekly, 5\,bps costs) and make the
-methodology the contribution. First, the constraint works as a tail safety layer, with
-a 40-fold two-universe walk-forward showing constrained $\mathrm{CVaR}_{99}$ lower in
-26/40 folds ($p=8.8\!\times\!10^{-6}$), and through the 2020 crash and 2022 selloff
-it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$ while improving
-Sharpe by $40\%$ and eliminating hard constraint violations. Second, and this is
-what transfers to \emph{any} constrained financial RL, we surface two failure
-modes. (i)~A \textbf{Lagrangian constraint-coupling failure}, where standardising the
-reward advantage but not the cost advantage renders the constraint silently inert
-for any reasonable multiplier, which we name and fix. (ii)~An \textbf{evaluation-protocol
-reversal}, where, on a 31-asset universe, a single stress window ranks the learner above
-every optimiser while a rolling walk-forward inverts the ranking, so apparent
-``beat-the-optimiser'' claims can be protocol artifacts. We are explicit about
-scope. The pure learned allocator does not beat rolling minimum-variance in
-aggregate (a regime-switching hybrid does, $+0.107$ Sharpe). The contribution is
-the constraint mechanism and the two evaluation failure modes, not a horse-race win.
+We present a differentiable Conditional Value-at-Risk (CVaR) constrained portfolio
+allocator and use it to expose two failure modes that affect any constrained
+financial RL study. On a seven-ETF macro universe (2008--2024, weekly, 5\,bps
+costs) the constraint acts as an effective tail safety layer. Through the 2020 crash
+and 2022 selloff it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$
+while improving Sharpe by $40\%$ and eliminating hard constraint violations, and a
+40-fold two-universe walk-forward confirms constrained $\mathrm{CVaR}_{99}$ is lower
+in 26/40 folds ($p=8.8\!\times\!10^{-6}$). Building the allocator surfaces two
+transferable methodological lessons. (i)~A \textbf{Lagrangian constraint-coupling
+failure}, where standardising the reward advantage but not the cost advantage
+renders the constraint silently inert for any reasonable multiplier, which we name
+and fix. (ii)~An \textbf{evaluation-protocol reversal}, where, on a 31-asset
+universe, a single stress window ranks the learner above every optimiser while a
+rolling walk-forward inverts the ranking, so apparent ``beat-the-optimiser'' claims
+can be protocol artifacts. We are explicit about scope. The pure learned allocator
+does not beat rolling minimum-variance in aggregate, though a regime-switching
+hybrid does ($+0.107$ Sharpe). The contribution is the constraint mechanism and the
+two evaluation failure modes, not a horse-race win.
 \end{abstract}
 
 \begin{CCSXML}
