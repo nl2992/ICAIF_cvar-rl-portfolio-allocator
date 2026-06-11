@@ -547,7 +547,7 @@ In the high-volatility regime ($n=71$ weeks), constrained RL achieves Sharpe $2.
 In \textbf{calm} markets ($n=388$ weeks) and \textbf{selloffs} ($n=61$ weeks) minimum variance dominates. Selloff Sharpe $0.035$ vs.\ constrained RL $-0.809$.
 The implication is practical. A constrained RL overlay adds value when volatility is elevated but has not yet collapsed into a full drawdown, the regime where dynamic rebalancing can exploit cross-asset dislocations that static optimisers miss.
 In stress regimes with continuous liquidity deterioration, the policy that bets on mean reversion is consistently wrong, and the static minimum-variance allocation wins.
-Importantly, the CVaR$_{99}$ constraint delivers consistent tail-risk reduction across \emph{all} three regimes relative to unconstrained RL. $-29.1\%$ in calm markets (0.020 vs.\ 0.028), $-20.7\%$ in high-volatility (0.018 vs.\ 0.023), and $-27.4\%$ in selloffs (0.048 vs.\ 0.066).
+The CVaR$_{99}$ constraint delivers consistent tail-risk reduction across \emph{all} three regimes relative to unconstrained RL. $-29.1\%$ in calm markets (0.020 vs.\ 0.028), $-20.7\%$ in high-volatility (0.018 vs.\ 0.023), and $-27.4\%$ in selloffs (0.048 vs.\ 0.066).
 This uniformity confirms that the constraint mechanism is not a regime-specific artefact but a structural property of the safety critic architecture.
 
 \begin{table}[t]
@@ -789,7 +789,7 @@ stress split (train pre-2018, test through 2024) the constrained learner appears
 folds, refit every 26 weeks). Sharpe $\mathbf{1.40}$ versus the learner's $0.74$. The
 ranking does not merely tighten, it \textbf{inverts} (Table~\ref{tab:protocol}). The
 stress-split ``win'' was an artifact of one fixed period in which minimum variance
-concentrated badly. Rolling refits remove it entirely. The constraint's robust effect
+concentrated badly. Rolling refits remove it entirely. The constraint's tail-risk effect
 survives both protocols (it still cuts $\mathrm{CVaR}_{99}$ versus the unconstrained
 learner fold-by-fold, Wilcoxon $p=6\times10^{-4}$), but the apparent
 \emph{beat-the-optimiser} result does not. We therefore treat rolling walk-forward
@@ -881,7 +881,7 @@ high-volatility overlay}, not a universal alpha source. Practitioners already us
 min-variance in calm conditions can layer it in without altering their calm-regime
 allocation. Results span two ETF universes (single region,
 synthetic 5\,bps costs) and the Sharpe edge does not survive a Deflated-Sharpe
-correction. The robust effect is on tail risk. Natural extensions include benchmark-relative
+correction. The surviving effect is on tail risk. Natural extensions include benchmark-relative
 active risk, turnover-matched ablation, per-asset cost calibration, and futures/equity
 cross-sections.
 
