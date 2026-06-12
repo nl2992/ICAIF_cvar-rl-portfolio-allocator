@@ -8,7 +8,6 @@
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{graphicx}
-\usepackage{xcolor}
 \usepackage{microtype}  % reduces overfull boxes via char protrusion / font expansion
 \setlength{\emergencystretch}{3em}  % last-resort stretch to clear residual overfull lines
 \setlength{\tabcolsep}{4.5pt}       % slightly tighter columns so wide tables fit the column
@@ -45,8 +44,9 @@ universe, a single stress window ranks the learner above every optimiser while a
 rolling walk-forward inverts the ranking, so apparent ``beat-the-optimiser'' claims
 can be protocol artifacts. We are explicit about scope. The pure learned allocator
 does not beat rolling minimum-variance in aggregate, though a regime-switching
-hybrid does ($+0.107$ Sharpe). The contribution is the constraint mechanism and the
-two evaluation failure modes, not a horse-race win.
+hybrid does ($+0.107$ Sharpe)---an edge robust across the volatility-quantile axis
+but lost at a deeper $-6\%$ selloff-threshold definition. The contribution is the
+constraint mechanism and the two evaluation failure modes, not a horse-race win.
 \end{abstract}
 
 \begin{CCSXML}
@@ -193,8 +193,8 @@ management and benchmarks against six classical and RL baselines, but targets a 
 surplus objective rather than an explicit tail constraint.
 None of these works uses CVaR as a constraint, seeds multiple runs, or applies
 statistical testing.
-\emph{Our paper is the first to subject RL portfolio allocation to a 40-fold,
-two-universe rolling walk-forward with Wilcoxon testing and Benjamini--Hochberg
+\emph{To our knowledge, this is the first work to subject RL portfolio allocation to a
+40-fold, two-universe rolling walk-forward with Wilcoxon testing and Benjamini--Hochberg
 multiple-testing control,} directly exposing the protocol-reversal artefact that
 single-window evaluations conceal.
 
@@ -332,7 +332,7 @@ edge holds for volatility-defined stress but not when the selloff label absorbs 
 \label{sec:coupling}
 
 The coupling ablation (Table~\ref{tab:coupling}) reveals an unexpected but instructive
-finding.  The scale mismatch IS confirmed. With the misscaled learning rate
+finding.  The scale mismatch IS confirmed. With the mis-scaled learning rate
 ($\eta_\lambda=0.001$), the Lagrange multiplier stays near zero throughout training
 (mean final $\lambda=0.022$ vs $0.101$ for the fixed coupling), matching the
 theoretical prediction that the dual cannot bind when cost and reward advantages
@@ -368,13 +368,21 @@ regularisation. The ``fixed'' coupling binds in training but over-constrains OOS
 variant & Sharpe & CVaR$_{99}$ & breach rate & final $\lambda$ \\
 \midrule
 unconstrained (baseline) & $0.626$ & $0.065$ & $1.000$ & $0.000$ \\
-buggy ($\eta_\lambda=0.001$, misscaled) & $0.987$ & $0.025$ & $0.079$ & $0.022$ \\
+buggy ($\eta_\lambda=0.001$, mis-scaled) & $0.987$ & $0.025$ & $0.079$ & $0.022$ \\
 fixed ($\eta_\lambda=5.0$, correct scale) & $0.911$ & $0.028$ & $0.751$ & $0.101$ \\
 \midrule
 \multicolumn{5}{@{}p{0.96\columnwidth}@{}}{\footnotesize Buggy reduces CVaR$_{99}$ by 61\% vs.\ unconstrained despite near-zero $\lambda$ (implicit architectural regularisation); fixed raises $\lambda$ to $O(0.1)$ and binds in training, but OOS breach rate jumps to 75\%---the limit is too tight for the test distribution.}\\
 \bottomrule
 \end{tabular}
 \end{table}
+
+What, then, does the Lagrangian mechanism add over and above the architecture? On this
+problem, very little tail reduction: engaging the dual correctly (the ``fixed'' variant,
+$\lambda=O(0.1)$) leaves CVaR$_{99}$ essentially unchanged versus the near-inert ``buggy''
+variant ($0.028$ vs $0.025$) and \emph{worsens} the OOS breach rate ($75\%$ vs $8\%$). The
+explicit multiplier's role is therefore to make the constraint \emph{bind in training} (and,
+if mis-set, to over-tighten), while the bulk of the $61\%$ CVaR$_{99}$ reduction is delivered
+by the safety-critic-and-projection architecture, not the dual.
 
 We report this as a compound cautionary finding. \emph{(i)} any Lagrangian RL system that
 standardises the return advantage but not the cost advantage will silently produce
@@ -890,8 +898,8 @@ cross-sections.
 \begin{acks}
 All figures and tables are produced by the open pipeline in the project repository
 (leak-free checks, 68 unit tests, fixed seeds, config snapshots) and are
-reproducible from a clean checkout. Code and data are available at
-[anonymized repository; link provided at camera-ready].
+reproducible from a clean checkout. Code and data are available at an anonymized
+repository (link provided at camera-ready).
 \end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
