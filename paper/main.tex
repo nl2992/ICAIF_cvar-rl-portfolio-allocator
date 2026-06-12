@@ -850,8 +850,8 @@ cash/rates once the rolling tail estimate approaches the budget---in our data, t
 unconstrained and $31.8\%$ for SPY, Figure~\ref{fig:weights}). Second, the constraint is best
 used as a \emph{high-volatility overlay}: in the 15\% of OOS weeks labelled high-volatility,
 constrained-RL Sharpe is $1.415$ vs.\ min-variance $0.564$, and a regime-switching hybrid
-(constrained RL in high-vol, min-variance otherwise) reaches overall Sharpe $1.316$ vs.\ $1.209$,
-so a desk already running min-variance in calm conditions can bolt the constraint on as a targeted
+(constrained RL in high-vol, min-variance otherwise) reaches overall Sharpe $1.316$ vs.\ $1.209$
+(Table~\ref{tab:hybrid}), so a desk already running min-variance in calm conditions can bolt the constraint on as a targeted
 overlay. Third, verify the coupling and evaluate out-of-sample: any Lagrangian policy should
 confirm the multiplier actually rises during training (a near-zero multiplier means an inert
 constraint---check the advantage-signal scales, Section~\ref{sec:coupling}), and an apparent
