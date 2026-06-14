@@ -760,9 +760,11 @@ evaluate on the stress window (Table~\ref{tab:modelfree}).
 Tuning does not rescue either family.  The selected PPO overfits the validation window
 (validation Sharpe $1.70$) then posts the \emph{worst} out-of-sample tail (Sharpe
 $0.67$, $\mathrm{CVaR}_{99}=0.070$). SAC collapses to near-zero turnover (Sharpe
-$0.39$).  The failure is one of \emph{generalisation}, not tuning effort. On 887
-weekly observations score-function and off-policy RL have too few effective samples,
-whereas the pathwise gradient extracts a usable signal from the same data.
+$0.39$).  The failure is one of \emph{generalisation}: on 887 weekly observations
+score-function and off-policy RL have too few effective samples.
+The constrained allocator also undercuts minimum variance on $\mathrm{CVaR}_{99}$
+($0.032$ vs.\ $0.044$), where static covariance estimation lags abrupt correlation
+shifts during stress (Table~\ref{tab:modelfree}).
 
 \begin{table}[t]
 \centering
