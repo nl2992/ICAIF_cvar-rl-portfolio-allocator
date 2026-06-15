@@ -444,6 +444,12 @@ W-FRI clock, 2008--2024 window, and 5\,bps cost assumption. Every series is a fr
 public daily market series (no licensed feeds or API keys), so both universes share
 one data provenance and the second functions as a clean replication rather than a
 confound. The pipeline rebuilds them from a clean checkout.
+For the evaluation-protocol cautionary experiment (Section~\ref{sec:protocol}) we add
+a \textbf{third universe of 31 cross-asset, sector, and industry ETFs} (4 broad
+equity: SPY/IWM/EFA/EEM; 9 S\&P sectors; 7 industry: XBI/XOP/XHB/XRT/KRE/IYR/SMH;
+6 fixed-income: TLT/IEF/SHY/LQD/HYG/TIP; 3 commodity: GLD/SLV/DBC; FX UUP; cash
+BIL), same provenance, clock, and 5\,bps cost; higher dimensionality stresses
+covariance estimation.
 
 %% =====================================================================
 \section{Results}
