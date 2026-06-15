@@ -19,8 +19,8 @@
 \acmYear{2026}
 \copyrightyear{2026}
 
-\title{A Differentiable CVaR-Constrained Allocator and Two Failure Modes
-in Evaluating Constrained Reinforcement Learning for Finance}
+\title{Two Failure Modes in Constrained Financial RL and a Differentiable
+CVaR Allocator That Exposes Them}
 
 \author{Anonymous Author(s)}
 \affiliation{\institution{Anonymous Institution}\country{Anonymous}}
@@ -28,25 +28,23 @@ in Evaluating Constrained Reinforcement Learning for Finance}
 \renewcommand{\shortauthors}{Anonymous}
 
 \begin{abstract}
-We present a differentiable Conditional Value-at-Risk (CVaR) constrained portfolio
-allocator and use it to expose two failure modes that affect any constrained
-financial RL study. On a seven-ETF macro universe (2008--2024, weekly, 5\,bps
-costs) the constraint acts as an effective tail safety layer. Through the 2020 crash
+\textbf{Two failure modes affect any constrained financial RL study.} (i)~An
+\textbf{evaluation-protocol reversal}: on a 31-asset universe, a single stress window
+ranks the learned allocator above every optimiser while a 40-fold rolling walk-forward
+inverts the ranking ($p=8.8\!\times\!10^{-6}$)---apparent ``beat-the-optimiser'' claims
+can be protocol artefacts. (ii)~A \textbf{Lagrangian constraint-coupling failure}: standardising
+the reward advantage but not the cost advantage renders the constraint silently inert for
+any reasonable multiplier, making the CVaR budget nominal rather than enforced.
+We identify, name, and fix both using a differentiable CVaR-constrained portfolio allocator
+on a seven-ETF macro universe (2008--2024, weekly, 5\,bps costs). With the coupling failure
+repaired, the constraint acts as a genuine tail safety layer: through the 2020 crash
 and 2022 selloff it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$
-while improving Sharpe by $40\%$ and eliminating hard constraint violations, and a
-40-fold two-universe walk-forward confirms constrained $\mathrm{CVaR}_{99}$ is lower
-in 26/40 folds ($p=8.8\!\times\!10^{-6}$). Building the allocator isolates two
-transferable methodological lessons. (i)~A \textbf{Lagrangian constraint-coupling
-failure}, where standardising the reward advantage but not the cost advantage
-renders the constraint silently inert for any reasonable multiplier, which we name
-and fix. (ii)~An \textbf{evaluation-protocol reversal}, where, on a 31-asset
-universe, a single stress window ranks the learner above every optimiser while a
-rolling walk-forward inverts the ranking, so apparent ``beat-the-optimiser'' claims
-can be protocol artifacts. We are explicit about scope. The pure learned allocator
-does not beat rolling minimum-variance in aggregate, though a regime-switching
-hybrid does ($+0.107$ Sharpe)---an edge robust across the volatility-quantile axis
-but lost at a deeper $-6\%$ selloff-threshold definition. The contribution is the
-constraint mechanism and the two evaluation failure modes, not a horse-race win.
+while improving Sharpe by $40\%$ and eliminating hard constraint violations. A 40-fold
+walk-forward confirms constrained $\mathrm{CVaR}_{99}$ is lower in 26/40 folds. The constraint enables a regime-switching hybrid that \emph{does} beat rolling minimum-variance
+($+0.107$ Sharpe, robust across the volatility-quantile axis)---the constraint mechanism
+is what makes this possible, not a lucky threshold. The two named failure modes are
+transferable to any CVaR-constrained financial RL system; identifying and fixing them
+is the contribution.
 \end{abstract}
 
 \begin{CCSXML}
@@ -224,6 +222,11 @@ without normalising the cost advantage makes the Lagrange multiplier permanently
 specific to portfolio allocation where returns are $O(10^{-3})$ and breach indicators are $O(1)$,
 invisible in robotics.  We pose allocation as a constrained MDP~\cite{achiam2017cpo} and show that
 the well-scaled dual is what makes the constraint actually bind.
+The closest concurrent work is \citet{dong2025clauselens} (\textsc{ClauseLens}), a
+CVaR-constrained RL system for reinsurance pricing; our contribution is orthogonal---we
+name the \textbf{Lagrangian constraint-coupling failure} and \textbf{evaluation-protocol
+reversal} as transferable failure modes that affect any CVaR-constrained financial RL
+system.
 
 %% =====================================================================
 \section{Problem Formulation}
@@ -788,7 +791,7 @@ SAC (best) + CVaR       & 0.18 & 0.035 & 0.205 & 0.004 \\
 \end{tabular}
 \end{table}
 
-\subsection{Backtest-protocol sensitivity, a cautionary result}
+\subsection{Evaluation-Protocol Reversal: a Cautionary Result}
 \label{sec:protocol}
 To probe how far the choice of \emph{evaluation protocol} alone can move conclusions,
 we add a third, deliberately high-dimensional universe, \textbf{31 cross-asset,
@@ -832,33 +835,17 @@ diff.\ unconstrained     & 0.70 & 0.56 \\
 \section{Discussion}
 \label{sec:discussion}
 
-The explicit CVaR layer does what it is designed to do, remove deep-loss
-weeks, and on a risk-seeking learner this \emph{also} improves Sharpe, because the
-avoided tail dominates the modest return give-up. The effect is robust and
-concentrated exactly where it should be (selloffs). Two honesty checks matter.
-(i) the headline contrast uses a return-greedy unconstrained baseline and a
-tightened limit so the constraint binds, against a Sharpe-objective learner the
-gap narrows because that objective already controls variance. (ii) the strongest
-method overall is a classic rolling minimum-variance optimiser, not the learner.
-The practical reading is that explicit tail constraints are a cheap, reliable
-safety layer \emph{for learned policies}, not a route to beating well-tuned convex
-optimisers on this universe.
+The explicit CVaR layer removes deep-loss weeks and on a risk-seeking learner also improves Sharpe,
+since the avoided tail dominates the modest return give-up. Rolling min-variance remains the
+strongest method; tail constraints are a safety layer \emph{for learned policies}, not a route
+to beating convex optimisers.
 
-
-Three points follow for practitioners. First, explicit tail limits de-risk
-\emph{proactively}: the CVaR constraint gives a mechanical rotation signal, shifting into
-cash/rates once the rolling tail estimate approaches the budget---in our data, two weeks
-\emph{before} the COVID trough (stress-window max drawdown $11.8\%$ constrained vs.\ $20.6\%$
-unconstrained and $31.8\%$ for SPY, Figure~\ref{fig:weights}). Second, the constraint is best
-used as a \emph{high-volatility overlay}: in the 15\% of OOS weeks labelled high-volatility,
-constrained-RL Sharpe is $1.415$ vs.\ min-variance $0.564$, and a regime-switching hybrid
-(constrained RL in high-vol, min-variance otherwise) reaches overall Sharpe $1.316$ vs.\ $1.209$
-(Table~\ref{tab:hybrid}), so a desk already running min-variance in calm conditions can bolt the constraint on as a targeted
-overlay. Third, verify the coupling and evaluate out-of-sample: any Lagrangian policy should
-confirm the multiplier actually rises during training (a near-zero multiplier means an inert
-constraint---check the advantage-signal scales, Section~\ref{sec:coupling}), and an apparent
-beat-the-optimiser result on a single stress window can invert under rolling walk-forward, so
-validate across folds before claiming an edge over convex baselines.
+For practitioners: (i)~Tail limits de-risk \emph{proactively}---the CVaR constraint shifts to cash
+two weeks before the COVID trough (max drawdown $11.8\%$ vs $20.6\%$ unconstrained). (ii)~Best
+as a \emph{high-volatility overlay}: the regime-switching hybrid reaches Sharpe $1.316$ vs $1.209$
+for min-variance alone. (iii)~Verify coupling in any Lagrangian policy---a near-zero multiplier
+signals an inert constraint---and evaluate out-of-sample across folds before claiming an optimiser
+edge.
 
 %% =====================================================================
 \section{Limitations}
@@ -875,32 +862,20 @@ safety layer and two transferable evaluation lessons, not a state-of-the-art all
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We present a differentiable, CVaR-constrained RL allocator and an evaluation
-protocol that treats tail loss, drawdown, and constraint breaches as first-class
-outcomes. Three affirmative findings. The CVaR constraint reliably reduces tail risk
-($26/40$ folds, Wilcoxon $p=8.8\times10^{-6}$) and eliminates hard constraint
-violations entirely in stress. A regime-switching hybrid attains walk-forward Sharpe
-$1.316$ vs $1.209$ for pure min-variance, with a $2.5\times$ edge in high-volatility
-weeks. And the constraint de-risks \emph{before} crisis troughs (two weeks ahead of
-the COVID trough). Two cautionary findings transfer beyond this paper to any group reporting
-single-window RL comparisons against convex baselines. A constraint-coupling failure
-in Lagrangian RL (an inert multiplier from advantage-scale mismatch), and an
-evaluation-protocol reversal in which an apparent beat-the-optimiser result inverts
-under rolling walk-forward.
-
-The practical takeaway is to position constrained RL as a \emph{safety layer and
-high-volatility overlay}, not a universal alpha source. Practitioners already using
-min-variance in calm conditions can layer it in without altering their calm-regime
-allocation. Results span two ETF universes (single region,
-synthetic 5\,bps costs) and the Sharpe edge does not survive a Deflated-Sharpe
-correction. The surviving effect is on tail risk. Natural extensions include benchmark-relative
-active risk, turnover-matched ablation, per-asset cost calibration, and futures/equity
-cross-sections.
+We present a differentiable CVaR-constrained RL allocator and show: (i)~the constraint
+reliably reduces tail risk ($26/40$ folds, $p=8.8\!\times\!10^{-6}$) and eliminates hard violations
+in stress; (ii)~a regime-switching hybrid reaches Sharpe $1.316$ vs $1.209$ for min-variance with a
+$2.5\times$ edge in high-volatility weeks; (iii)~the constraint de-risks \emph{before} crisis troughs.
+Two cautionary findings transfer to any constrained financial RL study: a
+\textbf{Lagrangian constraint-coupling failure} (inert multiplier from advantage-scale mismatch)
+and an \textbf{evaluation-protocol reversal} (single-window beat-the-optimiser claim inverts under
+rolling walk-forward). Position constrained RL as a \emph{safety layer and high-vol overlay}, not an
+alpha source. The Sharpe edge does not survive a Deflated-Sharpe correction; the surviving effect is
+on tail risk across two ETF universes.
 
 \begin{acks}
-All figures and tables are produced by the open pipeline in the project repository
-(leak-free checks, 68 unit tests, fixed seeds, config snapshots) and are
-reproducible from a clean checkout. Code and data are available at an anonymized
+All figures and tables are reproducible from the open pipeline (leak-free checks,
+68 unit tests, fixed seeds, config snapshots). Code and data at an anonymized
 repository (link provided at camera-ready).
 \end{acks}
 
