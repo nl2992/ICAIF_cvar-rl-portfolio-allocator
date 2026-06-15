@@ -30,8 +30,8 @@ CVaR Allocator That Exposes Them}
 \begin{abstract}
 \textbf{Two failure modes affect any constrained financial RL study.} (i)~An
 \textbf{evaluation-protocol reversal}: on a 31-asset universe, a single stress window
-ranks the learned allocator above every optimiser while a 40-fold rolling walk-forward
-inverts the ranking ($p=8.8\!\times\!10^{-6}$)---apparent ``beat-the-optimiser'' claims
+ranks the learned allocator above every optimiser while a 20-fold rolling walk-forward
+inverts the ranking (Wilcoxon $p=6\times10^{-4}$)---apparent ``beat-the-optimiser'' claims
 can be protocol artefacts. (ii)~A \textbf{Lagrangian constraint-coupling failure}: standardising
 the reward advantage but not the cost advantage renders the constraint silently inert for
 any reasonable multiplier, making the CVaR budget nominal rather than enforced.
