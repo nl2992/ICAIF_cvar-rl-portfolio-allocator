@@ -716,9 +716,8 @@ Breach rate     & 0.752  & \textbf{0.401}  & $-47\%$ \\
 \end{table}
 
 \subsection{Robustness and ablations}
-The $\mathrm{CVaR}_{99}$ reduction holds in \textbf{7/7} perturbations, including
-2$\times$ and 3$\times$ costs and dropped assets. The
-constrained allocator's higher turnover still wins net. Ablations
+The $\mathrm{CVaR}_{99}$ reduction holds in \textbf{7/7} perturbations, even at
+$3\times$ costs ($\mathrm{CVaR}_{99}$ 54\% lower, Sharpe 63\% above unconstrained). Ablations
 (Table~\ref{tab:ablation}) reveal a striking \textbf{monotone pattern}
 (Figure~\ref{fig:hero}, right panel). Tightening the tail budget from loose
 ($\alpha=0.95$, limit $1.92\%$) through the base ($\alpha=0.95$, limit $1.2\%$)
