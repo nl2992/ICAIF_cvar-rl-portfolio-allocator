@@ -62,12 +62,11 @@ def main() -> None:
                     edgecolor=_INK, linewidth=0.6, zorder=3, label=name)
     # arrow: unconstrained -> constrained
     axA.annotate("", xy=(3.27, 0.88), xytext=(6.47, 0.63),
-                 arrowprops=dict(arrowstyle="->", color=C_CON, lw=1.8,
+                 arrowprops=dict(arrowstyle="->", color="#9a9a9a", lw=1.0,
                                  connectionstyle="arc3,rad=0.18"), zorder=2)
     axA.text(3.05, 0.70,
              "CVaR$_{99}$  $-49$%\nSharpe  $+40$%\nMax-DD  $-43$%\nViolations  $7.2\\!\\to\\!0$",
-             fontsize=8.5, color=_INK,
-             bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=C_CON, lw=1.2))
+             fontsize=8.5, color=_INK)
     axA.set_title("(a) Stress window (2020–2022 drawdowns)")
     axA.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
     axA.set_ylabel("Annualised Sharpe ratio")
@@ -87,19 +86,13 @@ def main() -> None:
                 edgecolor=_INK, linewidth=0.6, zorder=3, label="min-variance (classical)")
     axB.annotate("min-variance", MV_REF, fontsize=8.5, color=_INK,
                  xytext=(6, 6), textcoords="offset points")
-    axB.text(4.4, 1.18,
-             "Tightening the tail budget\nimproves BOTH CVaR$_{99}$\nand Sharpe (monotone)",
-             fontsize=8.5, color=_INK,
-             bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=C_MV, lw=1.0))
-    axB.set_title("(b) Ablation: tighter constraint $\\to$ better outcomes")
+    axB.set_title("(b) Constraint-tightening ablation")
     axB.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
     axB.set_ylabel("Annualised Sharpe ratio")
     axB.invert_xaxis()
     axB.legend(loc="best", fontsize=8, frameon=False)
 
-    fig.suptitle("CVaR constraint as a safety layer for learned allocators",
-                 fontsize=13, fontweight="bold", color=_INK)
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.tight_layout()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT, dpi=200, facecolor="white")
     plt.close(fig)
