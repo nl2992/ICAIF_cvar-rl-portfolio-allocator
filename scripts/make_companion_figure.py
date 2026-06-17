@@ -34,9 +34,8 @@ def main() -> None:
     for fig_dir in (Path("reports/figures"), Path("paper/figures")):
         out = plots.plot_dumbbell(
             PER_UNIVERSE, fig_dir / "multiuniverse_cvar99.png",
-            annotations={"macro (7 ETF)": "", "sector (10 ETF)": "BH ✓"},
-            title=("Constraint reduces out-of-sample tail risk across universes\n"
-                   "(walk-forward CVaR$_{99}$; pooled 40-fold Wilcoxon $p<10^{-3}$)"),
+            annotations={"macro (7 ETF)": "", "sector (10 ETF)": ""},
+            title="",
         )
         print("wrote", out)
 

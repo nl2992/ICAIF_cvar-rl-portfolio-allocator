@@ -119,8 +119,10 @@ def plot_drawdown(returns: dict[str, pd.Series], path, title="Drawdown (stress w
 def plot_weights_area(weights: pd.DataFrame, path, title="Portfolio weights over time"):
     fig, ax = plt.subplots(figsize=(8, 4.6))
     w = weights.reset_index(drop=True)
-    cmap = plt.get_cmap("tab20")
-    colors = [cmap(i % 20) for i in range(w.shape[1])]
+    # Muted navy/maroon/grey family — sober bands, no bright tab20 hues.
+    _muted = ["#26425a", "#5b7fa6", "#7a2230", "#9a9a9a", "#45617a", "#a8606c",
+              "#6f6f6f", "#8fa9c4", "#5a1822", "#b5b5b5", "#0A1F44", "#8c7d77"]
+    colors = [_muted[i % len(_muted)] for i in range(w.shape[1])]
     ax.stackplot(range(len(w)), *[w[c] for c in w.columns], labels=list(w.columns),
                  colors=colors, alpha=0.9, edgecolor="white", linewidth=0.2)
     ax.set_xlabel("week"); ax.set_ylabel("weight"); ax.set_ylim(0, 1); ax.set_title(title)
@@ -374,12 +376,14 @@ def plot_dumbbell(
         note = annotations.get(str(r[label_col]), "")
         ax.annotate(f"−{red:.0f}%" + (f"   {note}" if note else ""),
                     (xmax, y), xytext=(14, 0), textcoords="offset points",
-                    fontsize=8.5, va="center", color=_INK, fontweight="bold")
+                    fontsize=8.5, va="center", color=_INK)
     ax.set_yticks(ys); ax.set_yticklabels(df[label_col].astype(str))
     ax.set_xlim(0, xmax * 1.18)
     ax.set_ylim(-0.6, n - 0.4)
-    ax.set_xlabel(xlabel); ax.set_title(title)
-    _despine(ax); ax.grid(alpha=1.0, axis="x"); ax.grid(False, axis="y")
+    ax.set_xlabel(xlabel)
+    if title:
+        ax.set_title(title)
+    _despine(ax); ax.grid(alpha=0.18, axis="x", linewidth=0.5); ax.grid(False, axis="y")
     from matplotlib.lines import Line2D
     handles = [
         Line2D([0], [0], marker="o", color="white", markerfacecolor=c_unc, markersize=10,
