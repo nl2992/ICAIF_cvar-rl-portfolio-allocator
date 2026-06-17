@@ -19,8 +19,8 @@
 \acmYear{2026}
 \copyrightyear{2026}
 
-\title{Two Failure Modes in Constrained Financial RL and a Differentiable
-CVaR Allocator That Exposes Them}
+\title{Tail Constraints That Bind: A Differentiable CVaR Allocator for
+Tail-Safe Portfolio Reinforcement Learning}
 
 \author{Anonymous Author(s)}
 \affiliation{\institution{Anonymous Institution}\country{Anonymous}}
@@ -28,23 +28,23 @@ CVaR Allocator That Exposes Them}
 \renewcommand{\shortauthors}{Anonymous}
 
 \begin{abstract}
-\textbf{Two failure modes affect any constrained financial RL study.} (i)~An
-\textbf{evaluation-protocol reversal}: on a 31-asset universe, a single stress window
-ranks the learned allocator above every optimiser while a 20-fold rolling walk-forward
-inverts the ranking (Wilcoxon $p=6\times10^{-4}$)---apparent ``beat-the-optimiser'' claims
-can be protocol artefacts. (ii)~A \textbf{Lagrangian constraint-coupling failure}: standardising
-the reward advantage but not the cost advantage renders the constraint silently inert for
-any reasonable multiplier, making the CVaR budget nominal rather than enforced.
-We identify, name, and fix both using a differentiable CVaR-constrained portfolio allocator
-on a seven-ETF macro universe (2008--2024, weekly, 5\,bps costs). With the coupling failure
-repaired, the constraint acts as a genuine tail safety layer: through the 2020 crash
-and 2022 selloff it cuts $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$
-while improving Sharpe by $40\%$ and eliminating hard constraint violations. A 40-fold
-walk-forward confirms constrained $\mathrm{CVaR}_{99}$ is lower in 26/40 folds. The constraint enables a regime-switching hybrid that \emph{does} beat rolling minimum-variance
-($+0.107$ Sharpe, robust across the volatility-quantile axis)---the constraint mechanism
-is what makes this possible, not a lucky threshold. The two named failure modes are
-transferable to any CVaR-constrained financial RL system; identifying and fixing them
-is the contribution.
+An explicit \textbf{CVaR constraint that genuinely binds} turns a learned portfolio allocator
+into a tail-safety layer. On a seven-ETF macro universe (2008--2024, weekly, 5\,bps costs),
+through the 2020 crash and 2022 selloff our differentiable CVaR-constrained allocator cuts
+$\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$ while \emph{improving} Sharpe by
+$40\%$ and eliminating hard constraint violations, relative to an otherwise-identical
+unconstrained learner. A 40-fold walk-forward confirms the constrained $\mathrm{CVaR}_{99}$ is
+lower in 26/40 folds, and the constraint enables a regime-switching hybrid that \emph{beats}
+rolling minimum-variance out-of-sample ($+0.107$ Sharpe, robust across the volatility-quantile
+axis)---a consequence of the constraint mechanism, not a lucky threshold. Making the constraint
+bind required resolving two pitfalls that silently defeat constrained financial RL, which we
+name, diagnose, and fix: (i)~a \textbf{Lagrangian constraint-coupling failure}---standardising
+the reward advantage but not the cost advantage renders the CVaR budget nominal rather than
+enforced for any reasonable multiplier; and (ii)~an \textbf{evaluation-protocol reversal}---on a
+31-asset universe a single stress window ranks the learned allocator above every optimiser while
+a 20-fold rolling walk-forward inverts the ranking (Wilcoxon $p=6\times10^{-4}$), so apparent
+``beat-the-optimiser'' claims can be protocol artefacts. Both fixes transfer to any
+CVaR-constrained financial RL system.
 \end{abstract}
 
 \begin{CCSXML}
@@ -134,14 +134,15 @@ two-universe rolling walk-forward with Deflated-Sharpe and multiple-testing cont
 built to avoid exactly this trap.
 \end{enumerate}
 
-We are explicit about scope. The pure learned allocator does \textbf{not} beat a
-rolling minimum-variance optimiser in aggregate. The hybrid \textbf{does} ($+0.107$
-Sharpe), exploiting the regime in which the tail constraint is most active. But a
-horse-race win is \emph{not} the contribution. The contribution is methodological
-and transferable. A differentiable constraint mechanism that demonstrably binds and
-cuts tails, and two failure modes, constraint-coupling and protocol-reversal, that
-any constrained-RL-for-finance study must control for or risk reporting an artifact.
-The allocator is the testbed that makes both failure modes visible and fixable.
+We are explicit about scope. The pure learned allocator does \textbf{not} beat a rolling
+minimum-variance optimiser in aggregate, and we do not claim it should: the \emph{constrained}
+allocator's value is tail control, and the regime-switching hybrid converts that into an
+out-of-sample Sharpe gain ($+0.107$) precisely in the high-volatility regime where the tail
+constraint is most active. The broader contribution is a differentiable constraint mechanism
+that demonstrably binds and cuts tails, together with two transferable failure modes,
+constraint-coupling and protocol-reversal, that any constrained-RL-for-finance study must
+control for or risk reporting an artifact. The allocator is the testbed that makes both
+visible and fixable.
 
 %% =====================================================================
 \section{Background and Related Work}
