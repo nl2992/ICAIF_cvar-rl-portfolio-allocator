@@ -19,8 +19,8 @@
 \acmYear{2026}
 \copyrightyear{2026}
 
-\title{Tail Constraints That Bind: A Differentiable CVaR Allocator for
-Tail-Safe Portfolio Reinforcement Learning}
+\title{Tail Constraints That Bind: A Tail-Safe CVaR Allocator and Two Failure
+Modes That Silently Defeat Constrained Portfolio Reinforcement Learning}
 
 \author{Anonymous Author(s)}
 \affiliation{\institution{Anonymous Institution}\country{Anonymous}}
@@ -34,9 +34,11 @@ through the 2020 crash and 2022 selloff our differentiable CVaR-constrained allo
 $\mathrm{CVaR}_{99}$ by $49\%$ and max drawdown by $43\%$ while \emph{improving} Sharpe by
 $40\%$ and eliminating hard constraint violations, relative to an otherwise-identical
 unconstrained learner. A 40-fold walk-forward confirms the constrained $\mathrm{CVaR}_{99}$ is
-lower in 26/40 folds, and the constraint enables a regime-switching hybrid that \emph{beats}
-rolling minimum-variance out-of-sample ($+0.107$ Sharpe, robust across the volatility-quantile
-axis)---a consequence of the constraint mechanism, not a lucky threshold. Making the constraint
+lower in 26/40 folds, and this tail-risk reduction survives both Benjamini--Hochberg and
+Deflated-Sharpe control---it is the contribution that holds. We state the limit up front:
+a regime-switching hybrid edges rolling minimum-variance on Sharpe ($+0.107$), but that
+\emph{Sharpe} advantage over classical optimisers does \emph{not} survive a Deflated-Sharpe
+correction, so we claim tail-risk control, not alpha. Making the constraint
 bind required resolving two pitfalls that silently defeat constrained financial RL, which we
 name, diagnose, and fix: (i)~a \textbf{Lagrangian constraint-coupling failure}---standardising
 the reward advantage but not the cost advantage renders the CVaR budget nominal rather than
