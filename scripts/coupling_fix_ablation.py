@@ -5,12 +5,21 @@ of objective scale (Sharpe, ~O(1)) to constraint violation scale (CVaR in weekly
 units, ~O(0.01-0.03)), the multiplier never grows large enough to make the CVaR penalty
 meaningful, effectively silencing the constraint.
 
-Three variants, 5 seeds each, on the ETF universe:
+Four variants, 5 seeds each, on the ETF universe:
   A) Buggy        : lagrange_lr=0.001  → lam stays near 0 → constraint silenced
   B) Fixed        : lagrange_lr=5.0    → lam grows to enforce constraint
   C) Unconstrained: constrained=False  → no penalty at all
+  D) Feasible     : lagrange_lr=5.0, d=loose (1.92%) limit already used in
+                     tab:ablation (base_limit * 1.6) → scaled dual + a budget
+                     calibrated to a validation-achievable quantile instead of
+                     the tight base_limit that is infeasible OOS on the stress
+                     distribution.
 
-Key finding: Buggy ≈ Unconstrained on breach_rate; Fixed << both.
+Key finding: Buggy ≈ Unconstrained on breach_rate; Fixed << both, but Fixed's
+OOS breach rate is far above its own training budget because the tight budget
+is infeasible OOS. Feasible tests whether scaling the dual AND calibrating the
+budget to a feasible quantile together restore both a bound multiplier and an
+OOS breach rate within budget.
 
 Usage:
     cd /path/to/cvar-rl-portfolio-allocator
@@ -35,11 +44,15 @@ from crlpa.utils.config import load_config
 SEEDS = [7, 13, 23, 42, 2025]
 N_UPDATES = 1500
 
-# The three variants: (constrained, lagrange_lr, label)
+# The four variants: (label, constrained, lagrange_lr, limit_multiplier)
+# limit_multiplier scales base_limit (= cfg.risk.cvar_limit * 0.4); 1.0 reproduces
+# the original tight training budget, 1.6 is the loose budget already reported
+# in tab:ablation (base_limit * 1.6 = 1.92% at the default config).
 VARIANTS = [
-    ("buggy",         True,  0.001),   # lam grows ~0→0.03 after 1500 steps — silenced
-    ("fixed",         True,  5.0),     # lam can reach cap (100) — properly enforced
-    ("unconstrained", False, 0.0),     # baseline: no constraint at all
+    ("buggy",         True,  0.001, 1.0),   # lam stays near 0 after 1500 steps, silenced
+    ("fixed",         True,  5.0,   1.0),   # lam reaches O(0.1), enforced in training
+    ("unconstrained", False, 0.0,   1.0),   # baseline: no constraint at all
+    ("feasible",      True,  5.0,   1.6),   # scaled dual + validation-achievable budget
 ]
 
 
@@ -62,8 +75,9 @@ def main(config_path: str = "configs/experiment_etf.yaml",
     returns, _ = load_returns(cfg)
 
     alpha = float(cfg.get_path("risk.cvar_alpha", 0.95))
-    # Use the same tighter budget the existing ablations use
-    limit = float(cfg.get_path("risk.cvar_limit", 0.03)) * 0.4
+    # Use the same tighter budget the existing ablations use as the base; each
+    # variant scales it by its own limit_multiplier (see VARIANTS).
+    base_limit = float(cfg.get_path("risk.cvar_limit", 0.03)) * 0.4
     cvar_window = int(cfg.get_path("risk.cvar_window", 52))
     lookback = int(cfg.get_path("environment.lookback", 26))
     cost_bps = float(cfg.get_path("environment.transaction_cost_bps", 5.0))
@@ -75,8 +89,10 @@ def main(config_path: str = "configs/experiment_etf.yaml",
     rows = []
     breach_rows = []
 
-    for variant_name, constrained, lagrange_lr in VARIANTS:
-        print(f"\n--- Variant: {variant_name} (constrained={constrained}, lr={lagrange_lr}) ---")
+    for variant_name, constrained, lagrange_lr, limit_mult in VARIANTS:
+        limit = base_limit * limit_mult
+        print(f"\n--- Variant: {variant_name} (constrained={constrained}, "
+              f"lr={lagrange_lr}, limit={limit:.4f}) ---")
         for seed in SEEDS:
             print(f"  seed={seed}…", flush=True)
 
@@ -107,6 +123,7 @@ def main(config_path: str = "configs/experiment_etf.yaml",
                 "variant": variant_name,
                 "constrained": constrained,
                 "lagrange_lr": lagrange_lr,
+                "limit": limit,
                 "seed": seed,
                 "sharpe": m.get("sharpe", np.nan),
                 "cvar_95": m.get("cvar_95", np.nan),
@@ -145,11 +162,12 @@ def main(config_path: str = "configs/experiment_etf.yaml",
         breach_rate_mean=("breach_rate", "mean"),
         breach_rate_std=("breach_rate", "std"),
         final_lam_mean=("final_lam", "mean"),
-    ).reindex(["buggy", "fixed", "unconstrained"])
+    ).reindex(["buggy", "fixed", "unconstrained", "feasible"])
     summary.to_csv(out / "coupling_fix_summary.csv")
 
     print("\n=== COUPLING FIX ABLATION — SUMMARY ===")
-    print(f"CVaR limit used: {limit:.4f}  (alpha={alpha})")
+    print(f"Base CVaR limit: {base_limit:.4f}  (alpha={alpha}); "
+          f"feasible variant uses {base_limit * 1.6:.4f}")
     print()
     for vname, vrow in summary.iterrows():
         print(f"  {vname:15s}:  "

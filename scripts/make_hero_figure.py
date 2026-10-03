@@ -67,10 +67,11 @@ def main() -> None:
     axA.text(3.05, 0.70,
              "CVaR$_{99}$  $-49$%\nSharpe  $+40$%\nMax-DD  $-43$%\nViolations  $7.2\\!\\to\\!0$",
              fontsize=8.5, color=_INK)
-    axA.set_title("(a) Stress window (2020–2022 drawdowns)")
-    axA.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
+    axA.set_title("(a) Stress window (2020-2022 drawdowns)")
+    axA.set_xlabel("CVaR$_{99}$ (%) - lower is safer")
     axA.set_ylabel("Annualised Sharpe ratio")
-    axA.invert_xaxis()
+    axA.text(0.02, 0.97, "safer $\\leftarrow$", transform=axA.transAxes,
+             ha="left", va="top", fontsize=9, color=_INK, fontweight="bold")
     axA.legend(loc="best", fontsize=8, frameon=False)
 
     # ---- Panel (b) -----------------------------------------------------------
@@ -87,9 +88,10 @@ def main() -> None:
     axB.annotate("min-variance", MV_REF, fontsize=8.5, color=_INK,
                  xytext=(6, 6), textcoords="offset points")
     axB.set_title("(b) Constraint-tightening ablation")
-    axB.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
+    axB.set_xlabel("CVaR$_{99}$ (%) - lower is safer")
     axB.set_ylabel("Annualised Sharpe ratio")
-    axB.invert_xaxis()
+    axB.text(0.02, 0.97, "safer $\\leftarrow$", transform=axB.transAxes,
+             ha="left", va="top", fontsize=9, color=_INK, fontweight="bold")
     axB.legend(loc="best", fontsize=8, frameon=False)
 
     fig.tight_layout()

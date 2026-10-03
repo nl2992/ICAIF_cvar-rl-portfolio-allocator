@@ -220,3 +220,14 @@ and the two evaluation failure modes, not a horse-race win.
 | Per-regime performance (constraint most active in high-vol) | calm Sharpe 1.44 / high-vol 2.17 / selloff | `results/tables/regime_comparison.json` | `data[]` by `regime`, `model_key=rl_cvar_constrained` |
 
 All numbers regenerate from `scripts/` and `src/crlpa/`.
+
+## Exact reproduction
+
+This repository is reproducible under Python 3.12.2 with dependencies pinned in `requirements.lock.txt`. All published results were produced with the exact versions listed there.
+
+To verify data integrity, run:
+```bash
+shasum -a 256 -c DATA_MANIFEST.sha256
+```
+
+The committed results are the exact published numbers, produced with canonical seeds: 7, 13, 23, 42, 2025. All reported metrics are mean values over 5 seeds. Training uses a frozen dataset built from historical market data; all runs are deterministic when seeded.
