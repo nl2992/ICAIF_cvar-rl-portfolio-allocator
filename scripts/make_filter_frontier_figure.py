@@ -1,146 +1,107 @@
-"""Compliance frontier: breach rate vs Sharpe, one point per arm plus the
-classical comparators, budget line drawn (PLAN_P5_make_the_constraint_bind.md
-"new visual"). Sober house style (serif, muted navy/maroon/grey, no sentence
-titles, no callout bubbles, thin lines, grid off) -- deliberately bypasses
-crlpa.evaluation.plots.set_style(), which is bold/grid-on and used elsewhere
-in this repo's early figures.
+"""Compliance frontier: breach rate vs Sharpe on the stress window, one point per
+arm plus the classical comparators, with the 5% target drawn (paper Figure
+fig:frontier). Single-column print figure in the shared paper style
+(scripts/_paper_style.py): monochrome, one muted accent for the decision-time
+filter arms, identity by marker shape and direct labels.
 
-Data: results/tables_reanalysis/task4_filter_arms_summary.csv (A5-A8, this
-task), results/tables_reanalysis/breach_vs_budget_table1.csv (classical
-comparators + scaled-dual RL, task12_analysis.py), and the coupling-ablation
-numbers already published in paper/main.tex Table~\\ref{tab:coupling}
-(unconstrained, mis-scaled dual).
+Data: results/tables_reanalysis/task4_filter_arms_summary.csv (A5-A8),
+results/tables_reanalysis/breach_vs_budget_table1.csv (classical comparators and
+the scaled-dual RL), and the coupling-ablation values in paper Table tab:coupling
+(unconstrained, mis-scaled dual). A5 and the mis-scaled dual coincide because
+A5's filter never fires on the test window, so they share one point.
 
 Usage: python scripts/make_filter_frontier_figure.py
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _paper_style as ps  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
 
-_INK = "#2b2b2b"
-_NAVY = "#1D4F91"
-_MAROON = "#7A1F2B"
-_GREY = "#8a8a8a"
-_LIGHT_GREY = "#c9c9c9"
-
-plt.rcParams.update({
-    "figure.facecolor": "white",
-    "axes.facecolor": "white",
-    "axes.edgecolor": _INK,
-    "axes.labelcolor": _INK,
-    "axes.titlecolor": _INK,
-    "axes.titlesize": 10,
-    "axes.titleweight": "normal",
-    "axes.labelsize": 9.5,
-    "axes.linewidth": 0.7,
-    "axes.grid": False,
-    "xtick.color": _INK,
-    "ytick.color": _INK,
-    "xtick.labelsize": 8.5,
-    "ytick.labelsize": 8.5,
-    "font.family": "serif",
-    "legend.fontsize": 7.6,
-    "legend.frameon": False,
-    "figure.dpi": 130,
-    "savefig.dpi": 240,
-    "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.03,
-})
-
-# (label, breach_rate, sharpe, colour, marker, group)
+# (label, breach_rate, sharpe, group)
 POINTS = [
-    ("unconstrained", 1.000, 0.626, _GREY, "o", "penalty"),
-    ("mis-scaled dual", 0.079, 0.987, _GREY, "o", "penalty"),
-    ("scaled dual", 0.751, 0.911, _GREY, "o", "penalty"),
-    ("scaled dual, loose budget", 0.780, 0.543, _GREY, "o", "penalty"),
-    ("adaptive dual (A7)", 0.819, 0.826, _MAROON, "^", "adaptive"),
-    ("equal weight", 0.628, 0.878, _LIGHT_GREY, "s", "classical"),
-    ("risk parity", 0.753, 0.677, _LIGHT_GREY, "s", "classical"),
-    ("inverse vol", 0.079, 0.780, _LIGHT_GREY, "s", "classical"),
-    ("min-CVaR LP", 0.079, 0.817, _LIGHT_GREY, "s", "classical"),
-    ("min variance", 0.079, 0.901, _LIGHT_GREY, "s", "classical"),
-    ("filter only (A5)", 0.079, 0.987, _NAVY, "D", "filter"),
-    ("filter + scaled dual (A6)", 0.074, 0.851, _NAVY, "D", "filter"),
-    ("filter + adaptive dual (A8)", 0.146, 0.800, _NAVY, "D", "filter"),
+    ("unconstrained", 1.000, 0.626, "penalty"),
+    ("A5 = mis-scaled dual", 0.079, 0.987, "filter"),
+    ("scaled dual", 0.751, 0.911, "penalty"),
+    ("scaled dual, loose budget", 0.780, 0.543, "penalty"),
+    ("A7", 0.819, 0.826, "adaptive"),
+    ("equal weight", 0.628, 0.878, "classical"),
+    ("risk parity", 0.753, 0.677, "classical"),
+    ("inverse vol", 0.079, 0.780, "classical"),
+    ("min-CVaR LP", 0.079, 0.817, "classical"),
+    ("min variance", 0.079, 0.901, "classical"),
+    ("A6 filter + scaled dual", 0.074, 0.851, "filter"),
+    ("A8 filter + adaptive dual", 0.146, 0.800, "filter"),
 ]
+STYLE = {  # group: (marker, face, size)
+    "classical": ("s", ps.LIGHT, 16),
+    "penalty": ("o", ps.MID, 18),
+    "adaptive": ("^", "white", 20),
+    "filter": ("D", ps.ACCENT, 16),
+}
+# Label anchors (data coordinates) chosen so that no label overlaps another
+# label, a marker, or a leader line (verified by _paper_style.check_layout).
+LABELS = {
+    "A5 = mis-scaled dual": (0.20, 1.005, "left"),
+    "min variance": (0.20, 0.945, "left"),
+    "A6 filter + scaled dual": (0.20, 0.885, "left"),
+    "min-CVaR LP": (0.20, 0.825, "left"),
+    "A8 filter + adaptive dual": (0.20, 0.765, "left"),
+    "inverse vol": (0.20, 0.705, "left"),
+    "scaled dual": (0.80, 0.965, "left"),
+    "equal weight": (0.62, 0.935, "center"),
+    "A7": (0.86, 0.826, "left"),
+    "risk parity": (0.70, 0.677, "right"),
+    "unconstrained": (1.04, 0.672, "right"),
+    "scaled dual, loose budget": (0.73, 0.520, "right"),
+}
+DISPLAY: dict[str, str] = {}
+TARGET = 0.05  # tolerated weekly breach rate (cfg model.cvar_budget)
 
-BUDGET_BREACH_RATE = 0.05  # cfg model.cvar_budget: tolerated weekly breach rate
+
+def build():
+    ps.apply()
+    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 2.1))
+    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.19, top=0.835)
+    ax.axvline(TARGET, color=ps.DARK, linewidth=0.6, linestyle=(0, (3, 2)), zorder=1)
+    ax.text(TARGET - 0.012, 0.485, "5% target", rotation=90, ha="right", va="bottom",
+            fontsize=6.5, color=ps.DARK)
+    # A5 and the mis-scaled dual share a point: ring the diamond with an open circle.
+    ax.scatter([0.079], [0.987], s=58, marker="o", facecolors="none", edgecolors=ps.MID,
+               linewidths=0.6, zorder=3)
+    for group, (marker, face, size) in STYLE.items():
+        pts = [p for p in POINTS if p[3] == group]
+        ax.scatter([p[1] for p in pts], [p[2] for p in pts], s=size, marker=marker,
+                   facecolors=face, edgecolors=ps.INK, linewidths=0.5, zorder=4)
+    for label, x, y, _ in POINTS:
+        tx, ty, ha = LABELS[label]
+        ax.annotate(DISPLAY.get(label, label), (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.5,
+                    color=ps.INK, arrowprops=dict(arrowstyle="-", color=ps.MID, linewidth=0.4,
+                                                  shrinkA=1.5, shrinkB=3.5))
+    ax.set_xlim(-0.03, 1.06)
+    ax.set_ylim(0.48, 1.04)
+    ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_xticklabels(["0%", "20%", "40%", "60%", "80%", "100%"])
+    ax.set_xlabel("Breach rate (share of weeks above budget)")
+    ax.set_ylabel("Sharpe ratio (stress window)")
+    handles = [plt.Line2D([0], [0], marker=STYLE[g][0], linestyle="none", markersize=3.6,
+                          markerfacecolor=STYLE[g][1], markeredgecolor=ps.INK, markeredgewidth=0.5)
+               for g in ("classical", "penalty", "adaptive", "filter")]
+    fig.legend(handles, ["classical optimiser", "soft Lagrangian", "adaptive dual (A7)",
+                         "decision-time filter"],
+               loc="upper center", bbox_to_anchor=(0.55, 1.0), ncol=2, handletextpad=0.3,
+               columnspacing=1.2, labelspacing=0.3, borderaxespad=0.1)
+    return fig
 
 
 def main() -> None:
-    df = pd.DataFrame(POINTS, columns=["label", "breach", "sharpe", "colour", "marker", "group"])
-
-    fig, ax = plt.subplots(figsize=(9.6, 3.5))
-
-    ax.axvline(BUDGET_BREACH_RATE, color=_INK, linewidth=0.8, linestyle=(0, (4, 3)), alpha=0.55)
-    ax.text(BUDGET_BREACH_RATE + 0.012, 1.02, "5% target",
-            transform=ax.get_xaxis_transform(), fontsize=8.2, color=_INK, alpha=0.8,
-            ha="left", va="bottom")
-
-    for group, marker in [("classical", "s"), ("penalty", "o"), ("adaptive", "^"), ("filter", "D")]:
-        sub = df[df["group"] == group]
-        ax.scatter(sub["breach"], sub["sharpe"], s=46 if group == "filter" else 34,
-                   c=sub["colour"], marker=marker, edgecolors=_INK, linewidths=0.5,
-                   zorder=4 if group == "filter" else 3)
-
-    # Explicit label anchor points (data coords), laid out to avoid collisions
-    # in the dense near-budget cluster on the left.
-    label_pos = {
-        "mis-scaled dual": (0.20, 1.048),
-        "filter only (A5)": (0.20, 0.988),
-        "min variance": (0.20, 0.928),
-        "filter + scaled dual (A6)": (0.40, 0.866),
-        "min-CVaR LP": (0.40, 0.810),
-        "filter + adaptive dual (A8)": (0.40, 0.754),
-        "inverse vol": (0.20, 0.698),
-        "equal weight": (0.48, 0.948),
-        "scaled dual": (0.70, 0.985),
-        "adaptive dual (A7)": (0.86, 0.888),
-        "risk parity": (0.81, 0.642),
-        "unconstrained": (0.83, 0.590),
-        "scaled dual, loose budget": (0.83, 0.508),
-    }
-    for _, row in df.iterrows():
-        xt, yt = label_pos[row["label"]]
-        ha = "left" if xt >= row["breach"] else "right"
-        ax.annotate(row["label"], (row["breach"], row["sharpe"]), xytext=(xt, yt),
-                    fontsize=8.0, color=_INK, ha=ha, va="center",
-                    arrowprops=dict(arrowstyle="-", color=_GREY, linewidth=0.5, shrinkA=2, shrinkB=4))
-
-    ax.set_xlabel("breach rate (share of stress-window weeks over the CVaR budget)")
-    ax.set_ylabel("Sharpe (stress window)")
-    ax.set_xlim(-0.05, 1.16)
-    ax.set_ylim(0.46, 1.09)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    ax.spines["left"].set_linewidth(0.7)
-    ax.spines["bottom"].set_linewidth(0.7)
-
-    legend_handles = [
-        plt.Line2D([0], [0], marker="s", color="none", markerfacecolor=_LIGHT_GREY,
-                   markeredgecolor=_INK, markersize=6, label="classical optimiser"),
-        plt.Line2D([0], [0], marker="o", color="none", markerfacecolor=_GREY,
-                   markeredgecolor=_INK, markersize=6, label="soft Lagrangian (no filter)"),
-        plt.Line2D([0], [0], marker="^", color="none", markerfacecolor=_MAROON,
-                   markeredgecolor=_INK, markersize=6, label="adaptive dual, no filter (A7)"),
-        plt.Line2D([0], [0], marker="D", color="none", markerfacecolor=_NAVY,
-                   markeredgecolor=_INK, markersize=6, label="decision-time filter (A5/A6/A8)"),
-    ]
-    ax.legend(handles=legend_handles, loc="lower left", bbox_to_anchor=(0.0, -0.02),
-              ncol=2, columnspacing=1.0, handletextpad=0.4)
-
-    fig.tight_layout()
-    for fig_dir in (Path("reports/figures"), Path("paper/figures")):
-        fig_dir.mkdir(parents=True, exist_ok=True)
-        out = fig_dir / "figure_filter_frontier.png"
-        fig.savefig(out)
-        print("wrote", out)
+    fig = build()
+    issues = ps.check_layout(fig)
+    print("layout issues:", issues or "none")
+    ps.save(fig, "figure_filter_frontier")
 
 
 if __name__ == "__main__":
