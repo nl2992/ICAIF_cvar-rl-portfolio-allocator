@@ -40,15 +40,14 @@ CVaR-Constrained Portfolio RL}
 
 \author{Nigel Li}
 \orcid{0009-0007-9869-3472}
-% Second affiliation as an "Also with" footnote: a second \affiliation block
-% lengthens the two-column title block and pushes the paper to 9 pages.
-% (acmart drops \city/\country inside \additionalaffiliation, so the location is plain text.)
-\additionalaffiliation{%
-  \institution{Columbia University}, New York City, USA}
 \affiliation{%
   \institution{University of New South Wales}
   \city{Sydney}
   \country{Australia}}
+\affiliation{%
+  \institution{Columbia University}
+  \city{New York City}
+  \country{USA}}
 \email{nigel.li@unsw.edu.au}  % UNSW address: ACM Open via CAUL requires it
 
 \author{Yutong Han}
@@ -178,7 +177,7 @@ in tail control, which the regime-switching hybrid converts into an out-of-sampl
 ($+0.107$) in the high-volatility regime where the constraint is most active. The broader
 contribution is a differentiable constraint mechanism that demonstrably binds and cuts tails,
 together with two transferable failure modes that any study of constrained RL in finance
-must control for. The allocator is the testbed that exposes both.
+must control for, with the allocator as the testbed for both.\looseness=-1
 
 %% =====================================================================
 \section{Background and related work}
@@ -204,8 +203,8 @@ Uryasev~\cite{rockafellar2000optimization} give the tractable form
 \end{equation}
 where $L$ denotes the portfolio loss and the inner expectation is over the empirical
 loss distribution. The minimum is attained at $\zeta=\mathrm{VaR}_\alpha$, and the
-representation admits both a convex linear program (LP), which we include as a baseline, and
-a differentiable penalty via \texttt{topk}.\looseness=-1
+representation admits both a convex linear program (LP), included as a baseline, and a
+differentiable penalty via \texttt{topk}.\looseness=-1
 
 \paragraph{RL for portfolio management}
 The dominant pattern in the RL-for-portfolio literature is to train on a single historical
@@ -510,8 +509,8 @@ A8 filter + adaptive dual & $0.800$ & $0.020$ & $0.146$ & $0.657^\dagger$ \\
   \caption{Compliance frontier, stress window. The dashed line is the 5\% target.
   Classical optimisers (squares) and filter arms (diamonds) achieve the nearest
   observed breach rates (7.4--7.9\%) at high Sharpe, while soft Lagrangians (circles)
-  and the filter-off adaptive dual (triangle) remain far to the right. A5 coincides
-  with the mis-scaled dual (ringed): its filter never triggers.}
+  and the filter-off adaptive dual (triangle) remain far to the right. A5 overlaps the
+  mis-scaled dual (ringed): its filter never fires.}
   \label{fig:frontier}
 \end{figure}
 
@@ -537,9 +536,9 @@ $\approx$2018--2021, test $\approx$2021--2024. For the stress study we retrain o
 2022 selloff. Macro covariates (10y$-$3m term spread, VIX) are sourced from index
 proxies (\texttt{\^{}TNX$-$\^{}IRX}, \texttt{\^{}VIX}). A Federal Reserve Economic
 Data (FRED) loader is also provided. Portfolios are long-only with a maximum weight of 0.40,
-a turnover cap of 0.50 and gross exposure 1.0. Training uses 150 episodes and the seeds
-$\{7,13,23,42,2025\}$, and significance tests use a 2000-sample block bootstrap (block 4),
-Wilcoxon, BH and Deflated-Sharpe.
+a turnover cap of 0.50 and gross exposure 1.0. Training uses 150 episodes and seeds
+$\{7,13,23,42,2025\}$, and significance uses a 2000-sample block bootstrap (block 4),
+Wilcoxon, BH and Deflated-Sharpe.\looseness=-1
 
 For the cross-universe significance test (Section~\ref{sec:significance}) we add a
 second universe of ten S\&P sector ETFs (XLK, XLF, XLE, XLV, XLY, XLP, XLU, XLI, XLB,
@@ -770,7 +769,7 @@ rest of the return distribution.\looseness=-1
 \centering
 \caption{Tail-budget and $\alpha$ ablations, macro-ETF universe, stress window. Against
 the base (anchor, $\alpha{=}0.95$, return objective), the tighter budget and
-$\alpha{=}0.99$ improve, and the looser budget does not.}
+$\alpha{=}0.99$ improve and the looser one does not.}
 \label{tab:ablation}
 \footnotesize
 \begin{tabular}{lrrr}
@@ -854,18 +853,16 @@ comparisons of learned allocators against optimisers as unreliable.
 
 \begin{table}[t]
 \centering
-\caption{Sharpe ratios on the same 31-asset universe under two protocols. The stress split
-ranks the learner first, whereas the rolling walk-forward inverts the ranking.}
+\caption{Sharpe ratios, same 31-asset universe, under two protocols.}
 \label{tab:protocol}
 \footnotesize
-\begin{tabular}{lrr}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-strategy & stress split & walk-forward (OOS) \\
+protocol & min-var & inv-vol & constr.\ (ours) & unconstr. \\
 \midrule
-minimum variance        & 0.23 & \textbf{1.40} \\
-inverse volatility       & 0.38 & 0.78 \\
-diff.\ constrained (ours) & \textbf{0.85} & 0.74 \\
-diff.\ unconstrained     & 0.70 & 0.56 \\
+stress split       & 0.23 & 0.38 & \textbf{0.85} & 0.70 \\
+walk-forward (OOS) & \textbf{1.40} & 0.78 & 0.74 & 0.56 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -889,14 +886,13 @@ For practitioners, (i)~tail limits de-risk \emph{proactively}, as the CVaR const
 shifts to cash two weeks before the COVID trough (max drawdown $11.8\%$ vs $20.6\%$
 unconstrained), (ii)~the constraint is best used as a \emph{high-volatility overlay}
 (Section~\ref{sec:method}), and (iii)~a near-zero multiplier signals an inert constraint, so
-coupling should be verified, and evaluation should span out-of-sample folds before an
-optimiser edge is claimed.
+coupling should be verified and out-of-sample folds used before an optimiser edge is
+claimed.\looseness=-1
 
 %% =====================================================================
 \section{Scope}
 \label{sec:limitations}
-Our claims are deliberately scoped: the multiplicity-controlled effect is tail-risk
-reduction rather than alpha. The pure learned allocator does not beat rolling
+The pure learned allocator does not beat rolling
 minimum variance on Sharpe out of sample, and a Deflated-Sharpe correction removes its
 apparent Sharpe edge over classical baselines, so the hybrid's $+0.107$ gain is
 regime-confined. The study covers two equity-centric universes at weekly frequency with
@@ -910,20 +906,19 @@ lessons rather than a state-of-the-art allocator.\looseness=-1
 \section{Conclusion and future work}
 \label{sec:conclusion}
 
-We present a differentiable CVaR-constrained RL allocator and show that (i)~the constraint
-reliably reduces tail risk (26 of 27 untied folds, $p=8.8\!\times\!10^{-6}$) and eliminates
-portfolio-constraint violations in stress, (ii)~a regime-switching hybrid reaches Sharpe
-$1.316$ vs $1.209$ for min-variance, with overlapping intervals, and (iii)~the constraint
-de-risks \emph{before} crisis troughs. Two failure modes transfer to any constrained
-financial RL study: a \textbf{Lagrangian constraint-coupling failure} and an
-\textbf{evaluation-protocol reversal}. A decision-time CVaR filter delivers out-of-sample
-budget compliance, which neither rescaling the dual nor recalibrating the budget could.
+Our differentiable CVaR-constrained allocator reliably reduces tail risk (26 of 27 untied
+folds, $p=8.8\!\times\!10^{-6}$), eliminates portfolio-constraint violations in stress and
+de-risks \emph{before} crisis troughs, and a regime-switching hybrid reaches Sharpe $1.316$ vs
+$1.209$ for min-variance (overlapping intervals). Two failure modes transfer to any
+constrained financial RL study, a \textbf{Lagrangian constraint-coupling failure} and an
+\textbf{evaluation-protocol reversal}, and a decision-time CVaR filter delivers the
+out-of-sample compliance that neither rescaling the dual nor recalibrating the budget could.
 Constrained RL is best positioned as a \emph{safety layer and high-volatility
 overlay}: the effects that survive are tail-risk control and budget compliance, not alpha.\looseness=-1
 
 \begin{acks}
 All figures and tables are reproducible from the open pipeline (leak-free checks, 81 unit
-tests, fixed seeds, config snapshots, pinned dependencies). Code and processed data:
+tests, fixed seeds, config snapshots, pinned dependencies) at
 \url{https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator}.
 \end{acks}
 

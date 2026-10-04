@@ -41,8 +41,8 @@ MV_REF = ("rolling min variance (walk-forward)", 1.06, 1.45, (1.27, 1.505, "left
 
 def build():
     ps.apply()
-    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(ps.TEXT_WIDTH_IN, 1.65))
-    fig.subplots_adjust(left=0.065, right=0.99, bottom=0.235, top=0.86, wspace=0.22)
+    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(ps.TEXT_WIDTH_IN, 1.52))
+    fig.subplots_adjust(left=0.065, right=0.99, bottom=0.25, top=0.85, wspace=0.22)
 
     # (a) stress window
     ax_a.annotate("", xy=(3.36, 0.866), xytext=(6.38, 0.637),
@@ -51,7 +51,7 @@ def build():
     for label, x, y, marker, face, (tx, ty, ha) in STRESS:
         ax_a.scatter([x], [y], s=26, marker=marker, facecolors=face, edgecolors=ps.INK,
                      linewidths=0.5, zorder=4)
-        ax_a.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+        ax_a.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK, bbox=ps.LABEL_BOX)
     ax_a.set_xlim(2.4, 7.5)
     ax_a.set_ylim(0.57, 0.95)
     ax_a.set_xlabel("CVaR$_{99}$ (%), lower is safer")
@@ -64,11 +64,11 @@ def build():
     ax_b.plot(xs, ys, color=ps.ACCENT, linewidth=0.9, marker="D", markersize=4.2,
               markerfacecolor=ps.ACCENT, markeredgecolor=ps.INK, markeredgewidth=0.5, zorder=3)
     for label, x, y, (tx, ty, ha) in ABLATION:
-        ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+        ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK, bbox=ps.LABEL_BOX)
     label, x, y, (tx, ty, ha) = MV_REF
     ax_b.scatter([x], [y], s=26, marker="s", facecolors=ps.LIGHT, edgecolors=ps.INK,
                  linewidths=0.5, zorder=4)
-    ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+    ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK, bbox=ps.LABEL_BOX)
     ax_b.set_xlim(0.7, 5.4)
     ax_b.set_ylim(0.42, 1.58)
     ax_b.set_xlabel("CVaR$_{99}$ (%), lower is safer")

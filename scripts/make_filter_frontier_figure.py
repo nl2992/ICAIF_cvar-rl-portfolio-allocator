@@ -64,8 +64,8 @@ TARGET = 0.05  # tolerated weekly breach rate (cfg model.cvar_budget)
 
 def build():
     ps.apply()
-    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 2.1))
-    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.19, top=0.835)
+    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 2.0))
+    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.2, top=0.828)
     ax.axvline(TARGET, color=ps.DARK, linewidth=0.6, linestyle=(0, (3, 2)), zorder=1)
     ax.text(TARGET - 0.012, 0.485, "5% target", rotation=90, ha="right", va="bottom",
             fontsize=6.5, color=ps.DARK)
@@ -79,7 +79,7 @@ def build():
     for label, x, y, _ in POINTS:
         tx, ty, ha = LABELS[label]
         ax.annotate(DISPLAY.get(label, label), (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.5,
-                    color=ps.INK, arrowprops=dict(arrowstyle="-", color=ps.MID, linewidth=0.4,
+                    color=ps.INK, bbox=ps.LABEL_BOX, arrowprops=dict(arrowstyle="-", color=ps.MID, linewidth=0.4,
                                                   shrinkA=1.5, shrinkB=3.5))
     ax.set_xlim(-0.03, 1.06)
     ax.set_ylim(0.48, 1.04)

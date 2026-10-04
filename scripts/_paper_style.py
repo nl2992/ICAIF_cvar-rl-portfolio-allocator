@@ -22,6 +22,8 @@ DARK = "#4D4D4D"
 MID = "#8C8C8C"
 LIGHT = "#CFCFCF"
 GRID = "#EBEBEB"
+# White backing for direct labels so faint gridlines never run through text.
+LABEL_BOX = dict(boxstyle="square,pad=0.08", facecolor="white", edgecolor="none")
 
 COLUMN_WIDTH_IN = 3.33   # ACM sigconf single column
 TEXT_WIDTH_IN = 7.0      # ACM sigconf full text width
