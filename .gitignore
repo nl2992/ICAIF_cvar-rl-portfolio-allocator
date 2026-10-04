@@ -8,20 +8,18 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+# Results: keep only the small result tables behind the paper's numbers
+# (CSV/JSON in results/tables*/); checkpoints, logs and curves stay local.
 results/*
 !results/.gitkeep
 !results/tables/
+!results/tables_*/
 results/tables/*
+results/tables_*/*
 !results/tables/*.csv
 !results/tables/*.json
-!results/tables_ablations/
-results/tables_ablations/*
-!results/tables_ablations/*.csv
-!results/tables_ablations/*.json
-!results/tables_camera_ready/
-results/tables_camera_ready/*
-!results/tables_camera_ready/*.csv
-!results/tables_camera_ready/*.json
+!results/tables_*/*.csv
+!results/tables_*/*.json
 !results/tables_camera_ready/README.md
 notebooks/.ipynb_checkpoints/
 

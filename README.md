@@ -1,244 +1,212 @@
-# CVaR-Constrained RL Portfolio Allocator
+# Making Tail Constraints Bind: Two Silent Failure Modes in CVaR-Constrained Portfolio RL
 
-[![CI](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml/badge.svg)](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](environment.yml)
+[![CI](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml/badge.svg)](https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+
+**Nigel Li** (University of New South Wales; Columbia University) and **Yutong Han** (Columbia University)
+
+Accepted at **ICAIF '26**, the 7th ACM International Conference on AI in Finance, Milan, 14–17 November 2026.
+[Paper (PDF)](paper/main.pdf) · [Citation](#citation)
 
 <p align="center">
-  <img src="paper/figures/figure_cvar_hero.png" width="760" alt="An explicit CVaR constraint cuts the tail of a *learned* allocator (constrained "/>
+  <img src="paper/figures/figure_cvar_hero.png" width="820" alt="Left: on the stress window, the CVaR-constrained allocator sits above and to the left of the unconstrained learner (higher Sharpe, lower CVaR-99). Right: tightening the tail budget improves CVaR-99 and Sharpe together."/>
 </p>
 
-<p align="center"><em>An explicit CVaR constraint cuts the tail of a *learned* allocator (constrained vs unconstrained) without sacrificing risk-adjusted return.</em></p>
+<p align="center"><em>Left: stress-window risk–return plane, where the CVaR-constrained allocator (diamond) improves on the unconstrained learner (circle). Right: tightening the tail budget improves CVaR-99 and Sharpe together.</em></p>
 
-Research stack for dynamic multi-asset allocation that directly controls downside
-tail risk through a **CVaR constraint**. A constrained actor-critic allocator is
-compared against deterministic optimisers and an unconstrained RL baseline, after
-transaction costs and under portfolio constraints.
+This repository contains the code, data and results behind the paper. It implements a
+leak-free weekly portfolio-control environment, a differentiable CVaR-constrained
+allocator, a decision-time CVaR filter, model-free RL baselines (A2C, PPO, SAC), and the
+classical optimisers they are compared against, together with the evaluation protocol
+that produces every number in the paper.
 
-## Research question
+## Overview
 
-> Can a constrained actor-critic allocator reduce tail risk and constraint
-> breaches versus unconstrained RL while remaining competitive with standard
-> portfolio optimisers after costs?
+Two failure modes can leave CVaR-constrained financial reinforcement learning unenforced
+without any visible symptom.
 
-**Headline result** (real 7-ETF universe, trained pre-2018, tested through the
-2020 COVID crash + 2022 selloff, mean over 5 seeds): the CVaR constraint cuts
-**CVaR-99 by ~49% and max drawdown by ~43%** versus unconstrained RL, while
-*raising* Sharpe (0.63→0.88) — competitive with minimum-variance (0.90) at far
-lower tail risk. See [`reports/etf_study.md`](reports/etf_study.md).
+1. **Lagrangian constraint-coupling failure.** A scale mismatch between the reward and
+   constraint channels (an unstandardised cost advantage, or a dual step mis-scaled to the
+   CVaR excess) leaves the dual inert, so the CVaR budget is nominal rather than enforced.
+   Tail metrics still improve through CVaR-feasible checkpoint selection, which is why the
+   failure is silent.
+2. **Evaluation-protocol reversal.** On a 31-asset universe, a single stress window ranks
+   the learned allocator above every classical optimiser, while a 20-fold rolling
+   walk-forward inverts the ranking, so "beat-the-optimiser" claims can be artefacts of the
+   protocol rather than of the policy.
+
+Scaling the dual correctly makes it bind in training, but the budget can still be breached
+out of sample. A **decision-time projection** that estimates forward CVaR from trailing
+statistics and shrinks non-compliant proposals toward a trailing minimum-variance anchor
+restores compliance. The claim is tail-risk control rather than alpha, and it holds under
+multiplicity control.
+
+## Key results
+
+Seven-ETF macro universe (SPY, TLT, HYG, DBC, GLD, UUP, BIL), weekly, 2008–2024, 5 bps
+costs. The stress window trains before 2018 and tests through the 2020 crash and the 2022
+selloff.
+
+| Result | Value |
+| --- | --- |
+| Stress window, constrained vs unconstrained (5 seeds) | CVaR-99 −49%, max drawdown −43%, Sharpe 0.63 → 0.88 (+40%), Sortino +44%, Calmar +50%, portfolio-constraint violations 7.2 → 0 |
+| Stress-window CVaR-99 difference (paired block bootstrap, BCa) | −0.033, 95% interval [−0.035, −0.022] (sector universe: −0.044, [−0.050, −0.032]) |
+| 40-fold two-universe walk-forward | 26 of the 27 untied folds improve (13 ties, where the budget never binds); pooled Wilcoxon p = 8.8×10⁻⁶, or 3.3×10⁻⁴ with folds clustered by calendar; Benjamini–Hochberg and Deflated-Sharpe controlled |
+| Coupling failure | multiplier stays at λ = 0.022 under the mis-scaled dual (0.101 when scaled); the constrained pipeline still cuts CVaR-99 by 61% (permutation p = 0.0044) |
+| Why the scaled dual breaches | 27 of 30 checkpoints meet the validation budget (8 of 30 when mis-scaled), so selection keeps a later, more return-seeking checkpoint that breaches in 75% of test weeks |
+| Decision-time filter (A6, matched dual settings) | breach 75.1% → 7.4%, CVaR-99 0.016, Sharpe 0.85, against the classical optimisers' 7.9% |
+| Protocol reversal, 31 ETFs | single stress split: learner 0.85 vs minimum variance 0.23 (Ledoit–Wolf 0.25); rolling walk-forward: minimum variance 1.40 vs learner 0.74; the tail reduction survives both (p = 6×10⁻⁴) |
+| Regime-switching hybrid | Sharpe 1.316 vs 1.209 for minimum variance, with overlapping bootstrap intervals; ahead in 10 of 15 threshold configurations |
+
+The pure learned allocator does not beat rolling minimum variance in aggregate, and the
+paper does not claim that it should. Its contribution is the constraint mechanism and the
+two evaluation lessons.
+
+<p align="center">
+  <img src="paper/figures/figure_filter_frontier.png" width="460" alt="Compliance frontier: classical optimisers and decision-time filter arms reach breach rates of 7.4 to 7.9 percent at high Sharpe, while soft Lagrangians and the filter-off adaptive dual sit far to the right."/>
+</p>
+
+<p align="center"><em>Compliance frontier on the stress window. Filter arms (diamonds) and classical optimisers (squares) reach 7.4–7.9% breach, while soft Lagrangians (circles) and the filter-off adaptive dual (triangle) breach in most weeks.</em></p>
+
+## Method in brief
+
+- **Differentiable allocator.** An MLP proposes a residual tilt over an adaptive
+  inverse-volatility anchor, `w_t = softmax(log a_t + f_θ(s_t))`, so the policy equals the
+  anchor at initialisation. Training back-propagates the return objective, a differentiable
+  CVaR penalty (`topk` over the worst weeks) weighted by a dual variable, and a turnover
+  term through the rollout. Model selection keeps the best validation checkpoint among
+  those that satisfy the validation CVaR limit.
+- **Decision-time CVaR filter.** Between the actor's proposal and the environment, forward
+  CVaR is estimated as `c_α σ_p − μ_p` from the trailing 104 weeks (Gaussian CVaR multiplier
+  `c_0.95 = 2.06`). If it exceeds the budget, the proposal is shrunk toward the trailing
+  minimum-variance anchor by the smallest amount that clears it. The decision at `t` uses
+  only returns before `t`, which a dedicated look-ahead test checks.
+- **Environment.** Weights are projected onto the admissible set (long-only, maximum weight
+  0.40, turnover cap 0.50, gross exposure 1.0), costs are charged on traded notional, and
+  features use returns strictly before the decision date.
+- **Baselines.** Cash, equal weight, inverse volatility, minimum variance, mean–variance,
+  risk parity and a min-CVaR Rockafellar–Uryasev LP, all re-estimated weekly. The learned
+  baselines are a model-free A2C actor–critic with a safety critic and Lagrange dual, PPO,
+  SAC, and the unconstrained differentiable allocator.
 
 ## What is implemented
 
 | Component | Module |
 | --- | --- |
-| Regime-switching synthetic data (+ parquet dataset build) | `crlpa/data/synthetic.py`, `scripts/build_dataset.py` |
-| **Real ETF data loaders** (Yahoo adjusted close → weekly returns) | `crlpa/data/load_prices.py`, `crlpa/data/build_dataset.py` |
-| Allocation environment with no-look-ahead observations, costs, rolling CVaR, drawdown | `crlpa/envs/allocation.py` |
-| Admissible-set projection: long-only, max weight, cash floor, turnover & gross caps | `crlpa/envs/constraints.py` |
-| Deterministic baselines: equal weight, inverse vol, min-variance, mean-variance, risk parity, min-CVaR (Rockafellar–Uryasev LP) | `crlpa/policies/baselines.py` |
-| Model-free CVaR-constrained actor-critic: actor, return critic, **safety critic**, Lagrange dual | `crlpa/models/`, `crlpa/training/lagrangian.py` |
-| **Differentiable allocator** (residual policy over adaptive anchor; differentiable CVaR penalty) — the strong learner | `crlpa/training/differentiable.py` |
-| Metrics, backtest harness, paired block-bootstrap significance tests | `crlpa/evaluation/` |
-
-The **unconstrained RL baseline** is the same agent with `constrained=False`
-(Lagrange multiplier frozen at zero, safety critic ignored).
-
-## Method in brief
-
-At each weekly decision step the actor maps the state to a Gaussian over
-pre-softmax logits; a softmax yields long-only weights, which are projected onto
-the admissible set. Transaction costs are charged on realised trades and
-next-period returns are applied. A rolling historical CVaR of net returns drives
-the per-step constraint cost `max(0, CVaR − limit)`. A safety critic estimates the
-discounted cost-to-go, and a Lagrange multiplier (projected dual ascent) penalises
-the policy objective when the CVaR budget is breached.
+| Real ETF loaders (Yahoo adjusted close to weekly returns) and synthetic regime data | `crlpa/data/` |
+| Allocation environment with no-look-ahead observations, costs, rolling CVaR and drawdown | `crlpa/envs/allocation.py` |
+| Admissible-set projection: long-only, maximum weight, cash floor, turnover and gross caps | `crlpa/envs/constraints.py` |
+| Deterministic baselines, including Ledoit–Wolf minimum variance and the min-CVaR LP | `crlpa/policies/baselines.py` |
+| Differentiable CVaR-constrained allocator (the paper's learner) | `crlpa/training/differentiable.py` |
+| Decision-time CVaR filter and its training loop | `crlpa/training/risk_filter.py` |
+| Model-free A2C actor–critic with safety critic and Lagrange dual; PPO; SAC | `crlpa/models/`, `crlpa/training/` |
+| Metrics, backtests, block bootstrap (percentile, basic, BCa), walk-forward, regimes, stress splits | `crlpa/evaluation/` |
 
 ## Quickstart
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,rl]"     # rl extra pulls in torch
+pip install -e ".[dev,rl]"     # the rl extra installs torch
 pytest
 ```
 
-## End-to-end pipeline
+The package supports Python 3.10 and later, and CI runs on 3.11. The synthetic pipeline
+(`scripts/build_dataset.py`, `run_baselines.py`, `train_allocator.py`,
+`evaluate_allocator.py`, `make_report.py` with `configs/experiment.yaml`) runs end to end
+with no download and is used for tests and quick iteration.
 
-```bash
-python scripts/build_dataset.py     --config configs/experiment.yaml
-python scripts/run_baselines.py     --config configs/experiment.yaml
-python scripts/train_allocator.py   --config configs/experiment.yaml      # or: --episodes 50 --seeds 7 13
-python scripts/evaluate_allocator.py --config configs/experiment.yaml
-python scripts/make_report.py       --experiment_id cvar_ac_v1
-```
+## Reproducing the paper
 
-Outputs land in `results/tables/` (metrics, statistical tests),
-`results/checkpoints/`, `results/training_curves/`, and `reports/final_report.md`.
+### Exact environment
 
-For the real-ETF differentiable-allocator stress study (the headline result):
+All published results were produced under Python 3.12.2 with the versions pinned in
+`requirements.lock.txt`. Rebuilding that environment reproduces every re-run arm exactly
+(verified 4 October 2026: 83 of 83 packages matched and all 81 tests pass).
 
-```bash
-python scripts/build_dataset.py    --config configs/experiment_etf.yaml --out data/processed/aligned_portfolio_panel_etf.parquet
-python scripts/run_diff_study.py   --config configs/experiment_etf.yaml   # headline stress study -> results/tables_diff/
-python scripts/run_walk_forward.py --config configs/experiment_etf.yaml   # rolling OOS + regime slices + fold tests
-python scripts/run_robustness.py   --config configs/experiment_etf.yaml   # costs / CVaR limit / universe perturbations
-python scripts/run_ablations.py    --config configs/experiment_etf.yaml   # anchor / alpha / risk budget / objective
-python scripts/run_macro_study.py  --config configs/experiment_etf.yaml   # market-only vs macro+factor state
-```
-
-Additional model-free baseline: `crlpa/training/ppo.py` (clipped PPO with GAE and
-an optional CVaR Lagrangian). The strong learner is the differentiable allocator
-(`crlpa/training/differentiable.py`).
-
-## Configuration
-
-`configs/experiment.yaml` is the master config the scripts read; the per-phase
-files (`data`, `universe`, `env`, `model`, `training`, `backtest`.yaml) mirror its
-sections for readability. Switch `data.source` from `synthetic` to `parquet` to run
-off a frozen dataset built by `build_dataset.py`. Canonical seeds: `7, 13, 23, 42, 2025`.
-
-## Repo layout
-
-```text
-src/crlpa/
-  data/        synthetic regime data + real ETF/macro loaders
-  features/    macro features, rolling factor betas, exog builder
-  envs/        allocation environment (+ optional exog) + constraint projection
-  models/      actor, critic, safety critic, CVaR actor-critic agent
-  policies/    deterministic baselines
-  training/    A2C + Lagrangian dual, PPO, differentiable allocator
-  evaluation/  metrics, backtest, bootstrap, walk-forward, regimes, stress
-  experiment.py  config -> data/env/agent builders shared by scripts
-configs/       master + per-phase YAML configs (+ experiment_etf.yaml)
-scripts/       build_dataset / run_baselines / train_allocator / evaluate_allocator /
-               run_diff_study / run_walk_forward / run_robustness / run_ablations /
-               run_macro_study / make_report
-tests/         env, constraints, metrics, baselines, models, PPO, differentiable,
-               features, walk-forward, stress, no-look-ahead
-reports/       generated reports + project scope + ETF study
-```
-
-## Two data paths
-
-The same environment, baselines, and evaluation harness drive two interchangeable
-data sources (switch with `data.source` in the config):
-
-- **Real 7-ETF panel** — the paper's headline numbers. Built from Yahoo adjusted
-  close (`crlpa/data/load_prices.py` → `build_dataset.py`), trained pre-2018 and
-  tested through the 2020 COVID crash and 2022 selloff. The frozen panel ships under
-  `data/processed/`, so the headline study reproduces offline (see *Reproduce* below).
-- **Synthetic regime-switching data** (`crlpa/data/synthetic.py`) — a self-contained
-  smoke path that runs the full pipeline end-to-end with no external download, used
-  for tests and quick iteration.
-
-Walk-forward validation, regime slicing, robustness, and ablation suites run on
-either source.
-
-
-<!-- readme-enhanced -->
-## Figures
-
-<img src="paper/figures/eval_protocol_reversal.png" width="480" alt="figure"/>
-
-*Evaluation-protocol reversal: a single stress window ranks the learner #1, while rolling walk-forward inverts the ranking — one of the two failure modes this paper isolates.*
-
-<img src="paper/figures/regime_cvar99.png" width="480" alt="figure"/>
-
-*Regime-sliced CVaR-99: the constraint binds hardest in high-volatility weeks, the domain where the hybrid beats min-variance.*
-
-## Reproduce (data → analysis → paper)
-
-**Prerequisites.** Python 3.11. For the exact pinned environment use conda — `conda env create -f environment.yml && conda activate crlpa` — or with pip:
-```bash
-pip install -e .
-```
-
-### Reproduce the paper's headline numbers
-
-Every number in the paper is regenerated by one committed script writing one committed
-artifact. The processed ETF panel ships under `data/processed/`, so each step runs
-**offline** and deterministically under the seeds in `configs/` (`7, 13, 23, 42, 2025`).
-
-| Paper claim | Command | Output artifact |
-| --- | --- | --- |
-| CVaR-99 −49%, max-DD −43%, Sharpe +40%, **0** hard breaches (2020+2022 stress, 5-seed mean) — abstract, Tab. 1 | `python scripts/run_diff_study.py --config configs/experiment_etf.yaml` | `results/tables_diff/stress_metrics.csv`, `stress_constraint_test.csv` |
-| Constrained CVaR-99 lower in **26/40** folds, Wilcoxon **p=8.8×10⁻⁶** (40-fold two-universe walk-forward) — Tab. `stats` | `python scripts/run_stats_study.py` | `results/tables_stats/pooled_fold_test.csv`, `per_universe_stats.csv` |
-| Regime-switching hybrid **+0.107** Sharpe (1.316 vs 1.209 min-var) — §hybrid | `python scripts/run_hybrid_threshold_sweep.py` | `results/tables/hybrid_threshold_sweep.csv` |
-| Constraint-coupling bug ablation (inert multiplier from advantage-scale mismatch) — Tab. `coupling` | `python scripts/coupling_fix_ablation.py --config configs/experiment_etf.yaml` | `results/tables_ablations/coupling_fix_summary.csv` |
-| Regime-sliced Sharpe/CVaR (calm / high-vol / selloff) — Tab. `regime` | `python scripts/run_walk_forward.py --config configs/experiment_etf.yaml` | `results/tables_wf/walkforward_regime_*.csv` |
-| All paper figures | `python scripts/make_figures.py` | `paper/figures/*.png` |
-
-The compiled paper is **`paper/main.tex → paper/main.pdf`** (build: `cd paper && latexmk -pdf main.tex`).
-
-**Canonicity.** The committed `results/` tables are the exact published numbers. Prices
-originate from Yahoo Finance adjusted close (`crlpa/data/load_prices.py`); vendor history
-can be revised, so the committed panel and tables — not a fresh download — are canonical
-for the published figures. Verified offline: `run_diff_study.py` regenerates
-`results/tables_diff/stress_metrics.csv` from the committed panel under the fixed seeds.
-
-
----
-
-## Claims and Evidence
-
-What the paper argues, and for every headline number, the committed file it comes from. Artifacts live
-under `results/tables/`, `results/tables_ablations/`, and `results/tables_stats/`.
-
-### The narrative
-
-A constrained reinforcement-learning allocator is supposed to do one thing: hold tail risk to a stated
-budget while it learns. We build a differentiable CVaR-constrained allocator on a seven-ETF macro
-universe (2008–2024, weekly, 5 bps costs), and use it less as a horse-race entry than as a microscope on
-two failure modes that affect any constrained financial RL study.
-
-First, the constraint works as a tail safety layer where it matters. Through the 2020 crash and the 2022
-selloff it cuts 99% CVaR by 49% and max drawdown by 43% while improving Sharpe by 40% and eliminating
-hard constraint violations, and a 40-fold two-universe walk-forward confirms the constrained allocator's
-99% CVaR is lower in 26 of 40 folds.
-
-Second, building it surfaces two transferable lessons. The Lagrangian *constraint-coupling failure*:
-when you standardise the reward advantage but not the cost advantage, the dual variable never grows —
-the constraint is silently inert for any reasonable multiplier — and yet the safety-critic architecture
-still regularises tail risk on its own. The *evaluation-protocol reversal*: on a 31-asset universe a
-single stress window ranks the learner above every optimiser, while a rolling walk-forward inverts the
-ranking, so "beat-the-optimiser" claims can be protocol artifacts.
-
-We are explicit about scope. The pure learned allocator does not beat rolling minimum-variance in
-aggregate; a regime-switching hybrid does (+0.107 Sharpe), an edge robust across the volatility-quantile
-axis but lost at a deeper −6% selloff-threshold definition. The contribution is the constraint mechanism
-and the two evaluation failure modes, not a horse-race win.
-
-### Where each number lives
-
-| Claim | Number | File | Field / row |
-|---|---|---|---|
-| Constraint cuts crisis-window risk (constrained vs unconstrained) | CVaR99 −49%, MaxDD −43%, Sharpe +40% | per-model CVaR/Sharpe/MaxDD in `results/tables/allocator_metrics.csv`, `results/tables/baseline_metrics.csv`; unconstrained CVaR99 0.0647 in `results/tables/cvar_permutation_test.json` | constrained vs `unconstrained` |
-| 40-fold two-universe walk-forward | 26 of 40 folds, p=8.8×10⁻⁶ | `results/tables_stats/pooled_fold_test.csv` | `n_folds`=40, `folds_improved`=26, p=8.804538e-06 |
-| Two-universe walk-forward design | test_window=26, etf7 + sector10 | `results/stats_etf.log`, `results/stats_sector.log` | header line |
-| Constraint-coupling failure (λ silently inert) | buggy λ=0.022 vs fixed λ=0.101 | `results/tables_ablations/coupling_fix_summary.csv` | `final_lam_mean` (buggy / fixed) |
-| Architecture regularises even with λ silenced | constrained 0.025 vs unconstrained 0.065 CVaR99 (≈61%) | `results/tables/cvar_permutation_test.json` | `constrained_cvar99_mean`, `unconstrained_cvar99_mean`, `p_one_sided`=0.0044 |
-| Regime-switching hybrid beats min-variance | +0.107 Sharpe (1.316 vs 1.209) | `results/tables/hybrid_overlay_results.json` | `sharpe_gain_vs_minvar`=0.10697 |
-| Threshold sensitivity sweep | 10/15 configs win, mean gain +0.077, default (0.75,−0.05)=+0.107 | `results/tables/hybrid_threshold_sweep.csv` | `hybrid_beats_minvar`, `sharpe_gain` (all 5 selloff −0.06 rows erase the gain) |
-| Per-regime performance (constraint most active in high-vol) | calm Sharpe 1.44 / high-vol 2.17 / selloff | `results/tables/regime_comparison.json` | `data[]` by `regime`, `model_key=rl_cvar_constrained` |
-
-All numbers regenerate from `scripts/` and `src/crlpa/`.
-
-## Exact reproduction
-
-This repository is reproducible under Python 3.12.2 with dependencies pinned in `requirements.lock.txt`. All published results were produced with the exact versions listed there.
-
-To rebuild that environment and check it (verified 4 Oct 2026: all 81 tests pass, and the filter arms reproduce bit-for-bit):
 ```bash
 uv venv --python python3.12 .venv-lock
 uv pip install --python .venv-lock/bin/python -r requirements.lock.txt
 PYTHONPATH=src .venv-lock/bin/python -m pytest -q
 ```
-Use the lock file rather than newer releases. Under numpy 2.5 / torch 2.14, every comparison is
-unchanged except the scaled-dual filter arm (A6). There the eta = 5 dual amplifies ~1e-7
-floating-point differences, and the seed-42 Sharpe moves from 0.991 to 0.824. Breach rate and
-CVaR-99 are unaffected.
 
-To verify data integrity, run:
+Use the lock file rather than newer releases. Under numpy 2.5 and torch 2.14, every
+comparison is unchanged except the scaled-dual filter arm (A6), where the η = 5 dual
+amplifies differences of about 1e-7 and the seed-42 Sharpe moves from 0.991 to 0.824.
+Breach rate and CVaR-99 are unaffected.
+
+The processed panels ship under `data/processed/`, so every step runs offline and
+deterministically under the canonical seeds `7, 13, 23, 42, 2025`. To verify data
+integrity:
+
 ```bash
 shasum -a 256 -c DATA_MANIFEST.sha256
 ```
 
-The committed results are the exact published numbers, produced with canonical seeds: 7, 13, 23, 42, 2025. All reported metrics are mean values over 5 seeds. Training uses a frozen dataset built from historical market data; all runs are deterministic when seeded.
+### Where each result comes from
+
+Each result is regenerated by one script, and its output is committed under `results/`.
+Commands assume `PYTHONPATH=src` and `--config configs/experiment_etf.yaml` where the
+script takes a config.
+
+| Paper result | Script | Committed output |
+| --- | --- | --- |
+| Stress window, constrained vs unconstrained | `scripts/run_diff_study.py` | `results/tables_diff/stress_metrics.csv`, `stress_constraint_test.csv` |
+| BCa intervals for the stress-window CVaR-99 difference | `scripts/cr_bootstrap_intervals.py --universe etf` (and `sector`) | `results/tables_camera_ready/bootstrap_intervals_*.csv` |
+| Coupling ablation (Table "coupling") | `scripts/coupling_fix_ablation.py` | `results/tables_ablations/coupling_fix_summary.csv` |
+| 61% CVaR-99 reduction with the multiplier near zero | `scripts/cvar_permutation_test.py` | `results/tables/cvar_permutation_test.json` |
+| Checkpoint selection and filter firing per arm and seed | `scripts/cr_selection_log.py` | `results/tables_camera_ready/selection_log_summary.csv` |
+| Decision-time filter arms A5–A8 | `scripts/task4_risk_filter.py` | `results/tables_reanalysis/task4_filter_arms_summary.csv` |
+| Classical rules re-scored against the same budget | `scripts/task12_analysis.py` | `results/tables_reanalysis/breach_vs_budget_table1.csv` |
+| Two-universe walk-forward and fold tests | `scripts/run_stats_study.py`, then `scripts/cr_fold_stats.py` | `results/tables_stats/pooled_fold_test.csv`, `results/tables_camera_ready/fold_stats.json` |
+| Ten-fold walk-forward and regime slices | `scripts/run_walk_forward.py`, `scripts/compile_regime_table.py` | `results/tables_wf/`, `results/tables/regime_comparison.json` |
+| Regime-switching hybrid and threshold sweep | `scripts/run_hybrid_overlay.py`, `scripts/run_hybrid_threshold_sweep.py` | `results/tables/hybrid_overlay_results.json`, `hybrid_threshold_sweep.csv` |
+| Protocol reversal and the Ledoit–Wolf check (31 ETFs) | `configs/experiment_large.yaml` (both protocols, recorded in `reports/research_log.md`), `scripts/make_reversal_figure.py`, `scripts/cr_shrinkage_large31.py` | `results/tables_protocol/protocol_sharpe.csv`, `results/tables_camera_ready/shrinkage_large31_stress.csv` (the 31-asset fold outputs were not retained; their recorded values are in the research log) |
+| Robustness and ablations | `scripts/run_robustness.py`, `scripts/run_ablations.py` | `results/tables_robustness/robustness_metrics.csv`, `results/tables_ablations/ablation_metrics.csv` |
+| Paper figures | `scripts/make_hero_figure.py`, `scripts/make_filter_frontier_figure.py` | `paper/figures/*.pdf` |
+
+`results/tables_camera_ready/README.md` documents the analyses added for the camera-ready
+version. The paper builds with `cd paper && latexmk -pdf main.tex`.
+
+Prices come from Yahoo Finance adjusted closes, and vendor history can be revised, so the
+committed panels and tables, not a fresh download, are canonical for the published
+numbers.
+
+## Repository layout
+
+```text
+src/crlpa/
+  data/          ETF and macro loaders, synthetic regime data
+  features/      macro features, rolling factor betas
+  envs/          allocation environment and constraint projection
+  models/        actor, critics, safety critic, CVaR actor-critic agent
+  policies/      deterministic baselines
+  training/      differentiable allocator, decision-time filter, A2C dual, PPO, SAC
+  evaluation/    metrics, backtest, bootstrap, walk-forward, regimes, stress
+configs/         experiment configs (synthetic, macro ETF, sector, 31-asset)
+scripts/         study, analysis and figure scripts
+tests/           environment, constraints, no-look-ahead, filter, statistics and model tests
+data/processed/  frozen weekly return panels
+results/         committed result tables behind every number in the paper
+paper/           LaTeX source, figures and compiled PDF
+reports/         research log and study reports
+```
+
+## Citation
+
+```bibtex
+@inproceedings{li2026tailconstraints,
+  title     = {Making Tail Constraints Bind: Two Silent Failure Modes in
+               {CVaR}-Constrained Portfolio {RL}},
+  author    = {Li, Nigel and Han, Yutong},
+  booktitle = {Proceedings of the 7th ACM International Conference on AI in Finance (ICAIF '26)},
+  year      = {2026},
+  address   = {Milan, Italy},
+  publisher = {ACM}
+}
+```
+
+The DOI will be added once the proceedings are published.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
