@@ -320,6 +320,9 @@ def train_filtered(
     best_state = {k: v.clone() for k, v in actor.state_dict().items()}
     best_feasible_state = None
     best_cvar_state = best_state
+    # Selection bookkeeping (diagnostics only; does not affect training or selection).
+    best_it = best_feasible_it = best_cvar_it = None
+    n_evals = n_feasible = 0
     val_anchor = None
     if val_returns is not None:
         val_R = torch.as_tensor(val_returns.to_numpy().copy(), dtype=torch.float32)
@@ -407,20 +410,32 @@ def train_filtered(
             record["val_sharpe"] = val_sharpe
             record["val_cvar"] = val_cvar
             snapshot = {k: v.clone() for k, v in actor.state_dict().items()}
+            n_evals += 1
             if val_metric > best_val:
-                best_val, best_state = val_metric, snapshot
-            if val_cvar <= cvar_limit + 1e-6 and val_metric > best_feasible_val:
-                best_feasible_val, best_feasible_state = val_metric, snapshot
+                best_val, best_state, best_it = val_metric, snapshot, it
+            if val_cvar <= cvar_limit + 1e-6:
+                n_feasible += 1
+                if val_metric > best_feasible_val:
+                    best_feasible_val, best_feasible_state, best_feasible_it = val_metric, snapshot, it
             if val_cvar < best_cvar:
-                best_cvar, best_cvar_state = val_cvar, snapshot
+                best_cvar, best_cvar_state, best_cvar_it = val_cvar, snapshot, it
         history.append(record)
 
+    selection: dict = {"rule": "final", "selected_update": config.n_updates - 1,
+                       "n_evals": n_evals, "n_feasible": n_feasible}
     if val_R is not None:
         if config.constrained:
             actor.load_state_dict(best_feasible_state or best_cvar_state)
+            if best_feasible_state is not None:
+                selection.update(rule="feasible", selected_update=best_feasible_it)
+            else:
+                selection.update(rule="lowest_cvar_fallback", selected_update=best_cvar_it)
         else:
             actor.load_state_dict(best_state)
-    return actor, pd.DataFrame(history)
+            selection.update(rule="best_val", selected_update=best_it)
+    history_df = pd.DataFrame(history)
+    history_df.attrs["selection"] = selection
+    return actor, history_df
 
 
 # --------------------------------------------------------------------------
@@ -465,9 +480,15 @@ def diff_policy_filtered(
             mu_t = torch.as_tensor(filter_state.mu[t], dtype=torch.float32)
             anchor_t = torch.as_tensor(filter_state.anchor[t], dtype=torch.float32)
             w_f, _s, _d = cvar_filter_step(w_raw, sigma_t, mu_t, anchor_t, budget, c_alpha)
+            policy.n_filter_steps += 1
+            policy.n_fired += int(bool(_d["filter_active"]))
             return w_f.numpy()
         return w_raw.numpy()
 
+    # Diagnostics: steps where the filter was evaluated, and steps where the
+    # proposal exceeded the budget and was shrunk toward the anchor.
+    policy.n_filter_steps = 0
+    policy.n_fired = 0
     return policy
 
 
