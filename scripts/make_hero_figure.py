@@ -1,16 +1,15 @@
-"""Reconstruct the CVaR hero figure (figure_cvar_hero) in the Columbia theme.
+"""CVaR hero figure (paper Figure fig:hero), in the shared print style.
 
-Two risk--return panels (x = CVaR99 in %, axis inverted so *right = safer*;
-y = annualised Sharpe):
-  (a) Stress window 2020--2022: the constrained allocator moves up-and-right of the
-      unconstrained learner (higher Sharpe, lower tail), competitive with min-variance.
-  (b) Ablation: tightening the tail budget improves BOTH CVaR and Sharpe monotonically.
+Two risk--return panels (x = CVaR99 in %, lower is safer; y = Sharpe ratio):
+  (a) Stress window: the constrained allocator sits up and to the left of the
+      unconstrained learner (higher Sharpe, lower tail), next to min-variance.
+  (b) Ablation: tightening the tail budget improves CVaR99 and Sharpe together;
+      the rolling (walk-forward) min-variance result is shown for reference.
 
-All coordinates are the authoritative values committed in the paper tables
-(Tables: stress window, tuned model-free, ablation, walk-forward), so the figure is
-consistent with the text by construction. Colours come from the shared
-``crlpa.evaluation.plots`` palette so the hero matches every other figure
-(constrained = Columbia navy, unconstrained = red, min-variance = green).
+Coordinates are the values reported in the paper's tables (stress window,
+tuned model-free comparison, ablation, walk-forward), so the figure matches the
+text by construction. Style: scripts/_paper_style.py (monochrome, one muted
+accent for the proposed method, identity by marker shape and direct labels).
 
     python scripts/make_hero_figure.py
 """
@@ -19,84 +18,70 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _paper_style as ps  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-from crlpa.evaluation.plots import _COLORS, _INK, set_style  # noqa: E402
-
-OUT = ROOT / "paper" / "figures" / "figure_cvar_hero.png"
-
-C_CON = _COLORS["rl_cvar_constrained"]   # Columbia navy (ours)
-C_UNC = _COLORS["rl_unconstrained"]      # red
-C_MV = _COLORS["min_variance"]           # green
-C_PPO = _COLORS["ppo_best_unconstrained"]  # orange
-C_EW = _COLORS["equal_weight"]           # blue-grey
-
-# --- Panel (a): stress-window (Sharpe, CVaR99 %) from the paper tables ---------
-STRESS = {  # name: (CVaR99_pct, Sharpe, colour, marker, size)
-    "Unconstrained RL": (6.47, 0.63, C_UNC, "o", 150),
-    "PPO (best)": (7.00, 0.67, C_PPO, "s", 110),
-    "Min-Variance": (4.40, 0.90, C_MV, "^", 150),
-    "CVaR-Constrained RL": (3.27, 0.88, C_CON, "D", 200),
-}
-
-# --- Panel (b): ablation (tighten the budget) + min-variance reference ---------
-ABLATION = [  # (label, CVaR99_pct, Sharpe)
-    ("budget loose", 4.93, 0.515),
-    ("base", 3.01, 0.865),
-    ("budget tight", 1.35, 1.272),
+# Panel (a): stress window, (CVaR99 %, Sharpe) from tab:stress and tab:modelfree.
+STRESS = [  # label, cvar99_pct, sharpe, marker, face, label anchor (x, y, ha)
+    ("CVaR-constrained RL", 3.27, 0.88, "D", ps.ACCENT, (3.20, 0.926, "center")),
+    ("unconstrained RL", 6.47, 0.63, "o", ps.MID, (6.30, 0.598, "right")),
+    ("PPO (best)", 7.00, 0.67, "o", "white", (6.92, 0.715, "center")),
+    ("min variance", 4.40, 0.90, "s", ps.LIGHT, (4.58, 0.90, "left")),
 ]
-MV_REF = (1.06, 1.45)  # walk-forward min-variance (Sharpe 1.45, CVaR99 1.06%)
+# Panel (b): constraint-tightening ablation (tab:ablation) and the rolling
+# min-variance reference from the walk-forward (tab:walkforward).
+ABLATION = [  # label, cvar99_pct, sharpe, label anchor
+    ("loose budget", 4.93, 0.515, (4.80, 0.462, "right")),
+    ("base", 3.01, 0.865, (3.17, 0.96, "left")),
+    ("tight budget", 1.35, 1.272, (1.55, 1.345, "left")),
+]
+MV_REF = ("rolling min variance (walk-forward)", 1.06, 1.45, (1.27, 1.505, "left"))
+
+
+def build():
+    ps.apply()
+    fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(ps.TEXT_WIDTH_IN, 1.65))
+    fig.subplots_adjust(left=0.065, right=0.99, bottom=0.235, top=0.86, wspace=0.22)
+
+    # (a) stress window
+    ax_a.annotate("", xy=(3.36, 0.866), xytext=(6.38, 0.637),
+                  arrowprops=dict(arrowstyle="-|>", color=ps.MID, linewidth=0.6, mutation_scale=6,
+                                  connectionstyle="arc3,rad=-0.12", shrinkA=3, shrinkB=3), zorder=2)
+    for label, x, y, marker, face, (tx, ty, ha) in STRESS:
+        ax_a.scatter([x], [y], s=26, marker=marker, facecolors=face, edgecolors=ps.INK,
+                     linewidths=0.5, zorder=4)
+        ax_a.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+    ax_a.set_xlim(2.4, 7.5)
+    ax_a.set_ylim(0.57, 0.95)
+    ax_a.set_xlabel("CVaR$_{99}$ (%), lower is safer")
+    ax_a.set_ylabel("Sharpe ratio")
+    ax_a.set_title("(a) Stress window, 2020 and 2022 drawdowns", loc="left", fontsize=7.5, pad=4)
+
+    # (b) ablation
+    xs = [c for _, c, _, _ in ABLATION]
+    ys = [s for _, _, s, _ in ABLATION]
+    ax_b.plot(xs, ys, color=ps.ACCENT, linewidth=0.9, marker="D", markersize=4.2,
+              markerfacecolor=ps.ACCENT, markeredgecolor=ps.INK, markeredgewidth=0.5, zorder=3)
+    for label, x, y, (tx, ty, ha) in ABLATION:
+        ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+    label, x, y, (tx, ty, ha) = MV_REF
+    ax_b.scatter([x], [y], s=26, marker="s", facecolors=ps.LIGHT, edgecolors=ps.INK,
+                 linewidths=0.5, zorder=4)
+    ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK)
+    ax_b.set_xlim(0.7, 5.4)
+    ax_b.set_ylim(0.42, 1.58)
+    ax_b.set_xlabel("CVaR$_{99}$ (%), lower is safer")
+    ax_b.set_ylabel("Sharpe ratio")
+    ax_b.set_title("(b) Tightening the tail budget (stress window)", loc="left", fontsize=7.5, pad=4)
+    return fig
 
 
 def main() -> None:
-    set_style()
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.0, 4.4))
-
-    # ---- Panel (a) -----------------------------------------------------------
-    for name, (cvar, sharpe, color, marker, size) in STRESS.items():
-        axA.scatter(cvar, sharpe, s=size, c=color, marker=marker,
-                    edgecolor=_INK, linewidth=0.6, zorder=3, label=name)
-    # arrow: unconstrained -> constrained
-    axA.annotate("", xy=(3.27, 0.88), xytext=(6.47, 0.63),
-                 arrowprops=dict(arrowstyle="->", color="#9a9a9a", lw=1.0,
-                                 connectionstyle="arc3,rad=0.18"), zorder=2)
-    axA.text(3.05, 0.70,
-             "CVaR$_{99}$  $-49$%\nSharpe  $+40$%\nMax-DD  $-43$%\nViolations  $7.2\\!\\to\\!0$",
-             fontsize=8.5, color=_INK)
-    axA.set_title("(a) Stress window (2020–2022 drawdowns)")
-    axA.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
-    axA.set_ylabel("Annualised Sharpe ratio")
-    axA.invert_xaxis()
-    axA.legend(loc="best", fontsize=8, frameon=False)
-
-    # ---- Panel (b) -----------------------------------------------------------
-    xs = [c for _, c, _ in ABLATION]
-    ys = [s for _, _, s in ABLATION]
-    axB.plot(xs, ys, color=C_CON, lw=2.0, zorder=2,
-             marker="D", markersize=9, markeredgecolor=_INK, markeredgewidth=0.6,
-             label="constrained RL (tightening)")
-    for label, cvar, sharpe in ABLATION:
-        axB.annotate(label, (cvar, sharpe), fontsize=8.5, color=_INK,
-                     xytext=(6, -12), textcoords="offset points")
-    axB.scatter(MV_REF[0], MV_REF[1], s=150, c=C_MV, marker="^",
-                edgecolor=_INK, linewidth=0.6, zorder=3, label="min-variance (classical)")
-    axB.annotate("min-variance", MV_REF, fontsize=8.5, color=_INK,
-                 xytext=(6, 6), textcoords="offset points")
-    axB.set_title("(b) Constraint-tightening ablation")
-    axB.set_xlabel("CVaR$_{99}$ (%)  $\\leftarrow$ lower tail risk is safer")
-    axB.set_ylabel("Annualised Sharpe ratio")
-    axB.invert_xaxis()
-    axB.legend(loc="best", fontsize=8, frameon=False)
-
-    fig.tight_layout()
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT, dpi=200, facecolor="white")
-    plt.close(fig)
-    print("wrote", OUT)
+    fig = build()
+    issues = ps.check_layout(fig)
+    print("layout issues:", issues or "none")
+    ps.save(fig, "figure_cvar_hero")
 
 
 if __name__ == "__main__":

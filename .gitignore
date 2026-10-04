@@ -18,6 +18,11 @@ results/tables/*
 results/tables_ablations/*
 !results/tables_ablations/*.csv
 !results/tables_ablations/*.json
+!results/tables_camera_ready/
+results/tables_camera_ready/*
+!results/tables_camera_ready/*.csv
+!results/tables_camera_ready/*.json
+!results/tables_camera_ready/README.md
 notebooks/.ipynb_checkpoints/
 
 # LaTeX build artifacts

@@ -118,14 +118,28 @@ def plot_drawdown(returns: dict[str, pd.Series], path, title="Drawdown (stress w
 
 def plot_weights_area(weights: pd.DataFrame, path, title="Portfolio weights over time"):
     fig, ax = plt.subplots(figsize=(8, 4.6))
-    w = weights.reset_index(drop=True)
+    w = weights.copy()
+    use_dates = isinstance(w.index, pd.DatetimeIndex)
+    x = w.index if use_dates else np.arange(len(w))
     # Muted navy/maroon/grey family — sober bands, no bright tab20 hues.
     _muted = ["#26425a", "#5b7fa6", "#7a2230", "#9a9a9a", "#45617a", "#a8606c",
               "#6f6f6f", "#8fa9c4", "#5a1822", "#b5b5b5", "#0A1F44", "#8c7d77"]
     colors = [_muted[i % len(_muted)] for i in range(w.shape[1])]
-    ax.stackplot(range(len(w)), *[w[c] for c in w.columns], labels=list(w.columns),
+    ax.stackplot(x, *[w[c] for c in w.columns], labels=list(w.columns),
                  colors=colors, alpha=0.9, edgecolor="white", linewidth=0.2)
-    ax.set_xlabel("week"); ax.set_ylabel("weight"); ax.set_ylim(0, 1); ax.set_title(title)
+    if use_dates:
+        events = [
+            (pd.Timestamp("2020-02-21"), pd.Timestamp("2020-04-03"), "COVID selloff"),
+            (pd.Timestamp("2022-01-03"), pd.Timestamp("2022-10-14"), "2022 drawdown"),
+        ]
+        for start, end, label in events:
+            if end >= w.index.min() and start <= w.index.max():
+                ax.axvspan(max(start, w.index.min()), min(end, w.index.max()),
+                           color="#7a2230", alpha=0.09, zorder=0)
+                ax.text(max(start, w.index.min()), 1.015, label, fontsize=7.5,
+                        color="#7a2230", va="bottom")
+    ax.set_xlabel("date" if use_dates else "week")
+    ax.set_ylabel("weight"); ax.set_ylim(0, 1); ax.set_title(title)
     ax.margins(x=0); _despine(ax)
     ncol = min(len(w.columns), 7)
     _legend(ax, loc="upper center", ncol=ncol, fontsize=8, bbox_to_anchor=(0.5, -0.13))

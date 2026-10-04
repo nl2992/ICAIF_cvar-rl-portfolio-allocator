@@ -9,6 +9,7 @@
 *.synctex.gz
 *.toc
 *.pdf
+!figures/*.pdf
 comment.cut
 build.log
 

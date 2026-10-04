@@ -220,3 +220,25 @@ and the two evaluation failure modes, not a horse-race win.
 | Per-regime performance (constraint most active in high-vol) | calm Sharpe 1.44 / high-vol 2.17 / selloff | `results/tables/regime_comparison.json` | `data[]` by `regime`, `model_key=rl_cvar_constrained` |
 
 All numbers regenerate from `scripts/` and `src/crlpa/`.
+
+## Exact reproduction
+
+This repository is reproducible under Python 3.12.2 with dependencies pinned in `requirements.lock.txt`. All published results were produced with the exact versions listed there.
+
+To rebuild that environment and check it (verified 4 Oct 2026: all 81 tests pass, and the filter arms reproduce bit-for-bit):
+```bash
+uv venv --python python3.12 .venv-lock
+uv pip install --python .venv-lock/bin/python -r requirements.lock.txt
+PYTHONPATH=src .venv-lock/bin/python -m pytest -q
+```
+Use the lock file rather than newer releases. Under numpy 2.5 / torch 2.14, every comparison is
+unchanged except the scaled-dual filter arm (A6). There the eta = 5 dual amplifies ~1e-7
+floating-point differences, and the seed-42 Sharpe moves from 0.991 to 0.824. Breach rate and
+CVaR-99 are unaffected.
+
+To verify data integrity, run:
+```bash
+shasum -a 256 -c DATA_MANIFEST.sha256
+```
+
+The committed results are the exact published numbers, produced with canonical seeds: 7, 13, 23, 42, 2025. All reported metrics are mean values over 5 seeds. Training uses a frozen dataset built from historical market data; all runs are deterministic when seeded.
