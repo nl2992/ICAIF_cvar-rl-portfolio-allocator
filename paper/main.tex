@@ -77,7 +77,7 @@ optimisers' $7.9\%$, with Sharpe ratios of $0.85$--$0.99$ (fixed-step filtered a
 $0.90$ for rolling minimum variance. Across a 40-fold walk-forward on two universes (seven macro
 and ten sector ETFs, weekly, 2008--2024, 5\,bps costs), the reduction in tail risk is
 significant (pooled Wilcoxon $p=8.8\times10^{-6}$, or $3\times10^{-4}$ with folds clustered by
-calendar) after Benjamini--Hochberg and Deflated-Sharpe adjustment. Our claim is tail-risk control rather
+calendar) after Benjamini--Hochberg and (for Sharpe) Deflated-Sharpe adjustment. Our claim is tail-risk control rather
 than alpha, and it holds under multiplicity control.
 \end{abstract}
 
@@ -114,6 +114,7 @@ window (Figure~\ref{fig:stress_paths}, Table~\ref{tab:stress}).
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figure_stress_paths.pdf}
+  \Description{Line chart of drawdown from 2020 to 2024. The CVaR-constrained allocator's drawdown is about half the unconstrained allocator's in both the March 2020 crash and the 2022 selloff.}
   \caption{Drawdown on the 2020--2024 stress window. Thick lines follow the five-seed mean return path and thin lines the individual seeds.}
   \label{fig:stress_paths}
 \end{figure}
@@ -123,20 +124,19 @@ percent of weeks~\cite{rockafellar2000optimization}. The standard way to impose 
 RL is a Lagrangian penalty~\cite{altman1999cmdp}: the learner pays a price $\lambda$ for each
 unit of CVaR above its budget, and $\lambda$ rises automatically while the budget is
 exceeded. We show two ways in which this machinery can appear to work while the limit is never
-enforced.
+enforced.\looseness=-1
 
 \paragraph{Failure 1: the penalty never switches on} If the penalty signal is on a much smaller
 scale than the reward signal, $\lambda$ stays near zero and the budget exists only on paper.
 Safe-RL work already knows that $\lambda$ responds slowly and depends on its step
 size~\cite{stooke2020pid}, and libraries such as OmniSafe standardise the cost signal by
 default~\cite{ji2024omnisafe}. In portfolio allocation the failure is easy to miss, because
-weekly returns are $O(10^{-3})$ while the constraint signal is $O(10^{-2})$ to $O(1)$, and
-because tail metrics improve anyway through other parts of the pipeline. The problem only shows
+the raw cost signal is $O(10^{-3})$ against a unit-scale reward, and because tail metrics improve anyway through other parts of the pipeline. The problem only shows
 up if one plots $\lambda$ over training (Section~\ref{sec:coupling}).
 
 \paragraph{Failure 2: the test protocol picks the winner} Finance has long known that
 optimised portfolios which look strong in one sample often fail out of
-sample~\cite{demiguel2009optimal,bailey2014deflated}, yet RL portfolio studies usually report a
+sample~\cite{demiguel2009optimal,bailey2014deflated}, but RL portfolio studies usually report a
 single test window. On a 31-asset universe, one stress window ranks our learned allocator above
 every classical optimiser, while a 20-fold rolling walk-forward reverses that ranking
 (Section~\ref{sec:protocol}). ``Beat-the-optimiser'' results can therefore be artefacts of the
@@ -161,8 +161,8 @@ multiplicity control. A return objective plus a differentiable CVaR penalty is
 back-propagated through the rollout of a leak-free, tested environment
 (Section~\ref{sec:method}), and the decision-time filter cuts out-of-sample breach from
 $75.1\%$ to $7.4\%$ at matched dual settings. The tail-risk reduction holds on a 40-fold,
-two-universe walk-forward under Benjamini--Hochberg and Deflated-Sharpe control
-(Section~\ref{sec:significance}), and a regime-switching hybrid reaches a walk-forward Sharpe
+two-universe walk-forward under Benjamini--Hochberg and (for Sharpe) Deflated-Sharpe
+control (Section~\ref{sec:significance}), and a regime-switching hybrid reaches a walk-forward Sharpe
 of $1.316$ vs $1.209$ for pure minimum variance, with overlapping bootstrap intervals
 (Table~\ref{tab:hybrid}).
 \item An evaluation protocol built to expose this kind of artefact. Deterministic
@@ -193,20 +193,20 @@ portfolio loss on the worst $(1{-}\alpha)$ fraction of outcomes, the average of 
 exceeding the $\alpha$-quantile ($\mathrm{VaR}_\alpha$). Unlike variance, it ignores the
 upside, and unlike $\mathrm{VaR}$, it averages across the whole tail. Rockafellar and
 Uryasev~\cite{rockafellar2000optimization} give the tractable form
-\begin{equation}
+\begin{equation}\label{eq:ru}
   \mathrm{CVaR}_\alpha(L) \;=\; \min_{\zeta\in\mathbb{R}}\!\left\{
     \zeta + \frac{1}{1-\alpha}\,\mathbb{E}\!\left[\max(L-\zeta,\,0)\right]
   \right\},
 \end{equation}
 where $L$ denotes the portfolio loss and the inner expectation is over the empirical
-loss distribution. The minimum is attained at $\zeta=\mathrm{VaR}_\alpha$, and the
+loss distribution. The minimum in~\eqref{eq:ru} is attained at $\zeta=\mathrm{VaR}_\alpha$, and the
 representation admits both a convex linear program (LP), included as a baseline, and a
 differentiable penalty via \texttt{topk}.\looseness=-1
 
 \paragraph{RL for portfolio management}
 Most RL portfolio papers train on a single historical window, test on one held-out split,
-and compare against equal weight or buy-and-hold. EIIE~\cite{jiang2017deep} compares twelve classical strategies on one
-$\approx$50-day crypto window, and SARL~\cite{ye2020sarl} reports higher return on a fixed
+and compare against equal weight or buy-and-hold. EIIE~\cite{jiang2017deep} compares twelve classical strategies on three
+$\approx$50-day crypto back-tests, and SARL~\cite{ye2020sarl} reports higher return on a fixed
 period without cross-validation. FinRL~\cite{liu2021finrl} supports rolling retraining but
 demonstrates it on a single split with no significance tests. Huang~\cite{huang2025ctrl}
 applies continuous-time RL to asset--liability management, although with a quadratic
@@ -220,7 +220,7 @@ RL portfolio allocation to a 40-fold, two-universe walk-forward with Wilcoxon an
 Benjamini--Hochberg control, which is the protocol that exposes the reversal artefact.
 
 \paragraph{Direct reinforcement and pathwise gradients}
-Moody and Saffell~\cite{moody2001learning} first trained a recurrent trading policy by
+Moody and Saffell~\cite{moody2001learning} trained a recurrent trading policy by
 back-propagating the \emph{differential Sharpe ratio} directly through the return
 function. Buehler et al.~\cite{buehler2019deephedging} (Deep Hedging) extend this to
 neural derivative hedging, back-propagating CVaR as a risk-aversion \emph{utility}
@@ -236,8 +236,8 @@ such policies auditable via a prototype-similarity policy.
 
 \paragraph{CVaR-constrained RL}
 Chow et al.~\cite{chow2018riskconstrained} derive the Lagrangian gradient for CVaR-constrained
-CMDPs. Tessler et al.~\cite{tessler2019rcpo} (RCPO) and Ying et al.~\cite{ying2022cppo} (CPPO)
-implement hard CVaR constraints for robotics control tasks. Lagrange multipliers are known to
+CMDPs. Tessler et al.~\cite{tessler2019rcpo} (RCPO) impose general constraints by a
+Lagrangian penalty and Ying et al.~\cite{ying2022cppo} (CPPO) constrain CVaR, both in robotics. Lagrange multipliers are known to
 respond slowly and to depend on their step size~\cite{stooke2020pid}, and safe-RL libraries
 standardise the cost advantage by default~\cite{ji2024omnisafe}. None of this work documents
 the resulting \emph{constraint-coupling failure} in portfolio allocation. There the raw CVaR
@@ -281,12 +281,12 @@ has been pushing against its tail budget.
 weights via softmax. Because the environment's reward and a sample-CVaR are
 differentiable in $w$, we train by back-propagating, over randomised windows of
 the training series, the objective
-\begin{equation}
+\begin{equation}\label{eq:loss}
 \mathcal{L} = -\,\mathrm{Sharpe}(\text{net returns})
   \;+\; \lambda\,\mathrm{ReLU}(\widehat{\mathrm{CVaR}} - d)
   \;+\; \kappa\,\text{turnover},
 \end{equation}
-where $\mathrm{Sharpe}=\bar{r}/\sigma_r$ is the annualised mean return divided by its
+where $\mathrm{Sharpe}=\bar{r}/\sigma_r$ is the window's mean net return divided by its
 standard deviation (reward per unit of risk), $\widehat{\mathrm{CVaR}}$ is the mean
 tail loss over the worst $(1{-}\alpha)$ fraction of window net returns (a differentiable
 tail mean via \texttt{topk}), and $d$ is the pre-specified tail budget. On this problem the
@@ -294,12 +294,12 @@ pathwise gradient needs far fewer samples than score-function RL
 (Section~\ref{sec:modelfree}).
 
 \paragraph{Pathwise gradient and where the constraint acts} Every term in
-$\mathcal{L}$ is a differentiable function of the rollout, so the policy is trained
+$\mathcal{L}$~\eqref{eq:loss} is a differentiable function of the rollout, so the policy is trained
 by exact back-propagation through the simplex map and the reward, without a
 score-function estimator. With net returns $r_t = w_t^{\top}\rho_t - c\lVert w_t-w_{t-1}\rVert_1$
-and tail set $\mathcal{T}=\{t: R_t \text{ among the worst } \lceil(1-\alpha)T\rceil
+and tail set $\mathcal{T}=\{t: r_t \text{ among the worst } \lceil(1-\alpha)T\rceil
 \text{ of the window}\}$,
-\begin{equation}
+\begin{equation}\label{eq:grad}
 \frac{\partial \mathcal{L}}{\partial \theta}
 = \sum_{t}\Big(
   \underbrace{-\tfrac{\partial\,\mathrm{Sharpe}}{\partial r_t}}_{\text{all weeks}}
@@ -309,7 +309,7 @@ and tail set $\mathcal{T}=\{t: R_t \text{ among the worst } \lceil(1-\alpha)T\rc
   \Big)\,\frac{\partial r_t}{\partial w_t}\,\frac{\partial w_t}{\partial \theta},
 \end{equation}
 where $\partial w_t/\partial\theta$ flows through the residual softmax
-(below). The \texttt{topk} subgradient sends the dual pressure to exactly the
+(below). The \texttt{topk} subgradient in~\eqref{eq:grad} sends the dual pressure to exactly the
 worst-$(1-\alpha)$ weeks, and only while the constraint is breached. The penalty therefore
 pushes up the worst weeks and leaves the rest of the path largely alone, which is why the
 constraint binds cleanly once the dual is correctly scaled (Section~\ref{sec:coupling}).
@@ -331,7 +331,7 @@ all long-only under the learner's weight cap. Rolling baselines are re-estimated
 from returns within each evaluation window, with a minimum of 26 weeks of history (equal
 weight before that). Learned: model-free A2C,
 PPO~\cite{schulman2017ppo} (clipped surrogate, generalised advantage estimation, GAE), SAC~\cite{haarnoja2018soft}
-(off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable allocator ($\lambda=0$).
+(off-policy, twin critics, auto-tuned entropy), and the unconstrained differentiable allocator ($\lambda=0$).\looseness=-1
 
 \paragraph{Regime-switching hybrid}
 We construct a no-retrain hybrid: label each out-of-sample (OOS) week \emph{high-volatility} if
@@ -377,13 +377,13 @@ $-0.06$ & $-0.007$ & $-0.017$ & $-0.086$ & $-0.034$ & $-0.183$ \\
 \label{sec:coupling}
 
 To measure what the Lagrangian penalty contributes, we compare three versions of the
-differentiable allocator (Table~\ref{tab:coupling}). All three share the same pipeline
-(residual actor, CVaR penalty, checkpoint selection under the validation CVaR limit, and the
-weight projection) and the same budget of 5 seeds and 1500 updates. Only the penalty differs.
+differentiable allocator (Table~\ref{tab:coupling}). All three share the residual actor,
+weight projection and budget (5 seeds, 1500 updates); the two dual arms also share the CVaR
+penalty and CVaR-limited checkpoint selection, and differ only in the dual step.
 The mis-scaled dual updates $\lambda$ with step $\eta_\lambda=0.001$, which is far too
 small for the size of the CVaR excess. The scaled dual uses $\eta_\lambda=5.0$, which
 matches it. The unconstrained arm drops the penalty and selects checkpoints on validation
-return alone. The stress window trains on data before 2018 and tests on 2020--2022. In this
+return alone. The stress window trains on 2008--2018 and tests from late 2019 to 2024. In this
 section the breach rate is the share of test weeks in which the rolling 52-week
 $\mathrm{CVaR}_{0.95}$ exceeds the training budget $d$.\looseness=-1
 
@@ -402,15 +402,16 @@ at zero throughout training, the constraint has no effect, whatever the loss cur
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figure_lambda_trace.pdf}
-  \caption{The Lagrange multiplier over training. Thick lines are five-seed means and thin lines the individual seeds.}
+  \Description{Line chart of the Lagrange multiplier over 1500 training updates. The mis-scaled dual stays near zero throughout, while the scaled dual rises to between 0.1 and 0.3 after a few hundred updates.}
+  \caption{The Lagrange multiplier over training. Thick lines are five-seed means and thin lines the individual seeds. $\lambda$ is zero while the anchor-initialised policy meets $d$.}
   \label{fig:lambda}
 \end{figure}
 
 \paragraph{Finding 2: most of the tail control comes from the pipeline} Even with $\lambda$
 close to zero, the constrained pipeline lowers CVaR$_{99}$ by $61\%$ relative to the
 unconstrained learner ($0.025$ vs $0.065$, 5-seed mean) and raises Sharpe by $58\%$ ($0.987$ vs
-$0.626$). The reduction comes from checkpoint selection under the CVaR limit, the residual
-anchor and the projection. A permutation test on the 5-seed distributions confirms the
+$0.626$). The reduction comes from checkpoint selection under the CVaR limit, on top of the
+shared anchor and projection. A permutation test on the 5-seed distributions confirms the
 difference (observed $-0.039$, one-sided $p=0.0044$, two-sided $p=0.0083$, $n=50{,}000$), and
 the scaled dual gives a similar reduction ($p=0.0037$). When the dual is properly engaged
 ($\lambda=O(0.1)$), CVaR$_{99}$ barely changes ($0.028$ vs $0.025$), so most of the $61\%$ comes
@@ -430,9 +431,9 @@ against 8 of 30). Selection therefore keeps a later checkpoint that leans furthe
 test window. Changing $d$ does not fix this. Four rules for setting $d$ from validation data,
 fixed in advance (a loose $1.92\%$ budget, the policy's own or the anchor's validation
 $\mathrm{CVaR}_{0.95}$, and a per-fold adaptive budget over a 10-fold walk-forward), all give
-$71$--$78\%$ out-of-sample breach. Whatever the value of $d$, a Lagrangian learner that seeks
-return gives up compliance when the tail shifts, so the remedy has to act on the portfolio
-itself.
+$71$--$78\%$ out-of-sample breach. Whatever the value of $d$, a Lagrangian learner whose dual binds
+gives up compliance when the tail shifts, so the remedy has to act on the portfolio
+itself.\looseness=-1
 
 \paragraph{The fix: a decision-time filter} We therefore enforce the budget at the moment of
 trading with a CVaR \emph{filter}, which acts as a safety layer in the sense
@@ -471,8 +472,8 @@ variance. A5's weights are a mean $L_1$ distance of $0.476$ from rolling minimum
 correlation $0.786$ and a different top holding in $9.4\%$ of rebalances, against $0.890$,
 $0.201$ and $97.5\%$ for the unfiltered scaled dual. In that region, A5 beats minimum variance on
 both axes, with higher Sharpe at an equal breach rate and half the breach depth, and A6 has a
-lower breach rate. Out of sample, the soft penalty did not keep the portfolio within budget,
-and the decision-time projection did.
+lower breach rate. Out of sample, the scaled soft penalty did not keep the portfolio within
+budget, and the decision-time projection (A6) did.
 
 \begin{table}[t]
 \centering
@@ -500,6 +501,7 @@ A8 filter + adaptive dual & $0.800$ & $0.020$ & $0.146$ & $0.657^\dagger$ \\
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figure_filter_frontier.pdf}
+  \Description{Scatter plot of Sharpe ratio against breach rate. Classical optimisers and the filtered arms cluster near the 5 percent target line at Sharpe 0.8 to 1.0, while the soft Lagrangian arms and the adaptive dual without the filter lie at breach rates of 60 to 100 percent.}
   \caption{Breach rate against Sharpe on the stress window; the dashed line marks the 5\% target. Squares are classical optimisers, diamonds the filtered arms, circles the soft Lagrangians and the triangle the adaptive dual without the filter. The ringed point is the mis-scaled dual, which A5 overlaps.}
   \label{fig:frontier}
 \end{figure}
@@ -604,11 +606,12 @@ portfolio-constraint violations ($7.2 \to 0.0$ per run).
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figure_cvar_hero.pdf}
-  \caption{Left: risk and return on the stress window for the unconstrained (circle) and constrained (diamond) allocators. Right: tightening the tail budget from loose to tight improves both CVaR$_{99}$ and Sharpe; the square marks rolling minimum variance on the walk-forward.}
+  \Description{Two scatter plots of Sharpe ratio against CVaR99. Left: on the stress window the constrained allocator has higher Sharpe and lower CVaR99 than the unconstrained allocator and PPO. Right: moving from a loose to a tight tail budget raises Sharpe and lowers CVaR99 at each step, and the tight budget lies above and to the left of minimum variance.}
+  \caption{Left: risk and return on the stress window for the unconstrained (circle) and constrained (diamond) allocators. Right: tightening the tail budget from loose to tight improves both CVaR$_{99}$ and Sharpe; the square marks minimum variance.}
   \label{fig:hero}
 \end{figure*}
 
-\subsection{Walk-forward across regimes (10 OOS folds, $\approx$2010--2024)}
+\subsection{Walk-forward across regimes (10 OOS folds, \texorpdfstring{$\approx$}{about }2010--2024)}
 With refits every 52 weeks on a rolling 312-week window and 10 concatenated
 out-of-sample folds, the constraint beats unconstrained RL out of sample on every metric:
 Sharpe $+18\%$ (0.70\,$\to$\,0.83), $\mathrm{CVaR}_{99}$ $-20\%$ (0.0416\,$\to$\,0.0331)
@@ -628,7 +631,7 @@ best relative to minimum variance: Sharpe $2.169$ versus $1.668$, with CVaR$_{99
 $0.012$ of minimum variance's floor. In calm markets ($n{=}388$) and
 selloffs ($n{=}61$) minimum variance dominates (selloff Sharpe $0.035$
 vs.\ constrained RL $-0.809$): the overlay adds value when volatility is elevated
-but has not yet collapsed into a full drawdown, and stops adding value once liquidity
+but has not collapsed into a full drawdown, and stops adding value once liquidity
 deteriorates. The constraint still cuts tail risk relative to unconstrained RL in
 all three regimes ($-29.1\%$ calm, $-20.7\%$ high-vol, $-27.4\%$ selloff), which
 suggests that the reduction comes from the architecture and does not depend on the regime.
@@ -727,9 +730,9 @@ Ablations show a consistent pattern (Figure~\ref{fig:hero}, right; 3-seed means 
 stress window). Tightening the tail budget from loose ($\alpha=0.95$, limit
 $1.92\%$) through base ($1.2\%$) to tight ($\alpha=0.99$ or $0.72\%$) improves CVaR$_{99}$ and
 Sharpe together at every step. The tightest configuration reaches Sharpe~$1.27$ and
-CVaR$_{99}=1.4\%$, which is competitive with rolling min-variance (Sharpe~1.45) at a tighter
-risk budget. Tighter risk limits usually cost return. Here they help, because the constraint's
-gradient acts only on the worst weeks and removes the largest losses while leaving most of the
+CVaR$_{99}=1.4\%$, above minimum variance on the same window (Sharpe~0.90, CVaR$_{99}=4.4\%$)
+and competitive with its walk-forward Sharpe of~1.45. Tighter risk limits usually cost return. Here they help, because the constraint, through its
+tail-only gradient and tighter checkpoint selection, acts only on the worst weeks and removes the largest losses while leaving most of the
 return distribution unchanged. Against the base configuration (Sharpe $0.865$, CVaR$_{99}$ $0.0301$,
 max-DD $0.111$), removing the anchor gives $0.826$, $0.0318$ and $0.108$, $\alpha=0.90$ gives
 $0.684$, $0.0452$ and $0.172$, and a Sharpe objective gives $0.791$, $0.0273$ and $0.108$. The
@@ -797,7 +800,7 @@ $\mathrm{CVaR}_{99}$ against the unconstrained learner fold by fold, Wilcoxon
 $p=6\times10^{-4}$), while the apparent advantage over the optimiser does not. We recommend
 rolling walk-forward with Deflated-Sharpe~\cite{bailey2014deflated} as the reporting standard,
 and treat single stress-window comparisons of learned allocators against optimisers as
-unreliable.
+unreliable.\looseness=-1
 
 \begin{table}[t]
 \centering
@@ -828,7 +831,7 @@ ablation (Figure~\ref{fig:hero}, right) is therefore in aggregate risk statistic
 extend to holdings. The filtered arms are closer ($L_1$ $0.48$ to $0.61$, correlation $0.72$ to
 $0.79$). They achieve compliance partly by holding low-volatility portfolios, and from there
 they improve on minimum variance in breach depth, and A5 also in Sharpe
-(Section~\ref{sec:coupling}).
+(Section~\ref{sec:coupling}).\looseness=-1
 
 We draw three lessons for practitioners. First, tail limits reduce risk ahead of a crash: the
 constrained allocator moved to cash two weeks before the COVID trough (drawdown $7.7\%$ against

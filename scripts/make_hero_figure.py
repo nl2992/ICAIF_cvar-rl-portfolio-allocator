@@ -4,7 +4,7 @@ Two risk--return panels (x = CVaR99 in %, lower is safer; y = Sharpe ratio):
   (a) Stress window: the constrained allocator sits up and to the left of the
       unconstrained learner (higher Sharpe, lower tail), next to min-variance.
   (b) Ablation: tightening the tail budget improves CVaR99 and Sharpe together;
-      the rolling (walk-forward) min-variance result is shown for reference.
+      min-variance on the same stress window is shown for reference.
 
 Coordinates are the values reported in the paper's tables (stress window,
 tuned model-free comparison, ablation, walk-forward), so the figure matches the
@@ -29,14 +29,14 @@ STRESS = [  # label, cvar99_pct, sharpe, marker, face, label anchor (x, y, ha)
     ("PPO (best)", 7.00, 0.67, "o", "white", (6.92, 0.715, "center")),
     ("min variance", 4.40, 0.90, "s", ps.LIGHT, (4.58, 0.90, "left")),
 ]
-# Panel (b): constraint-tightening ablation (tab:ablation) and the rolling
-# min-variance reference from the walk-forward (tab:walkforward).
+# Panel (b): constraint-tightening ablation (tab:ablation) and min-variance on
+# the same stress window (tab:modelfree), so both panels compare like with like.
 ABLATION = [  # label, cvar99_pct, sharpe, label anchor
     ("loose budget", 4.93, 0.515, (4.80, 0.462, "right")),
     ("base", 3.01, 0.865, (3.17, 0.96, "left")),
     ("tight budget", 1.35, 1.272, (1.55, 1.345, "left")),
 ]
-MV_REF = ("rolling min variance (walk-forward)", 1.06, 1.45, (1.27, 1.505, "left"))
+MV_REF = ("min variance", 4.40, 0.90, (4.40, 1.02, "center"))
 
 
 def build():
@@ -70,7 +70,7 @@ def build():
                  linewidths=0.5, zorder=4)
     ax_b.annotate(label, (x, y), xytext=(tx, ty), ha=ha, va="center", fontsize=6.8, color=ps.INK, bbox=ps.LABEL_BOX)
     ax_b.set_xlim(0.7, 5.4)
-    ax_b.set_ylim(0.42, 1.58)
+    ax_b.set_ylim(0.42, 1.42)
     ax_b.set_xlabel("CVaR$_{99}$ (%), lower is safer")
     ax_b.set_ylabel("Sharpe ratio")
     ax_b.set_title("(b) Tightening the tail budget (stress window)", loc="left", fontsize=7.5, pad=4)
