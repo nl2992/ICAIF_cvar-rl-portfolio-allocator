@@ -14,7 +14,35 @@ The paper makes a narrow claim: **the proposed constraint pipeline and decision-
 
 ## The problem
 
-A Lagrangian CVaR constraint can fail silently. The return objective is order-one, while the weekly CVaR excess is often around `10⁻²`. If the dual step is not scaled to that gap, the multiplier barely moves and the budget is not enforced. Tail metrics may still look good because the anchor, portfolio projection and checkpoint-selection rule also reduce risk.
+A portfolio allocator trained only to earn return has no reason to avoid large losses. The usual remedy is to cap its tail risk with a CVaR budget, imposed through a Lagrangian penalty. We find that this remedy can fail without any visible symptom.
+
+### The risk measure: CVaR
+
+For a weekly portfolio loss $`L`$ (the negative of the return), $`\mathrm{CVaR}_\alpha`$ is the average loss over the worst $`(1-\alpha)`$ share of weeks. Rockafellar and Uryasev write it as
+
+```math
+\mathrm{CVaR}_\alpha(L)=\min_{\zeta\in\mathbb{R}}\left\{\zeta+\frac{1}{1-\alpha}\,\mathbb{E}\big[\max(L-\zeta,\,0)\big]\right\}.
+```
+
+Variance penalises gains and losses alike. Value-at-Risk reports only the loss threshold and ignores how bad the losses beyond it are. CVaR averages the whole tail, which is what a risk budget is meant to limit. We use $`\alpha=0.95`$ and a weekly budget of $`d=1.2\%`$.
+
+### How the Lagrangian penalty fails silently
+
+The penalty adds $`\lambda\,\mathrm{ReLU}(\widehat{\mathrm{CVaR}}-d)`$ to the training loss, and after each update the multiplier follows dual ascent:
+
+```math
+\lambda\leftarrow\max\{0,\ \lambda+\eta_\lambda(\widehat{\mathrm{CVaR}}-d)\}.
+```
+
+$`\lambda`$ is the price of tail risk. It rises while the budget is breached and falls back when there is slack. For this to work, the step $`\eta_\lambda`$ has to match the size of the CVaR excess, which is about $`10^{-2}`$ in weekly-return units, while the return objective is of order one:
+
+| | Mis-scaled dual | Scaled dual |
+| --- | --- | --- |
+| Step $`\eta_\lambda`$ | `0.001` | `5.0` |
+| Change in $`\lambda`$ per breaching update | $`0.001\times0.01=10^{-5}`$ | $`5\times0.01=0.05`$ |
+| Final $`\lambda`$ after 1,500 updates (5-seed mean) | `0.022` | `0.101` |
+
+With the mis-scaled step, $`\lambda`$ stays in the hundredths and the penalty barely changes the loss, so the budget exists only on paper. Nothing else flags this, because the anchor, the portfolio projection and the checkpoint-selection rule still lower tail risk. The check is simple: plot $`\lambda`$ over training (Figure 2 in the paper).
 
 ```mermaid
 flowchart LR
@@ -26,6 +54,10 @@ flowchart LR
     G --> H[Silent failure]
     F --> H
 ```
+
+Scaling the dual makes the penalty bind in training, but it is not enough on its own: the selected policy still breached the budget in `75.1%` of test weeks once the return distribution shifted.
+
+### The evaluation problem
 
 The second problem is evaluation: a single favorable test window can reverse the ranking obtained under repeated out-of-sample refits.
 
@@ -97,85 +129,59 @@ The study uses weekly data from 2008-2024, 5 bps transaction costs and three uni
 
 ## Method
 
-The pipeline has four parts: a risk measure, a learned allocator, a dual variable that prices tail risk, and a filter that checks every trade. Each part below gives the equation, why it is there and how the code computes it, followed by a worked example on real data.
+The pipeline has three parts: a learned allocator, the CVaR penalty with its dual, and a filter that checks every trade. Each part gives the equation, then why it is there and how the code computes it, followed by a worked example on real data.
 
-### 1. The risk measure: CVaR
+### 1. The allocator and its loss
 
-For a weekly portfolio loss $L$ (the negative of the return), $\mathrm{CVaR}_\alpha$ is the average loss over the worst $(1-\alpha)$ share of weeks. Rockafellar and Uryasev write it as
+The weights are a learned tilt on top of an inverse-volatility anchor $`a_t`$:
 
-$$
-\mathrm{CVaR}_\alpha(L)=\min_{\zeta\in\mathbb{R}}\left\{\zeta+\frac{1}{1-\alpha}\,\mathbb{E}\big[\max(L-\zeta,\,0)\big]\right\}.
-$$
-
-**Why CVaR.** Variance penalises gains and losses alike. Value-at-Risk reports only the loss threshold and ignores how bad the losses beyond it are. CVaR averages the whole tail, which is what a risk budget is meant to limit. We use $\alpha=0.95$ and a weekly budget of $d=1.2\%$.
-
-**How.** During training, the CVaR of a 104-week window of net returns is the mean of its 5 worst weeks ($5\approx0.05\times104$), taken with `torch.topk`. This is differentiable, so it can sit directly in the loss.
-
-### 2. The allocator and its loss
-
-The weights are a learned tilt on top of an inverse-volatility anchor $a_t$:
-
-$$
+```math
 w_t=\mathrm{softmax}\big(\log a_t+f_\theta(s_t)\big).
-$$
+```
 
-**Why.** At initialisation $f_\theta\approx0$, so the policy starts as the anchor, a sensible low-risk portfolio, and training learns only how far to tilt away from it. The softmax keeps the weights long-only and summing to one.
+**Why.** At initialisation $`f_\theta\approx0`$, so the policy starts as the anchor, a sensible low-risk portfolio, and training learns only how far to tilt away from it. The softmax keeps the weights long-only and summing to one.
 
-Training back-propagates through the portfolio's realised net returns $r_t=w_t^\top\rho_t-c\lVert w_t-w_{t-1}\rVert_1$ ($c=5$ bps) over randomly sampled training windows:
+Training back-propagates through the portfolio's realised net returns $`r_t=w_t^\top\rho_t-c\lVert w_t-w_{t-1}\rVert_1`$ ($`c=5`$ bps) over randomly sampled training windows:
 
-$$
+```math
 \mathcal{L}=-\mathrm{Sharpe}(r)+\lambda\,\mathrm{ReLU}\big(\widehat{\mathrm{CVaR}}-d\big)+\kappa\cdot\text{turnover}.
-$$
+```
 
-**Why.** Every term is a differentiable function of the weights, so the gradient is exact rather than a noisy score-function estimate. With only 887 weekly observations, this matters. The penalty is zero while the window is within budget. Once the window is over budget, the penalty's gradient acts only on the worst weeks, because those are the only weeks `topk` selects.
+**Why.** Every term is a differentiable function of the weights, so the gradient is exact rather than a noisy score-function estimate. With only 887 weekly observations, this matters.
 
-**Checkpoint selection.** Every 50 updates the policy is scored on the validation split. The checkpoint kept is the best one among those whose validation CVaR is within $d$.
+**How.** The CVaR of a 104-week training window is the mean of its 5 worst weeks ($`5\approx0.05\times104`$), taken with `torch.topk`, so it is differentiable. The penalty is zero while the window is within budget. Once it is over budget, the penalty's gradient acts only on those worst weeks, because they are the only weeks `topk` selects.
 
-### 3. The dual variable, and how it fails silently
+**Checkpoint selection.** Every 50 updates the policy is scored on the validation split. The checkpoint kept is the best one among those whose validation CVaR is within $`d`$.
 
-After each update, the multiplier $\lambda$ follows dual ascent:
+### 2. The dual variable
 
-$$
-\lambda\leftarrow\max\{0,\ \lambda+\eta_\lambda(\widehat{\mathrm{CVaR}}-d)\}.
-$$
+$`\lambda`$ follows the dual-ascent update above, with the step scaled to the CVaR excess ($`\eta_\lambda=5.0`$). The paper keeps the mis-scaled step ($`\eta_\lambda=0.001`$) as a comparison arm, which is how the silent failure is measured.
 
-**Why.** $\lambda$ is the price of tail risk. It rises while the budget is breached and falls back when there is slack.
+### 3. The decision-time filter
 
-**Where it goes wrong.** The step $\eta_\lambda$ has to match the size of the CVaR excess, which is about $10^{-2}$ in weekly-return units:
+Because the scaled dual still breaches the budget out of sample, the filter acts on the portfolio itself, before each trade.
 
-| | Mis-scaled dual | Scaled dual |
-| --- | --- | --- |
-| Step $\eta_\lambda$ | `0.001` | `5.0` |
-| Change in $\lambda$ per breaching update | $0.001\times0.01=10^{-5}$ | $5\times0.01=0.05$ |
-| Final $\lambda$ after 1,500 updates (5-seed mean) | `0.022` | `0.101` |
+**Step 1: estimate forward CVaR from trailing data.** With the mean $`\mu`$ and covariance $`\Sigma`$ of the previous 104 weekly returns,
 
-With the mis-scaled step, $\lambda$ stays in the hundredths and the penalty barely changes the loss, so the budget exists only on paper. Nothing else flags this, because checkpoint selection still lowers tail risk. The check is simple: plot $\lambda$ over training (Figure 2 in the paper).
-
-### 4. The decision-time filter
-
-Scaling the dual makes the penalty bind in training, but the selected policy still breached the budget in `75.1%` of test weeks. The filter therefore acts on the portfolio itself, before each trade.
-
-**Step 1: estimate forward CVaR from trailing data.** With the mean $\mu$ and covariance $\Sigma$ of the previous 104 weekly returns,
-
-$$
+```math
 \widehat{\mathrm{CVaR}}(w)=c_\alpha\sqrt{w^\top\Sigma w}-\mu^\top w,\qquad c_\alpha=\frac{\varphi\big(\Phi^{-1}(\alpha)\big)}{1-\alpha}=2.063\ \text{at}\ \alpha=0.95.
-$$
+```
 
-*Why:* the closed form is cheap enough to evaluate at every decision and uses only returns before week $t$. Being Gaussian, it can understate fat-tailed losses, a limitation the paper states.
+*Why:* the closed form is cheap enough to evaluate at every decision and uses only returns before week $`t`$. Being Gaussian, it can understate fat-tailed losses, a limitation the paper states.
 
-**Step 2: if over budget, move toward trailing minimum variance.** Let $m$ be the trailing long-only minimum-variance portfolio. The filter searches along the line between $m$ and the proposal,
+**Step 2: if over budget, move toward trailing minimum variance.** Let $`m`$ be the trailing long-only minimum-variance portfolio. The filter searches along the line between $`m`$ and the proposal:
 
-$$
+```math
 w(s)=m+s\,\big(w^{\text{prop}}-m\big),\qquad s^\star=\max\big\{s\in[0,1]:\widehat{\mathrm{CVaR}}\big(w(s)\big)\le d\big\}.
-$$
+```
 
-*Why this line:* $m$ has the lowest trailing variance, so the estimate falls as $s$ shrinks toward $0$, and bisection finds the crossing. Taking the largest feasible $s$ changes the actor's proposal as little as possible. If even $m$ is estimated over budget, the filter returns $m$. The usual limits (0.40 maximum weight, 0.50 turnover cap, long-only) then apply as before.
+*Why this line:* $`m`$ has the lowest trailing variance, so the estimate falls as $`s`$ shrinks toward $`0`$, and bisection finds the crossing. Taking the largest feasible $`s`$ changes the actor's proposal as little as possible. If even $`m`$ is estimated over budget, the filter returns $`m`$. The usual limits (0.40 maximum weight, 0.50 turnover cap, long-only) then apply as before.
 
 ### Worked example: one decision in March 2020
 
 This uses the repository's own filter code on the seven-ETF panel, for the decision on 6 March 2020 with the 104 weeks before it. The proposal is an illustrative equity-heavy portfolio, not the output of a trained policy.
 
-| Asset | Proposal | Min-variance anchor $m$ | After filter |
+| Asset | Proposal | Min-variance anchor $`m`$ | After filter |
 | --- | ---: | ---: | ---: |
 | SPY (equity) | 0.400 | 0.000 | 0.165 |
 | TLT (rates) | 0.000 | 0.042 | 0.024 |
@@ -185,10 +191,10 @@ This uses the repository's own filter code on the seven-ETF panel, for the decis
 | UUP (US dollar) | 0.000 | 0.279 | 0.164 |
 | BIL (cash) | 0.000 | 0.400 | 0.235 |
 
-1. **Check the proposal.** Its trailing volatility is $1.32\%$ and its mean $0.067\%$, so $\widehat{\mathrm{CVaR}}=2.063\times1.32\%-0.067\%=2.66\%$. That exceeds $d=1.2\%$, so the filter fires.
-2. **Check the anchor.** Minimum variance is estimated at $0.38\%$, inside the budget, so a crossing exists on the line.
-3. **Solve for $s^\star$.** Bisection gives $s^\star=0.413$: the filter keeps 41% of the proposal's tilt away from minimum variance. For SPY, $0+0.413\times(0.40-0)=0.165$.
-4. **Check the result.** The filtered portfolio's volatility is $0.63\%$ and its mean $0.088\%$, so $\widehat{\mathrm{CVaR}}=2.063\times0.63\%-0.088\%=1.20\%$, exactly at the budget.
+1. **Check the proposal.** Its trailing volatility is 1.32% and its mean 0.067%, so the estimate is $`2.063\times1.32\%-0.067\%=2.66\%`$. That exceeds $`d=1.2\%`$, so the filter fires.
+2. **Check the anchor.** Minimum variance is estimated at 0.38%, inside the budget, so a crossing exists on the line.
+3. **Solve for $`s^\star`$.** Bisection gives $`s^\star=0.413`$: the filter keeps 41% of the proposal's tilt away from minimum variance. For SPY, $`0+0.413\times(0.40-0)=0.165`$.
+4. **Check the result.** The filtered portfolio's volatility is 0.63% and its mean 0.088%, so the estimate is $`2.063\times0.63\%-0.088\%=1.20\%`$, exactly at the budget.
 
 To reproduce it:
 
