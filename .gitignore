@@ -35,3 +35,6 @@ notebooks/.ipynb_checkpoints/
 
 # internal planning docs (kept locally, not published)
 docs/internal/
+
+# local virtual environment
+.venv/
