@@ -97,15 +97,124 @@ The study uses weekly data from 2008-2024, 5 bps transaction costs and three uni
 
 ## Method
 
-The actor learns a residual tilt over an adaptive inverse-volatility anchor,
+The pipeline has four parts: a risk measure, a learned allocator, a dual variable that prices tail risk, and a filter that checks every trade. Each part below gives the equation, why it is there and how the code computes it, followed by a worked example on real data.
 
-```text
-w_t = softmax(log(a_t) + f_theta(s_t)).
+### 1. The risk measure: CVaR
+
+For a weekly portfolio loss $L$ (the negative of the return), $\mathrm{CVaR}_\alpha$ is the average loss over the worst $(1-\alpha)$ share of weeks. Rockafellar and Uryasev write it as
+
+$$
+\mathrm{CVaR}_\alpha(L)=\min_{\zeta\in\mathbb{R}}\left\{\zeta+\frac{1}{1-\alpha}\,\mathbb{E}\big[\max(L-\zeta,\,0)\big]\right\}.
+$$
+
+**Why CVaR.** Variance penalises gains and losses alike. Value-at-Risk reports only the loss threshold and ignores how bad the losses beyond it are. CVaR averages the whole tail, which is what a risk budget is meant to limit. We use $\alpha=0.95$ and a weekly budget of $d=1.2\%$.
+
+**How.** During training, the CVaR of a 104-week window of net returns is the mean of its 5 worst weeks ($5\approx0.05\times104$), taken with `torch.topk`. This is differentiable, so it can sit directly in the loss.
+
+### 2. The allocator and its loss
+
+The weights are a learned tilt on top of an inverse-volatility anchor $a_t$:
+
+$$
+w_t=\mathrm{softmax}\big(\log a_t+f_\theta(s_t)\big).
+$$
+
+**Why.** At initialisation $f_\theta\approx0$, so the policy starts as the anchor, a sensible low-risk portfolio, and training learns only how far to tilt away from it. The softmax keeps the weights long-only and summing to one.
+
+Training back-propagates through the portfolio's realised net returns $r_t=w_t^\top\rho_t-c\lVert w_t-w_{t-1}\rVert_1$ ($c=5$ bps) over randomly sampled training windows:
+
+$$
+\mathcal{L}=-\mathrm{Sharpe}(r)+\lambda\,\mathrm{ReLU}\big(\widehat{\mathrm{CVaR}}-d\big)+\kappa\cdot\text{turnover}.
+$$
+
+**Why.** Every term is a differentiable function of the weights, so the gradient is exact rather than a noisy score-function estimate. With only 887 weekly observations, this matters. The penalty is zero while the window is within budget. Once the window is over budget, the penalty's gradient acts only on the worst weeks, because those are the only weeks `topk` selects.
+
+**Checkpoint selection.** Every 50 updates the policy is scored on the validation split. The checkpoint kept is the best one among those whose validation CVaR is within $d$.
+
+### 3. The dual variable, and how it fails silently
+
+After each update, the multiplier $\lambda$ follows dual ascent:
+
+$$
+\lambda\leftarrow\max\{0,\ \lambda+\eta_\lambda(\widehat{\mathrm{CVaR}}-d)\}.
+$$
+
+**Why.** $\lambda$ is the price of tail risk. It rises while the budget is breached and falls back when there is slack.
+
+**Where it goes wrong.** The step $\eta_\lambda$ has to match the size of the CVaR excess, which is about $10^{-2}$ in weekly-return units:
+
+| | Mis-scaled dual | Scaled dual |
+| --- | --- | --- |
+| Step $\eta_\lambda$ | `0.001` | `5.0` |
+| Change in $\lambda$ per breaching update | $0.001\times0.01=10^{-5}$ | $5\times0.01=0.05$ |
+| Final $\lambda$ after 1,500 updates (5-seed mean) | `0.022` | `0.101` |
+
+With the mis-scaled step, $\lambda$ stays in the hundredths and the penalty barely changes the loss, so the budget exists only on paper. Nothing else flags this, because checkpoint selection still lowers tail risk. The check is simple: plot $\lambda$ over training (Figure 2 in the paper).
+
+### 4. The decision-time filter
+
+Scaling the dual makes the penalty bind in training, but the selected policy still breached the budget in `75.1%` of test weeks. The filter therefore acts on the portfolio itself, before each trade.
+
+**Step 1: estimate forward CVaR from trailing data.** With the mean $\mu$ and covariance $\Sigma$ of the previous 104 weekly returns,
+
+$$
+\widehat{\mathrm{CVaR}}(w)=c_\alpha\sqrt{w^\top\Sigma w}-\mu^\top w,\qquad c_\alpha=\frac{\varphi\big(\Phi^{-1}(\alpha)\big)}{1-\alpha}=2.063\ \text{at}\ \alpha=0.95.
+$$
+
+*Why:* the closed form is cheap enough to evaluate at every decision and uses only returns before week $t$. Being Gaussian, it can understate fat-tailed losses, a limitation the paper states.
+
+**Step 2: if over budget, move toward trailing minimum variance.** Let $m$ be the trailing long-only minimum-variance portfolio. The filter searches along the line between $m$ and the proposal,
+
+$$
+w(s)=m+s\,\big(w^{\text{prop}}-m\big),\qquad s^\star=\max\big\{s\in[0,1]:\widehat{\mathrm{CVaR}}\big(w(s)\big)\le d\big\}.
+$$
+
+*Why this line:* $m$ has the lowest trailing variance, so the estimate falls as $s$ shrinks toward $0$, and bisection finds the crossing. Taking the largest feasible $s$ changes the actor's proposal as little as possible. If even $m$ is estimated over budget, the filter returns $m$. The usual limits (0.40 maximum weight, 0.50 turnover cap, long-only) then apply as before.
+
+### Worked example: one decision in March 2020
+
+This uses the repository's own filter code on the seven-ETF panel, for the decision on 6 March 2020 with the 104 weeks before it. The proposal is an illustrative equity-heavy portfolio, not the output of a trained policy.
+
+| Asset | Proposal | Min-variance anchor $m$ | After filter |
+| --- | ---: | ---: | ---: |
+| SPY (equity) | 0.400 | 0.000 | 0.165 |
+| TLT (rates) | 0.000 | 0.042 | 0.024 |
+| HYG (credit) | 0.300 | 0.206 | 0.245 |
+| DBC (commodity) | 0.200 | 0.000 | 0.083 |
+| GLD (gold) | 0.100 | 0.073 | 0.084 |
+| UUP (US dollar) | 0.000 | 0.279 | 0.164 |
+| BIL (cash) | 0.000 | 0.400 | 0.235 |
+
+1. **Check the proposal.** Its trailing volatility is $1.32\%$ and its mean $0.067\%$, so $\widehat{\mathrm{CVaR}}=2.063\times1.32\%-0.067\%=2.66\%$. That exceeds $d=1.2\%$, so the filter fires.
+2. **Check the anchor.** Minimum variance is estimated at $0.38\%$, inside the budget, so a crossing exists on the line.
+3. **Solve for $s^\star$.** Bisection gives $s^\star=0.413$: the filter keeps 41% of the proposal's tilt away from minimum variance. For SPY, $0+0.413\times(0.40-0)=0.165$.
+4. **Check the result.** The filtered portfolio's volatility is $0.63\%$ and its mean $0.088\%$, so $\widehat{\mathrm{CVaR}}=2.063\times0.63\%-0.088\%=1.20\%$, exactly at the budget.
+
+To reproduce it:
+
+```python
+import numpy as np, pandas as pd, torch
+from crlpa.training.risk_filter import (
+    cvar_filter_step, gaussian_cvar_multiplier, precompute_filter_state)
+
+returns = pd.read_parquet("data/processed/aligned_portfolio_panel_etf.parquet")
+dates = pd.date_range("2008-01-04", periods=len(returns), freq="W-FRI")
+t = dates.get_loc(pd.Timestamp("2020-03-06"))        # decision week
+
+state = precompute_filter_state(returns, lookback=104, max_weight=0.4)
+proposal = torch.tensor([0.40, 0.00, 0.30, 0.20, 0.10, 0.00, 0.00])
+filtered, s, info = cvar_filter_step(
+    proposal,
+    torch.tensor(state.sigma[t], dtype=torch.float32),
+    torch.tensor(state.mu[t], dtype=torch.float32),
+    torch.tensor(state.anchor[t], dtype=torch.float32),
+    budget=0.012, c_alpha=gaussian_cvar_multiplier(0.95))
+
+print(round(info["cvar_proposed"], 4), round(s, 3), np.round(filtered.numpy(), 3))
+# 0.0267 0.413 [0.165 0.024 0.245 0.083 0.084 0.164 0.235]
 ```
 
-Training back-propagates through portfolio returns using a Sharpe objective, a differentiable worst-tail loss and a turnover penalty. Model selection is restricted to validation checkpoints that meet the CVaR budget.
-
-At decision time, the filter estimates forward CVaR from the trailing 104 weeks. If a proposed portfolio exceeds the budget, it is moved toward a trailing minimum-variance anchor by the smallest amount required to clear the estimate. The final weights remain long-only and obey the maximum-weight, turnover and gross-exposure limits.
+### Baselines
 
 The repository also includes cash, equal-weight, inverse-volatility, minimum-variance, mean-variance, risk-parity and min-CVaR baselines, plus model-free A2C, PPO and SAC comparisons.
 
