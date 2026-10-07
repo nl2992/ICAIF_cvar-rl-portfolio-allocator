@@ -450,22 +450,22 @@ decision at $t$ depends only on $\mathcal{F}_{t-1}$. An automated look-ahead
 test confirms that shifting the return series
 leaves the decision at $t$ unchanged, with zero deviation. We train with the filter on.
 
-Four arms mirror the coupling arms exactly (5 seeds, 1500 updates, same splits) and change
+Four arms match the coupling arms exactly (5 seeds, 1500 updates, same splits) and change
 only the named quantities (Table~\ref{tab:coupling}, bottom block; Figure~\ref{fig:frontier}).
-A6 (filter and scaled dual), the method we propose, lowers breach from $75.1\%$ to $7.4\%$
-relative to the scaled dual at the same $\eta_\lambda$. That is below every classical rule,
-with $\mathrm{CVaR}_{99}$ $0.016$, mean excess $0.0043$ and Sharpe $0.851$. A5 (filter
-only) ($\eta_\lambda=0.001$) matches the mis-scaled row: that policy already sits within budget,
-so the filter never triggers (0 of 1285 test weeks across seeds). It reaches the classical
+A6, the method we propose, adds the filter to the scaled dual. At the same $\eta_\lambda$, it
+lowers breach from $75.1\%$ to $7.4\%$, below every classical rule, with $\mathrm{CVaR}_{99}$
+$0.016$, mean excess $0.0043$ and Sharpe $0.851$. A5 adds the filter to the mis-scaled dual
+($\eta_\lambda=0.001$) and matches the mis-scaled row. That policy already sits within budget,
+so the filter never triggers (0 of 1285 test weeks across seeds). A5 reaches the classical
 $7.9\%$ at Sharpe $0.987$, against $0.901$ for minimum variance, with breaches less than half as
-deep (mean excess $0.0126$ vs $0.0294$). A7 (adaptive dual) ($\lambda$ updated online
-from realised losses, filter off) is the negative control. Its breach rate stays at $81.9\%$
-even as $\lambda$ climbs to a mean of $7.69$, so adjusting the dual at test time does not
-enforce the budget, and the improvement in A6 is due to the filter. A8 (filter and adaptive dual) recovers most
-of the compliance ($14.6\%$), though less reliably: $7$ to $33\%$ across seeds, against no
-seed-to-seed variation for A5 and A6. In Figure~\ref{fig:frontier}, the classical optimisers
-and the filtered arms sit closest to the target, while the soft Lagrangians and the filter-off
-adaptive dual lie far to the right.\looseness=-1
+deep (mean excess $0.0126$ vs $0.0294$). A7 is the negative control: it updates $\lambda$ online
+from realised losses, with the filter off. Its breach rate stays at $81.9\%$ even as $\lambda$
+climbs to a mean of $7.69$, so adjusting the dual at test time does not enforce the budget, and
+the improvement in A6 is due to the filter. A8 pairs the filter with the adaptive dual and
+recovers most of the compliance ($14.6\%$), though less reliably: $7$ to $33\%$ across seeds,
+whereas A5 and A6 do not vary between seeds. In Figure~\ref{fig:frontier}, the classical
+optimisers and the filtered arms sit closest to the target, while the soft Lagrangians and the
+filter-off adaptive dual lie far to the right.\looseness=-1
 
 The filtered arms hold low-volatility portfolios, but they do not simply reproduce minimum
 variance. A5's weights are a mean $L_1$ distance of $0.476$ from rolling minimum variance, with
@@ -612,17 +612,16 @@ portfolio-constraint violations ($7.2 \to 0.0$ per run).
 \end{figure*}
 
 \subsection{Walk-forward across regimes (10 OOS folds, \texorpdfstring{$\approx$}{about }2010--2024)}
-With refits every 52 weeks on a rolling 312-week window and 10 concatenated
-out-of-sample folds, the constraint beats unconstrained RL out of sample on every metric:
-Sharpe $+18\%$ (0.70\,$\to$\,0.83), $\mathrm{CVaR}_{99}$ $-20\%$ (0.0416\,$\to$\,0.0331)
-and max-DD $-25\%$ (15.1\%\,$\to$\,11.4\%). Inverse volatility (Sharpe 1.06, max-DD 0.070,
-$\mathrm{CVaR}_{99}$ 0.0183) and minimum variance (1.45, 0.057, 0.0106) remain ahead in
-absolute terms. The fold-level Wilcoxon on $\mathrm{CVaR}_{99}$
-is marginal on the macro universe alone ($p=0.06$, with 5 of 10 folds improved), and the
-reduction concentrates in selloffs ($\mathrm{CVaR}_{99}$ $0.066\!\to\!0.048$,
-max-DD $0.218\!\to\!0.137$, Table~\ref{tab:regime}). Minimum variance is the strongest
-performer in absolute terms, so on this protocol the learner does not beat the optimiser. A
-two-universe, 40-fold analysis raises the significance of the tail reduction to
+We refit every 52 weeks on a rolling 312-week window and concatenate 10 out-of-sample
+folds. Out of sample, the constraint beats unconstrained RL on every metric: Sharpe $+18\%$
+(0.70\,$\to$\,0.83), $\mathrm{CVaR}_{99}$ $-20\%$ (0.0416\,$\to$\,0.0331) and max-DD $-25\%$
+(15.1\%\,$\to$\,11.4\%). In absolute terms, inverse volatility (Sharpe 1.06, max-DD 0.070,
+$\mathrm{CVaR}_{99}$ 0.0183) and minimum variance (1.45, 0.057, 0.0106) remain ahead. On the
+macro universe alone, the fold-level Wilcoxon on $\mathrm{CVaR}_{99}$ is marginal ($p=0.06$, with
+5 of 10 folds improved), and the reduction concentrates in selloffs ($\mathrm{CVaR}_{99}$
+$0.066\!\to\!0.048$, max-DD $0.218\!\to\!0.137$, Table~\ref{tab:regime}). Minimum variance is the
+strongest performer in absolute terms, so on this protocol the learner does not beat the
+optimiser. A two-universe, 40-fold analysis raises the significance of the tail reduction to
 $p=8.8\times10^{-6}$ (Section~\ref{sec:significance}).
 
 \paragraph{When RL adds value: regime-conditional breakdown}
@@ -731,13 +730,13 @@ stress window). Tightening the tail budget from loose ($\alpha=0.95$, limit
 $1.92\%$) through base ($1.2\%$) to tight ($\alpha=0.99$ or $0.72\%$) improves CVaR$_{99}$ and
 Sharpe together at every step. The tightest configuration reaches Sharpe~$1.27$ and
 CVaR$_{99}=1.4\%$, above minimum variance on the same window (Sharpe~0.90, CVaR$_{99}=4.4\%$)
-and competitive with its walk-forward Sharpe of~1.45. Tighter risk limits usually cost return. Here they help, because the constraint, through its
-tail-only gradient and tighter checkpoint selection, acts only on the worst weeks and removes the largest losses while leaving most of the
-return distribution unchanged. Against the base configuration (Sharpe $0.865$, CVaR$_{99}$ $0.0301$,
-max-DD $0.111$), removing the anchor gives $0.826$, $0.0318$ and $0.108$, $\alpha=0.90$ gives
-$0.684$, $0.0452$ and $0.172$, and a Sharpe objective gives $0.791$, $0.0273$ and $0.108$. The
-loose budget gives $0.515$, $0.0493$ and $0.230$, $\alpha=0.99$ gives $1.251$, $0.0146$ and
-$0.053$, and the tighter budget $1.272$, $0.0135$ and $0.041$.\looseness=-1
+and competitive with its walk-forward Sharpe of~1.45. Tighter risk limits usually cost return. Here they help: the constraint acts only on the
+worst weeks, through its tail-only gradient and tighter checkpoint selection, so it removes the
+largest losses while leaving most of the return distribution unchanged. Against the base
+configuration (Sharpe $0.865$, CVaR$_{99}$ $0.0301$, max-DD $0.111$), the other settings give, in
+the same order: no anchor $0.826$, $0.0318$, $0.108$; $\alpha=0.90$ $0.684$, $0.0452$, $0.172$;
+a Sharpe objective $0.791$, $0.0273$, $0.108$; the loose budget $0.515$, $0.0493$, $0.230$;
+$\alpha=0.99$ $1.251$, $0.0146$, $0.053$; and the tighter budget $1.272$, $0.0135$, $0.041$.\looseness=-1
 
 
 \paragraph{Features} Rolling factor betas alone slightly hurt performance. Adding macro state
