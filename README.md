@@ -16,6 +16,30 @@ The paper makes a narrow claim: **the proposed constraint pipeline and decision-
 
 A portfolio allocator trained only to earn return has no reason to avoid large losses. The usual remedy is to cap its tail risk with a CVaR budget, imposed through a Lagrangian penalty. We find that this remedy can fail without any visible symptom.
 
+### The argument at a glance
+
+The paper starts from one question, whether a tail-risk limit on an RL allocator does what we think it does, and splits it into two: does the limit actually bind, and is the evidence that it works reliable? Each branch has a silent failure and a fix, and both feed the same conclusion.
+
+```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 320}}}%%
+flowchart TD
+    T1["RL allocator trained on return<br/>has no reason to avoid large losses"] --> T2["Impose a tail-risk budget<br/>CVaR₉₅ ≤ 1.2% per week"]
+    T2 --> T3["Standard tool: Lagrangian penalty<br/>price λ rises while the budget is breached"]
+    T3 --> T4{"Two things must hold"}
+    T4 -->|"A. Does the limit bind?"| A1["λ moves only if its step matches<br/>the CVaR excess, about 10⁻²"]
+    A1 --> A2["Failure 1: mis-scaled λ stays near 0.02<br/>yet tail metrics still improve"]
+    A2 --> A3["Scaled dual binds in training<br/>but breaches 75.1% of test weeks"]
+    A3 --> A4["Fix: decision-time CVaR filter<br/>breach rate 75.1% → 7.4%"]
+    T4 -->|"B. Is the evidence reliable?"| B1["Same learner, same 31 assets,<br/>two test protocols"]
+    B1 --> B2["Failure 2: the ranking reverses<br/>stress split: 0.85 vs 0.23 min-var<br/>walk-forward: 0.74 vs 1.40 min-var"]
+    B2 --> B3["Fix: rolling walk-forward with Wilcoxon,<br/>Benjamini–Hochberg and Deflated Sharpe"]
+    B3 --> B4["Tail-risk reduction survives, p = 8.8×10⁻⁶<br/>Sharpe edge over optimisers does not"]
+    A4 --> C["Claim: tail-risk control, not alpha<br/>Two checks: watch λ,<br/>and never trust one test window"]
+    B4 --> C
+```
+
+The sections below take each step in turn: the risk measure, the silent failure of the penalty (branch A), and the evaluation problem (branch B).
+
 ### The risk measure: CVaR
 
 For a weekly portfolio loss $`L`$ (the negative of the return), $`\mathrm{CVaR}_\alpha`$ is the average loss over the worst $`(1-\alpha)`$ share of weeks. Rockafellar and Uryasev write it as
