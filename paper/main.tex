@@ -2,7 +2,7 @@
 %% Format intentionally mirrors recent ICAIF submissions (acmart, sigconf).
 %% Numbers/figures are produced by the pipeline on the feat/cvar-allocator-pipeline
 %% branch (scripts/run_diff_study.py, run_walk_forward.py, run_robustness.py,
-%% run_ablations.py, run_macro_study.py; figures in reports/figures/).
+%% run_ablations.py, run_macro_study.py; figures in paper/figures/).
 %% Camera-ready (accepted, CMT ID 873): `anonymous` option removed.
 \documentclass[sigconf]{acmart}
 
@@ -20,7 +20,7 @@
 \setlength{\intextsep}{6pt plus 2pt minus 2pt}
 \setlength{\abovecaptionskip}{3pt}
 \setlength{\belowcaptionskip}{2pt}
-\graphicspath{{figures/}{../reports/figures/}}
+\graphicspath{{figures/}}
 
 \begin{document}
 
@@ -446,8 +446,8 @@ toward a trailing minimum-variance portfolio, using the largest mixing weight th
 budget. The turnover, max-weight and long-only limits then apply as before. The filter uses no
 future data. The trailing mean, covariance and minimum-variance anchor come from the $L=104$
 returns $\rho_{t-L},\dots,\rho_{t-1}$, and the actor's features use only $\rho_{<t}$, so the
-decision at $t$ depends only on $\mathcal{F}_{t-1}$. A look-ahead test
-(\texttt{tests/test\_risk\_filter\_no\_lookahead.py}) confirms that shifting the return series
+decision at $t$ depends only on $\mathcal{F}_{t-1}$. An automated look-ahead
+test confirms that shifting the return series
 leaves the decision at $t$ unchanged, with zero deviation. We train with the filter on.
 
 Four arms mirror the coupling arms exactly (5 seeds, 1500 updates, same splits) and change
@@ -867,12 +867,6 @@ achieves the out-of-sample compliance that neither rescaling the dual nor recali
 budget achieved. Constrained RL is best used as a safety layer and an overlay for
 high-volatility periods. Its lasting benefits are lower tail risk and compliance with the
 budget.\looseness=-1
-
-\begin{acks}
-All figures and tables are reproducible from the open pipeline (leak-free checks, 81 unit
-tests, fixed seeds, config snapshots, pinned dependencies) at
-\url{https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator}.
-\end{acks}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
