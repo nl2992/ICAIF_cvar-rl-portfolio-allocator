@@ -4,7 +4,7 @@ Trains both variants across the configured seeds, saves the validation-best
 checkpoint for each, and writes per-episode training curves.
 
 Usage:
-    python scripts/train_allocator.py --config configs/experiment.yaml
+    python scripts/train_allocator.py --config configs/experiment_etf.yaml
     python scripts/train_allocator.py --episodes 40 --seeds 7 13   # quick run
 """
 
@@ -31,11 +31,11 @@ from crlpa.utils.config import load_config
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/experiment.yaml")
+    parser.add_argument("--config", default="configs/experiment_etf.yaml")
     parser.add_argument("--episodes", type=int, default=None, help="override training.n_episodes")
     parser.add_argument("--seeds", type=int, nargs="*", default=None, help="override training.seeds")
     parser.add_argument("--variants", nargs="*", default=["constrained", "unconstrained"])
-    parser.add_argument("--out", default="results/checkpoints")
+    parser.add_argument("--out", default="results/checkpoints_etf")
     args = parser.parse_args()
 
     cfg = load_config(args.config)

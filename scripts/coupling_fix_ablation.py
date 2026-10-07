@@ -87,7 +87,6 @@ def main(config_path: str = "configs/experiment_etf.yaml",
     out.mkdir(parents=True, exist_ok=True)
 
     rows = []
-    breach_rows = []
 
     for variant_name, constrained, lagrange_lr, limit_mult in VARIANTS:
         limit = base_limit * limit_mult
@@ -134,25 +133,12 @@ def main(config_path: str = "configs/experiment_etf.yaml",
                 "avg_turnover": m.get("avg_turnover", np.nan),
             })
 
-            # Weekly breach timeseries for plotting
-            for t, r in enumerate(test_returns):
-                if t >= cvar_window:
-                    w_ret = test_returns[max(0, t - cvar_window): t]
-                    cvar_val = compute_cvar(w_ret, alpha) if len(w_ret) >= 5 else 0.0
-                    breach_rows.append({
-                        "variant": variant_name, "seed": seed, "week": t,
-                        "rolling_cvar": cvar_val,
-                        "breach": int(cvar_val > limit + 1e-6),
-                        "cvar_limit": limit,
-                    })
-
             print(f"    sharpe={m.get('sharpe', 0):.3f}  "
                   f"cvar_99={m.get('cvar_99', 0):.4f}  "
                   f"breach_rate={breach:.3f}  final_lam={final_lam:.1f}")
 
     df = pd.DataFrame(rows)
     df.to_csv(out / "coupling_fix_ablation.csv", index=False)
-    pd.DataFrame(breach_rows).to_csv(out / "coupling_fix_breach_timeseries.csv", index=False)
 
     # Summary table
     summary = df.groupby("variant").agg(
@@ -190,7 +176,6 @@ def main(config_path: str = "configs/experiment_etf.yaml",
         print("✗ Gate 1: unexpected result — inspect individual runs")
 
     print(f"\nWrote: {out}/coupling_fix_ablation.csv")
-    print(f"       {out}/coupling_fix_breach_timeseries.csv")
     print(f"       {out}/coupling_fix_summary.csv")
 
 

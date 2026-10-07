@@ -64,7 +64,7 @@ def apply() -> None:
     })
 
 
-def save(fig, stem: str, dirs=("paper/figures", "reports/figures")) -> None:
+def save(fig, stem: str, dirs=("paper/figures",)) -> None:
     for d in dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
         fig.savefig(Path(d) / f"{stem}.pdf", bbox_inches="tight", pad_inches=0.02)

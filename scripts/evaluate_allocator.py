@@ -6,7 +6,7 @@ bootstrap of the constrained allocator's Sharpe against the unconstrained RL
 baseline and equal weight.
 
 Usage:
-    python scripts/evaluate_allocator.py --config configs/experiment.yaml
+    python scripts/evaluate_allocator.py --config configs/experiment_etf.yaml
 """
 
 from __future__ import annotations
@@ -32,9 +32,9 @@ def agent_policy(agent: CVaRActorCritic):
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/experiment.yaml")
-    parser.add_argument("--checkpoints", default="results/checkpoints")
-    parser.add_argument("--out", default="results/tables")
+    parser.add_argument("--config", default="configs/experiment_etf.yaml")
+    parser.add_argument("--checkpoints", default="results/checkpoints_etf")
+    parser.add_argument("--out", default="results/tables_etf")
     args = parser.parse_args()
 
     cfg = load_config(args.config)

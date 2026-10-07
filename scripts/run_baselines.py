@@ -1,7 +1,7 @@
 """Run deterministic baselines over the test split and write a metrics table.
 
 Usage:
-    python scripts/run_baselines.py --config configs/experiment.yaml
+    python scripts/run_baselines.py --config configs/experiment_etf.yaml
 """
 
 from __future__ import annotations
@@ -34,8 +34,8 @@ def build_policies(cfg, n_assets: int, max_weight: float):
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/experiment.yaml")
-    parser.add_argument("--out", default="results/tables/baseline_metrics.csv")
+    parser.add_argument("--config", default="configs/experiment_etf.yaml")
+    parser.add_argument("--out", default="results/tables/baseline_metrics_etf.csv")
     args = parser.parse_args()
 
     cfg = load_config(args.config)

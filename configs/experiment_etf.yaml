@@ -1,7 +1,6 @@
 # Real ETF-proxy universe pulled from the Yahoo chart API (adjusted close).
-# Mirrors configs/experiment.yaml but with source: yahoo. Requires network access
-# the first time; run scripts/build_dataset.py to freeze it to parquet, then flip
-# data.source to parquet for fully offline reruns.
+# Canonical seven-ETF paper universe. The committed parquet panel makes reruns
+# offline; set data.source to yahoo only when intentionally refreshing prices.
 
 experiment_id: cvar_ac_etf_v1
 dataset_version: yahoo_etf7_2008_2024

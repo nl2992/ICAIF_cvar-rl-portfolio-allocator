@@ -1,12 +1,11 @@
 """Materialise the modelling dataset to parquet.
 
-For the synthetic source this writes a regime-switching panel; the same entry
-point will load and align real price/factor/macro data once those loaders are
-wired in (see src/crlpa/data/). Writing parquet lets training switch to
-``data.source: parquet`` for reproducible runs off a frozen dataset.
+For a paper configuration this fetches the configured ETF prices and writes a
+frozen weekly-return panel. Training can then use ``data.source: parquet`` for
+offline, reproducible runs.
 
 Usage:
-    python scripts/build_dataset.py --config configs/experiment.yaml
+    python scripts/build_dataset.py --config configs/experiment_etf.yaml
 """
 
 from __future__ import annotations
@@ -20,21 +19,17 @@ from crlpa.utils.config import load_config
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/experiment.yaml")
-    parser.add_argument("--out", default="data/processed/aligned_portfolio_panel.parquet")
+    parser.add_argument("--config", default="configs/experiment_etf.yaml")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    returns, regimes = load_returns(cfg)
+    returns, _ = load_returns(cfg)
 
-    out = Path(args.out)
+    out = Path(args.out or cfg.get_path("data.parquet_path"))
     out.parent.mkdir(parents=True, exist_ok=True)
     returns.to_parquet(out)
     print(f"wrote {out} with shape {returns.shape}")
-    if regimes is not None:
-        regime_path = out.with_name("regime_labels.parquet")
-        regimes.to_frame().to_parquet(regime_path)
-        print(f"wrote {regime_path} with regime counts {regimes.value_counts().to_dict()}")
 
 
 if __name__ == "__main__":
