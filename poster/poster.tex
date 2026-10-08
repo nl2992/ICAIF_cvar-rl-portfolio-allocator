@@ -62,11 +62,6 @@
 \newcommand{\fig}[2][0.78\linewidth]{\par\smallskip{\centering
   \includegraphics[width=#1]{#2}\par}}
 \newcommand{\figcap}[1]{{\centering\fontsize{19}{23}\selectfont\color{dark}#1\par}\smallskip}
-\newcommand{\sidefig}[4]{\par\smallskip\noindent
-  \begin{minipage}[c]{#1\linewidth}\centering\includegraphics[width=\linewidth]{#2}\par
-    {\fontsize{19}{23}\selectfont\color{dark}#3\par}\end{minipage}\hfill
-  \begin{minipage}[c]{\dimexpr0.97\linewidth-#1\linewidth\relax}\RaggedRight #4\end{minipage}\par
-  \smallskip}
 \newcommand{\tabcap}[1]{{\centering\fontsize{19}{23}\selectfont\color{dark}#1\par}\smallskip}
 \setlist{leftmargin=1.3em, itemsep=1mm, topsep=1mm, before=\RaggedRight}
 %% Block bodies default to \large; academic density wants smaller type.
@@ -115,24 +110,26 @@
 }
 
 \block{1\quad Motivation}{\body
-  \sidefig{0.5}{figure_stress_paths.pdf}{Figure 1. Drawdown over 2020 to 2024. Thick lines are
-  five-seed means.}{In the week of 16 March 2020 the S\&P 500 fell about 15\% and the VIX
-  closed at 82.69. An RL allocator trained only for return kept its equities. The same
-  allocator trained with a CVaR budget had already moved into Treasuries and cash, and its
-  drawdown was 7.7\% against 16.3\%. A budget of this kind is usually imposed with a
-  Lagrangian penalty whose weight $\lambda$ grows while the portfolio is over budget [2].
-  Section 4 asks whether $\lambda$ actually grows, and Section 5 asks whether the test used to
-  judge the result can be trusted.}
+  In the week of 16 March 2020 the S\&P 500 fell about 15\% and the VIX closed at 82.69. An RL
+  allocator trained only for return kept its equities. The same allocator trained with a CVaR
+  budget had already moved into Treasuries and cash, and its drawdown was 7.7\% against
+  16.3\% (Fig.~1).
+  \fig[0.62\linewidth]{figure_stress_paths.pdf}
+  \figcap{Figure 1. Drawdown over 2020 to 2024. Thick lines are five-seed means and thin lines
+  individual seeds.}
+  A budget of this kind is usually imposed with a Lagrangian penalty whose weight $\lambda$
+  grows while the portfolio is over budget [2]. Section 4 asks whether $\lambda$ actually
+  grows, and Section 5 asks whether the test used to judge the result can be trusted.
 }
 
 \block{2\quad Problem and measures}{\body
-  \sidefig{0.52}{figure_cvar_tail.pdf}{Figure 2. Weekly returns on the stress window, five
-  seeds pooled. The shaded left tail is the worst 5\% of constrained weeks. Lines sit at
-  minus each allocator's CVaR.}{$\mathrm{CVaR}_\alpha$ is the average loss in the worst
-  $(1-\alpha)$ share of weeks [1]. With $\alpha=0.95$ it averages the worst 5\%, so it
-  measures how large the losses are beyond the Value-at-Risk (VaR) threshold. Pooled over
-  seeds, $\mathrm{CVaR}_{0.95}$ was 1.92\% with the constraint and 3.41\% without (per-seed
-  means 1.89\% and 3.33\%).}
+  $\mathrm{CVaR}_\alpha$ is the average loss in the worst $(1-\alpha)$ share of weeks [1]. With
+  $\alpha=0.95$ it averages the worst 5\%, so it measures how large the losses are beyond the
+  Value-at-Risk (VaR) threshold (Fig.~2).
+  \fig[0.62\linewidth]{figure_cvar_tail.pdf}
+  \figcap{Figure 2. Weekly returns on the 2020 to 2024 stress window, five seeds pooled. The
+  shaded left tail is the worst 5\% of constrained weeks, and each line sits at minus that
+  allocator's CVaR (per-seed means 1.89\% and 3.33\%).}
   Each week the allocator chooses long-only weights $w_t$ on seven ETFs (SPY, TLT, HYG, DBC,
   GLD, UUP, BIL), using 887 weekly returns from 2008 to 2024. The problem is a constrained
   Markov decision process [2],
@@ -204,8 +201,7 @@
       proposal is mixed with the trailing minimum-variance portfolio $w^{\mathrm{MV}}_t$,
       keeping as much of the proposal as the budget allows,
       $s^\ast=\max\{s\in[0,1]:\widehat{\mathrm{CVaR}}(s\tilde w_t+(1-s)w^{\mathrm{MV}}_t)\le
-      d\}$. It is a safety layer in the sense of [3] and uses data up to week $t-1$ only
-      (Fig.~4).
+      d\}$. It is a safety layer in the sense of [3] and uses data up to week $t-1$ only.
     \item \emph{Projection.} $\Pi_{\mathcal W}$ enforces long-only weights, $w_i\le0.40$ and
       $\lVert w_t-w_{t-1}\rVert_1\le0.50$. The market then pays $r_t$ net of a 5\,bps cost
       per unit of turnover.
@@ -219,10 +215,6 @@
       gradient reaches only tail weeks. The kept checkpoint has the best validation objective
       among those within the validation CVaR limit.
   \end{enumerate}
-  \fig[0.84\linewidth]{figure_filter_shrink.pdf}
-  \figcap{Figure 4. The filter on 16 March 2020 for an illustrative equity-heavy proposal.
-  (a) Forecast CVaR along the mixing line, with the budget met at $s^\ast=0.34$. (b) Weights
-  before and after.}
   \tabcap{Table 1. Training and evaluation details.}
   {\centering\fontsize{19}{23}\selectfont\setlength{\tabcolsep}{3mm}
   \renewcommand{\arraystretch}{1.12}
@@ -249,12 +241,13 @@
 %% ===========================================================================
 \column{0.5}
 \block{4\quad Failure 1. The penalty weight never moves}{\body
-  \sidefig{0.56}{figure_lambda_trace.pdf}{Figure 5. The penalty weight $\lambda$ during
-  training, five seeds.}{With a dual step $\eta_\lambda=10^{-3}$, $\lambda$ stayed near zero
-  for all 1500 training updates. The CVaR excess is about $10^{-2}$ per week, so each update
-  moved $\lambda$ by about $10^{-5}$. With $\eta_\lambda=5.0$, $\lambda$ rose to between 0.1
-  and 0.3. A model-free actor-critic failed in the same way when its cost signal (about
-  $10^{-3}$) was left unstandardised next to a unit-scale reward signal.}
+  With a dual step $\eta_\lambda=10^{-3}$, $\lambda$ stayed near zero for all 1500 training
+  updates (Fig.~4). The CVaR excess is about $10^{-2}$ per week, so each update moved
+  $\lambda$ by about $10^{-5}$. With $\eta_\lambda=5.0$, $\lambda$ rose to between 0.1 and
+  0.3. A model-free actor-critic failed in the same way when its cost signal (about
+  $10^{-3}$) was left unstandardised next to a unit-scale reward signal.
+  \fig[0.6\linewidth]{figure_lambda_trace.pdf}
+  \figcap{Figure 4. The penalty weight $\lambda$ during training, five seeds.}
   Tail metrics do not reveal the failure. Even with $\lambda$ near zero, the rest of the
   pipeline (the anchor, the projection and checkpoint selection under the CVaR limit) lowered
   $\mathrm{CVaR}_{99}$ by 61\% against the unconstrained learner (0.025 against 0.065,
@@ -264,50 +257,53 @@
 }
 
 \block{5\quad Failure 2. The test decides the ranking}{\body
-  \sidefig{0.5}{figure_protocol.pdf}{Figure 6. The same four methods ranked by two tests,
-  31-asset universe.}{A walk-forward test retrains the model on a rolling window and evaluates
-  it on the next unseen block. On a 31-asset universe, one fixed stress split ranked the
-  constrained learner above minimum variance (Sharpe 0.85 against 0.23). A 20-fold
-  walk-forward reversed the order (0.74 against 1.40). Ledoit-Wolf shrinkage [5] did not
-  change the split result (0.25). The tail-risk reduction held under both tests.}
+  A walk-forward test retrains the model on a rolling window and evaluates it on the next
+  unseen block. On a 31-asset universe, one fixed stress split ranked the constrained learner
+  above minimum variance (Sharpe 0.85 against 0.23). A 20-fold walk-forward reversed the order
+  (0.74 against 1.40, Fig.~5). Ledoit-Wolf shrinkage [5] did not change the split result
+  (0.25). The tail-risk reduction against unconstrained RL held under both tests.
+  \fig[0.46\linewidth]{figure_protocol.pdf}
+  \figcap{Figure 5. The same four methods ranked by two tests, 31-asset universe.}
   \keynote{Compare learners with optimisers on rolling walk-forward folds and report the
   Deflated Sharpe ratio [4].}
 }
 
 \block{6\quad The filter keeps the portfolio within budget}{\body
-  \sidefig{0.57}{figure_filter_frontier.pdf}{Figure 7. Share of weeks over budget against
-  Sharpe on the stress window. The dashed line is the 5\% tolerance.}{A larger dual step made
-  $\lambda$ move, but the portfolio was then over budget in 75.1\% of test weeks, although
-  classical rules met the same budget in 92\% of weeks. Adding the filter lowered the breach
-  rate to \hl{7.4\%}, with $\mathrm{CVaR}_{99}$ of 0.016 and Sharpe 0.851. Raising $\lambda$
-  during testing without the filter left it at 81.9\%, so the improvement comes from the
-  filter.}
+  A larger dual step made $\lambda$ move, but the portfolio was then over budget in 75.1\% of
+  test weeks. Classical rules met the same budget in 92\% of weeks, so the budget was
+  attainable. Adding the filter lowered the breach rate to \hl{7.4\%} (Table 2). Raising
+  $\lambda$ during testing without the filter left it at 81.9\%, so the improvement comes
+  from the filter.
+  \par\smallskip
+  \tabcap{Table 2. Stress window, five-seed means. Breach is the share of test weeks over
+  budget, with 5\% tolerated.}
+  {\centering\fontsize{19}{23}\selectfont\setlength{\tabcolsep}{4mm}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    variant & Sharpe & $\mathrm{CVaR}_{0.99}$ & breach \\
+    \midrule
+    no constraint & 0.626 & 6.5\% & 100.0\% \\
+    penalty, $\eta_\lambda=0.001$ & 0.987 & 2.5\% & 7.9\% \\
+    penalty, $\eta_\lambda=5.0$ & 0.911 & 2.8\% & 75.1\% \\
+    penalty, $\lambda$ raised during testing & 0.826 & 3.1\% & 81.9\% \\
+    \hl{penalty, $\eta_\lambda=5.0$, with filter} & \hl{0.851} & \hl{1.6\%} & \hl{7.4\%} \\
+    \midrule
+    minimum variance & 0.901 & 4.4\% & 7.9\% \\
+    equal weight & 0.878 & & 62.8\% \\
+    risk parity & 0.677 & & 75.3\% \\
+    \bottomrule
+  \end{tabular}\par}
 }
 
 \block{7\quad Results across tests}{\body
-  We repeated the comparison with and without the constraint in six settings. In a
-  walk-forward test the model is retrained every 26 weeks on the previous six years, validated
-  on the following year and evaluated on the next 26 unseen weeks. This gives 20 test periods
-  (folds) per universe between 2015 and 2024.
-  \par\smallskip
-  \begin{minipage}[c]{0.49\linewidth}\centering
-    \includegraphics[width=\linewidth]{figure_fold_scatter.pdf}
-  \end{minipage}\hfill
-  \begin{minipage}[c]{0.48\linewidth}\RaggedRight
-    Figure 8 plots each of the 40 walk-forward folds as one point.
-    \begin{itemize}
-      \item The horizontal position is $\mathrm{CVaR}_{0.99}$ without the constraint and the
-        vertical position is $\mathrm{CVaR}_{0.99}$ with it.
-      \item A point below the diagonal is a period in which the constraint lowered the tail
-        loss. 26 of the 27 points off the diagonal lie below it.
-      \item Points on the diagonal are periods in which the budget never bound, so both
-        models held the same portfolio.
-      \item The largest reductions came in the first half of 2020.
-    \end{itemize}
-  \end{minipage}
-  \figcap{Figure 8. Walk-forward folds, $\mathrm{CVaR}_{0.99}$ without against with the
-  constraint (log scale).}
-  \tabcap{Table 2. Tail risk with and without the constraint in every test setting.}
+  The walk-forward test retrains every 26 weeks on the previous six years and tests on the
+  next 26 unseen weeks, giving 20 folds per universe from 2015 to 2024. In Figure 6 each fold is
+  one point. Below the diagonal the constraint lowered $\mathrm{CVaR}_{0.99}$. On it the budget
+  never bound, so both models held the same portfolio.
+  \fig[0.42\linewidth]{figure_fold_scatter.pdf}
+  \figcap{Figure 6. Walk-forward folds, $\mathrm{CVaR}_{0.99}$ without against with the
+  constraint (log scale). The largest reductions came in the first half of 2020.}
+  \tabcap{Table 3. Tail risk with and without the constraint in every test setting.}
   {\centering\fontsize{19}{23}\selectfont
   \setlength{\tabcolsep}{3mm}
   \begin{tabular}{@{}llrl@{}}
@@ -328,21 +324,19 @@
   \end{tabular}\par}
   \smallskip
   {\fontsize{19}{23}\selectfont\color{dark}\RaggedRight
-  Fold counts exclude tied folds. Each $p$ is a Wilcoxon signed-rank test on the fold
-  differences $\Delta_k=\mathrm{CVaR}^{\mathrm{con}}_{0.99,k}-\mathrm{CVaR}^{\mathrm{unc}}_{0.99,k}$,
-  with statistic $W^{+}=\sum_{k:\,\Delta_k\neq0}R_k\,\mathbf{1}[\Delta_k>0]$ and $R_k$ the rank
-  of $|\Delta_k|$. Both universes pass a Benjamini-Hochberg correction [6], and averaging the
-  two universes within each calendar fold gives $p=3.3\times10^{-4}$.\par}
-  \medskip
-  Sharpe ratios were less consistent. PSR$(0)$ was at least 0.99 in both universes, but the
-  Sharpe advantage over classical baselines did not survive DSR.
+  Fold counts exclude tied folds. Each $p$ is a Wilcoxon signed-rank test on
+  $\Delta_k=\mathrm{CVaR}^{\mathrm{con}}_{0.99,k}-\mathrm{CVaR}^{\mathrm{unc}}_{0.99,k}$, with
+  $W^{+}=\sum_{k:\,\Delta_k\neq0}R_k\,\mathbf{1}[\Delta_k>0]$ and $R_k$ the rank of
+  $|\Delta_k|$. Both universes pass Benjamini-Hochberg [6]. Calendar-clustered
+  $p=3.3\times10^{-4}$. PSR$(0)\ge0.99$ in both, but the Sharpe edge over classical baselines
+  did not survive DSR.\par}
 }
 
 \block{8\quad Conclusion}{\body
-  The constraint lowered tail risk in a way that survived multiple-testing correction, and
-  the filter achieved the out-of-sample compliance that rescaling the dual did not. The
-  learner did not beat rolling minimum variance on Sharpe out of sample. The study uses weekly
-  data with proportional costs, and the Gaussian forecast can understate fat tails.
+  The constraint lowered tail risk in a way that survived multiple-testing correction, and the
+  filter achieved the out-of-sample compliance that rescaling the dual did not. The learner did
+  not beat rolling minimum variance on Sharpe out of sample. The study uses weekly data with
+  proportional costs, and the Gaussian forecast can understate fat tails.
   \par\medskip
   \begin{minipage}[c]{0.85\linewidth}\RaggedRight\fontsize{16}{19.5}\selectfont\color{dark}
     \textbf{References.}
