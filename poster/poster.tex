@@ -65,7 +65,7 @@
 \newcommand{\tabcap}[1]{{\centering\fontsize{19}{23}\selectfont\color{dark}#1\par}\smallskip}
 \setlist{leftmargin=1.3em, itemsep=1mm, topsep=1mm, before=\RaggedRight}
 %% Block bodies default to \large; academic density wants smaller type.
-\newcommand{\body}{\fontsize{22.5}{28}\selectfont\setlength{\parskip}{0.4em}}
+\newcommand{\body}{\fontsize{21.5}{26.5}\selectfont\setlength{\parskip}{0.4em}}
 \renewcommand{\arraystretch}{1.05}
 
 \newcommand{\repourl}{https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator}
@@ -73,11 +73,11 @@
 %% ---------------------------------------------------------------------------
 \settitle{%
   \begin{minipage}[c]{0.14\linewidth}\centering
-    \includegraphics[height=50mm]{logos/mafn.png}\par\vspace{5mm}
-    \includegraphics[height=60mm]{logos/unsw.png}
+    \includegraphics[height=44mm]{logos/mafn.png}\par\vspace{4mm}
+    \includegraphics[height=52mm]{logos/unsw.png}
   \end{minipage}\hfill
   \begin{minipage}[c]{0.70\linewidth}\centering\color{white}
-    {\fontsize{64}{76}\selectfont\bfseries Making Tail Constraints Bind: Two Silent Failure
+    {\fontsize{58}{69}\selectfont\bfseries Making Tail Constraints Bind: Two Silent Failure
       Modes in CVaR-Constrained Portfolio RL\par}
     \vspace{9mm}
     {\LARGE Nigel Li$^{1,2}$\qquad Yutong Han$^{1}$\par}
@@ -90,7 +90,7 @@
   \end{minipage}}
 
 \begin{document}
-\maketitle[innersep=11mm, titletoblockverticalspace=8mm]
+\maketitle[innersep=9mm, titletoblockverticalspace=6mm]
 
 \begin{columns}
 %% ===========================================================================
@@ -125,7 +125,7 @@
   $\mathrm{CVaR}_\alpha$ is the average loss in the worst $(1-\alpha)$ share of weeks [1].
   With $\alpha=0.95$ it averages the worst 5\%. It looks only at losses, and it measures how
   large they are beyond the Value-at-Risk (VaR) threshold (Fig.~2).
-  \fig[0.72\linewidth]{figure_cvar_tail.pdf}
+  \fig[0.66\linewidth]{figure_cvar_tail.pdf}
   \figcap{Figure 2. Weekly losses of the two allocators on the 2020 to 2024 stress window.
   CVaR is the mean of the losses to the right of VaR.}
   Each week the allocator chooses long-only weights $w_t$ on seven ETFs (SPY, TLT, HYG, DBC,
@@ -139,7 +139,26 @@
   The data are 887 weekly returns from 2008 to 2024. Models train on 2008 to 2018 and are
   tested on the 267 weeks that include the 2020 crash and the 2022 selloff. A test week is a
   breach when the trailing 52-week $\mathrm{CVaR}_{0.95}$ exceeds $d$, and up to 5\% of weeks
-  may breach.
+  may breach. All measures use weekly net returns $r_1,\dots,r_T$ and wealth
+  $W_t=\prod_{u\le t}(1+r_u)$,
+  \begin{align*}
+    \mathrm{Sharpe}&=\sqrt{52}\;\bar r/s_r, &
+    \mathrm{MDD}&=\max_t\big(1-W_t/\textstyle\max_{u\le t}W_u\big),\\
+    \widehat{\mathrm{CVaR}}_\alpha(r)&=-\operatorname{mean}\{r_t:\ r_t\le\hat q_{1-\alpha}(r)\}, &
+    B&=\tfrac{1}{|\mathcal{T}|}\textstyle\sum_{t\in\mathcal{T}}
+      \mathbf{1}\big[\widehat{\mathrm{CVaR}}_{0.95}(r_{t-52:t-1})>d\big],
+  \end{align*}
+  where $\hat q_{1-\alpha}$ is the empirical $(1-\alpha)$ quantile and $B$ is the breach rate
+  over the test weeks $\mathcal{T}$. Sharpe significance uses the Probabilistic and Deflated Sharpe ratios [4], with per-week
+  $\widehat{SR}$, skewness $\hat\gamma_3$, kurtosis $\hat\gamma_4$ and $N$ configurations
+  tried,
+  \[
+    \mathrm{PSR}(SR^\ast)=\Phi\!\left(\frac{(\widehat{SR}-SR^\ast)\sqrt{T-1}}
+      {\sqrt{1-\hat\gamma_3\widehat{SR}+\frac{\hat\gamma_4-1}{4}\widehat{SR}^{2}}}\right),\qquad
+    SR^\ast_{\mathrm{DSR}}=\hat\sigma_{SR}\Big[(1-\gamma)\Phi^{-1}\big(1-\tfrac1N\big)
+      +\gamma\,\Phi^{-1}\big(1-\tfrac{1}{Ne}\big)\Big],
+  \]
+  where $\gamma$ is the Euler-Mascheroni constant.
 }
 
 \block{3\quad Method}{\body
@@ -188,7 +207,7 @@
     s^\ast=\max\big\{s\in[0,1]:\ \widehat{\mathrm{CVaR}}\big(s\,\tilde w_t+(1-s)\,
       w^{\mathrm{MV}}_t\big)\le d\big\}.
   \]
-  \fig[0.98\linewidth]{figure_filter_shrink.pdf}
+  \fig[0.92\linewidth]{figure_filter_shrink.pdf}
   \figcap{Figure 4. The filter on 16 March 2020 for an illustrative equity-heavy proposal,
   using the trailing ETF data. (a) Forecast CVaR along the mixing line. The budget is met at
   $s^\ast=0.34$. (b) Weights before and after.}
@@ -204,7 +223,7 @@
   $\lambda$ by about $10^{-5}$. With $\eta_\lambda=5.0$, $\lambda$ rose to between 0.1 and
   0.3. A model-free actor-critic failed in the same way when its cost signal (about
   $10^{-3}$) was left unstandardised next to a unit-scale reward signal.
-  \fig[0.76\linewidth]{figure_lambda_trace.pdf}
+  \fig[0.68\linewidth]{figure_lambda_trace.pdf}
   \figcap{Figure 5. The penalty weight $\lambda$ during training, five seeds.}
   Tail metrics do not reveal the failure. Even with $\lambda$ near zero, the rest of the
   pipeline (the anchor, the projection and checkpoint selection under the CVaR limit) lowered
@@ -221,7 +240,7 @@
   walk-forward reversed the order (0.74 against 1.40, Fig.~6). Ledoit-Wolf shrinkage [5] did
   not change the split result (0.25). The tail-risk reduction against unconstrained RL held
   under both tests (Wilcoxon $p=6\times10^{-4}$).
-  \fig[0.58\linewidth]{figure_protocol.pdf}
+  \fig[0.48\linewidth]{figure_protocol.pdf}
   \figcap{Figure 6. The same four methods ranked by two tests, 31-asset universe.}
   \keynote{Compare learners with optimisers on rolling walk-forward folds and report the
   Deflated Sharpe ratio [4].}
@@ -229,18 +248,23 @@
 
 \block{6\quad The filter keeps the portfolio within budget}{\body
   A larger dual step made $\lambda$ move, but the portfolio was then over budget in 75.1\% of
-  test weeks. Classical rules met the same budget in 92\% of weeks, so the budget was
-  attainable. Adding the filter lowered the breach rate to \hl{7.4\%}, with
-  $\mathrm{CVaR}_{99}$ of 0.016 and Sharpe 0.851 (Fig.~7). A control that raised $\lambda$
-  during testing without the filter stayed at 81.9\%, so the improvement comes from the
-  filter.
-  \fig[0.72\linewidth]{figure_filter_frontier.pdf}
+  test weeks, although classical rules met the same budget in 92\% of weeks. Adding the filter
+  lowered the breach rate to \hl{7.4\%}, with $\mathrm{CVaR}_{99}$ of 0.016 and Sharpe 0.851
+  (Fig.~7). Raising $\lambda$ during testing without the filter left it at 81.9\%.
+  \fig[0.62\linewidth]{figure_filter_frontier.pdf}
   \figcap{Figure 7. Share of weeks over budget against Sharpe on the stress window. The
   dashed line is the 5\% tolerance.}
 }
 
 \block{7\quad Results across tests}{\body
-  \begin{minipage}[t]{0.47\linewidth}\centering\fontsize{19}{23}\selectfont
+  For walk-forward fold $k$ let $\Delta_k=\mathrm{CVaR}^{\mathrm{con}}_{0.99,k}-
+  \mathrm{CVaR}^{\mathrm{unc}}_{0.99,k}$. The Wilcoxon signed-rank test uses
+  $W^{+}=\sum_{k:\,\Delta_k\neq0}R_k\,\mathbf{1}[\Delta_k>0]$, where $R_k$ is the rank of
+  $|\Delta_k|$ among non-zero differences, so tied folds drop out.
+  \fig[0.92\linewidth]{figure_fold_strip.pdf}
+  \figcap{Figure 8. $\Delta_k$ for all 40 folds. In a tied fold the budget never binds. Pooled,
+  26 of 27 untied folds are lower ($p=8.8\times10^{-6}$), and calendar-clustered $p=3.3\times10^{-4}$.}
+  \begin{minipage}[c]{0.47\linewidth}\centering\fontsize{19}{23}\selectfont
     \tabcap{Table 1. Stress window, mean over 5 seeds.}
     \setlength{\tabcolsep}{2.5mm}
     \begin{tabular}{@{}lrrr@{}}
@@ -249,35 +273,23 @@
       \midrule
       Sharpe & $0.63\pm0.09$ & $0.88\pm0.04$ & $+40\%$ \\
       Sortino & 0.61 & 0.87 & $+44\%$ \\
-      max drawdown & 0.206 & 0.118 & $-43\%$ \\
+      MDD & 0.206 & 0.118 & $-43\%$ \\
       $\mathrm{CVaR}_{95}$ & 0.0333 & 0.0189 & $-43\%$ \\
       $\mathrm{CVaR}_{99}$ & 0.0647 & 0.0327 & $-49\%$ \\
       violations per run & 7.2 & 0.0 & $-100\%$ \\
       \bottomrule
     \end{tabular}
   \end{minipage}\hfill
-  \begin{minipage}[t]{0.5\linewidth}\centering\fontsize{19}{23}\selectfont
-    \tabcap{Table 2. $\mathrm{CVaR}_{99}$ over 26-week walk-forward folds.}
-    \setlength{\tabcolsep}{2.5mm}
-    \begin{tabular}{@{}lrrr@{}}
-      \toprule
-      universe & folds & lower & Wilcoxon $p$ \\
-      \midrule
-      macro ETF (7) & 20 & 9 (11 tied) & 0.0077 \\
-      sector ETF (10) & 20 & 17 & 0.0003 \\
-      \hl{pooled} & \hl{40} & \hl{26 of 27} & \hl{$8.8\times10^{-6}$} \\
-      calendar clusters & 20 & & $3.3\times10^{-4}$ \\
-      \bottomrule
-    \end{tabular}
+  \begin{minipage}[c]{0.5\linewidth}\RaggedRight
+    The stress-window reduction in $\mathrm{CVaR}_{99}$ has a 95\% BCa interval of
+    $[-0.035,\,-0.022]$ and replicates on sector ETFs (30\% lower at unchanged Sharpe). Both
+    universes pass a Benjamini-Hochberg correction [6]. Against minimum variance the
+    constrained policy did better in high-volatility weeks (Sharpe 2.169 against 1.668) and
+    worse in selloffs ($-0.809$ against 0.035).
   \end{minipage}
   \par\medskip\RaggedRight
-  A tied fold is one where the budget never binds, so both learners hold the same portfolio.
-  The stress-window reduction in $\mathrm{CVaR}_{99}$ has a 95\% BCa interval of
-  $[-0.035,\,-0.022]$, and it replicates on sector ETFs (30\% lower at unchanged Sharpe). Both
-  universes pass a Benjamini-Hochberg correction [6]. The Sharpe advantage over classical
-  baselines does not survive the Deflated Sharpe ratio [4]. In high-volatility weeks the
-  constrained policy beat minimum variance (Sharpe 2.169 against 1.668), and in selloffs it
-  did not ($-0.809$ against 0.035).
+  PSR$(0)$ (Section 2) was at least 0.99 on both universes, but the Sharpe advantage over
+  classical baselines did not survive DSR.
 }
 
 \block{8\quad Conclusion}{\body

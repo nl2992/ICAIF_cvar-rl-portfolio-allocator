@@ -11,6 +11,10 @@ figure_filter_shrink  The decision-time filter on one real decision (the week of
                       crlpa.training.risk_filter.precompute_filter_state on
                       data/processed/aligned_portfolio_panel_etf.parquet.
 
+figure_fold_strip     Fold-by-fold change in CVaR_0.99 (constrained minus
+                      unconstrained) over the 20 walk-forward folds of each
+                      universe. Data: results/tables_stats/folds_{etf7,sector10}.csv.
+
 The proposal in figure_filter_shrink is an illustrative equity-heavy portfolio
 at the weight cap, since per-week actor weights are not stored.
 
@@ -29,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _paper_style as ps  # noqa: E402
 from _paper_style import plt  # noqa: E402
 
+from crlpa.evaluation.metrics import cvar, value_at_risk  # noqa: E402
 from crlpa.training.risk_filter import gaussian_cvar_multiplier, precompute_filter_state  # noqa: E402
 
 OUT = ("poster/figures",)
@@ -38,10 +43,8 @@ PROPOSAL = {"SPY": 0.40, "HYG": 0.30, "DBC": 0.20, "GLD": 0.10}
 
 
 def tail_stats(loss: np.ndarray, alpha: float = ALPHA) -> tuple[float, float]:
-    var = np.quantile(loss, alpha)
-    k = int(np.ceil((1 - alpha) * len(loss)))
-    cvar = np.sort(loss)[-k:].mean()
-    return var, cvar
+    """VaR and CVaR of a loss series, with the evaluation code's estimators."""
+    return value_at_risk(-loss, alpha), cvar(-loss, alpha)
 
 
 def cvar_tail() -> None:
@@ -141,6 +144,53 @@ def filter_shrink() -> None:
     ps.save(fig, "figure_filter_shrink", dirs=OUT)
 
 
+TIE_TOL = 1e-12  # as in scripts/cr_fold_stats.py: a tie means the budget never bound
+UNIVERSES = (("etf7", "macro ETF (7 assets)", "Wilcoxon $p=0.0077$"),
+             ("sector10", "sector ETF (10 assets)", "Wilcoxon $p=0.0003$"))
+
+
+def fold_strip() -> None:
+    ps.apply()
+    fig, axes = plt.subplots(2, 1, figsize=(5.4, 2.1), sharex=True, sharey=True)
+    lo = 0.0
+    for ax, (key, name, test) in zip(axes, UNIVERSES):
+        d = pd.read_csv(f"results/tables_stats/folds_{key}.csv").sort_values("fold")
+        k = d.fold.to_numpy() + 1
+        delta = 100 * (d.cvar99_con - d.cvar99_unc).to_numpy()
+        lo = min(lo, delta.min())
+        lower, tied = delta < -100 * TIE_TOL, np.abs(delta) <= 100 * TIE_TOL
+        higher = ~lower & ~tied
+        ax.axhline(0, color=ps.INK, lw=0.6, zorder=1)
+        ax.vlines(k[~tied], 0, delta[~tied], color=ps.MID, lw=0.8, zorder=2)
+        ax.scatter(k[lower], delta[lower], s=16, marker="o", facecolor=ps.ACCENT, edgecolor=ps.INK,
+                   linewidth=0.4, zorder=3)
+        ax.scatter(k[higher], delta[higher], s=16, marker="^", facecolor=ps.LIGHT, edgecolor=ps.INK,
+                   linewidth=0.4, zorder=3)
+        ax.scatter(k[tied], delta[tied], s=14, marker="o", facecolor="white", edgecolor=ps.DARK,
+                   linewidth=0.6, zorder=3)
+        summary = (f"{name}: {lower.sum()} lower, {tied.sum()} tied, {higher.sum()} higher, "
+                   f"mean {delta.mean():+.2f} pp, {test}").replace("-0.", "−0.")
+        ax.set_title(summary, fontsize=6.5, loc="left", pad=2)
+        ax.grid(axis="y", color=ps.GRID, lw=0.5)
+        print(key, summary.replace("−", "-"))  # cp1252 consoles cannot print U+2212
+    axes[0].set_ylim(lo * 1.15, 0.6)
+    axes[1].set_xticks(np.arange(1, 21), [str(i) if i % 2 else "" for i in range(1, 21)])
+    axes[1].set_xlim(0.4, 20.6)
+    axes[1].set_xlabel("walk-forward fold (chronological 26-week test blocks)")
+    fig.supylabel(r"$\Delta\,\mathrm{CVaR}_{0.99}$ (pp)", fontsize=7.5, x=0.01)
+    handles = [plt.Line2D([0], [0], marker=m, ls="none", markersize=3.6, markerfacecolor=f,
+                          markeredgecolor=ps.INK, markeredgewidth=0.5) for m, f in
+               (("o", ps.ACCENT), ("o", "white"), ("^", ps.LIGHT))]
+    fig.legend(handles, ["constraint lowered the tail", "tie (budget never bound)", "constraint raised it"],
+               loc="lower center", ncol=3, bbox_to_anchor=(0.55, -0.02), handletextpad=0.3,
+               columnspacing=1.4)
+    fig.tight_layout(pad=0.3, h_pad=0.6, rect=(0.02, 0.07, 1, 1))
+    issues = ps.check_layout(fig)
+    print("fold_strip layout issues:", issues or "none")
+    ps.save(fig, "figure_fold_strip", dirs=OUT)
+
+
 if __name__ == "__main__":
     cvar_tail()
     filter_shrink()
+    fold_strip()
