@@ -308,14 +308,12 @@ and tail set $\mathcal{T}=\{t \mid r_t \text{ among the worst } \lceil(1-\alpha)
 where $\partial w_t/\partial\theta$ flows through the residual softmax
 (below). The \texttt{topk} subgradient in~\eqref{eq:grad} sends the dual pressure to exactly the
 worst-$(1-\alpha)$ weeks, and only while the constraint is breached. The penalty therefore
-pushes up the worst weeks and leaves the rest of the path largely alone. This is why the
-constraint binds cleanly once the dual is correctly scaled (Section~\ref{sec:coupling}).
+pushes up the worst weeks and leaves the rest of the path largely alone. So the constraint binds once the dual is correctly scaled (Section~\ref{sec:coupling}).
 
 \paragraph{Residual policy over an adaptive anchor} To generalise across regimes
 rather than overfit one price path, the weights are $w_t = \mathrm{softmax}(\log a_t +
 f_\theta(s_t))$, where $a_t$ is an adaptive inverse-volatility anchor computed from
-recent returns. At initialisation $f_\theta \approx 0$, so the policy starts as the anchor,
-a strong and regime-robust prior, and training then learns a state-dependent tilt. Two choices curb backtest overfitting. Model selection keeps the checkpoint with the best validation
+recent returns. At initialisation $f_\theta \approx 0$, so the policy starts as the anchor, a regime-robust prior, and training then learns a state-dependent tilt. Two choices curb backtest overfitting. Model selection keeps the checkpoint with the best validation
 objective among those that satisfy the validation CVaR limit, and weight decay is applied.
 
 \paragraph{Baselines} The deterministic baselines are cash, equal weight, inverse
@@ -387,8 +385,7 @@ $\lambda$ by roughly $10^{-5}$, and 1500 updates are not enough. The model-free 
 failed in the same way, through its \emph{advantages} (how much better an action did
 than the critic expected). Its reward advantage was standardised to unit scale while its cost advantage stayed at about $10^{-3}$, so the constrained and unconstrained
 agents trained identically. After we standardised the cost advantage and drove the dual with a
-breach indicator, $\lambda$ rose to $O(1)$. A simple check follows. If $\lambda$ stays at zero
-throughout training, the constraint has no effect, whatever the loss curve looks like.\looseness=-1
+breach indicator, $\lambda$ rose to $O(1)$. As a check, if $\lambda$ stays at zero throughout training, the constraint has no effect, whatever the loss curve looks like.\looseness=-1
 
 \begin{figure}[t]
   \centering
@@ -456,8 +453,7 @@ the improvement in A6 is due to the filter. A8 pairs the filter with the adaptiv
 recovers most of the compliance ($14.6\%$), though less reliably, ranging from $7$ to $33\%$ across seeds,
 whereas A5 and A6 do not vary between seeds.\looseness=-1
 
-The filtered arms hold low-volatility portfolios, but they do not simply reproduce minimum
-variance. A5's weights are a mean $L_1$ distance of $0.476$ from rolling minimum variance, with
+The filtered arms hold low-volatility portfolios that differ measurably from minimum variance. A5's weights are a mean $L_1$ distance of $0.476$ from rolling minimum variance, with
 correlation $0.786$ and a different top holding in $9.4\%$ of rebalances, against $0.890$,
 $0.201$ and $97.5\%$ for the unfiltered scaled dual. In that region, A5 beats minimum variance on
 both axes, with higher Sharpe at an equal breach rate and half the breach depth, and A6 has a
@@ -521,7 +517,7 @@ Deflated Sharpe.\looseness=-1
 For the cross-universe significance test (Section~\ref{sec:significance}) we add a
 second universe of ten S\&P sector ETFs (XLK, XLF, XLE, XLV, XLY, XLP, XLU, XLI, XLB,
 plus a BIL cash leg), identical in every other respect (same provider, clock, window
-and cost). The two universes therefore share a calendar, and
+and cost). The two universes share a calendar, and
 Section~\ref{sec:significance} clusters their folds accordingly. For the evaluation-protocol
 experiment (Section~\ref{sec:protocol}) we add a third universe of 31
 cross-asset, sector, and industry ETFs (4 broad equity, 9 S\&P sectors, 7 industry,
@@ -610,7 +606,7 @@ $p=8.8\times10^{-6}$ (Section~\ref{sec:significance}).
 The constrained policy does best relative to minimum variance in high-volatility periods
 ($n{=}71$), with Sharpe $2.169$ versus $1.668$ and CVaR$_{99}$ within $0.012$ of minimum variance's
 floor. In calm markets ($n{=}388$) and selloffs ($n{=}61$), minimum variance dominates (selloff
-Sharpe $0.035$ vs.\ constrained RL $-0.809$). The overlay therefore adds value when volatility is
+Sharpe $0.035$ vs.\ constrained RL $-0.809$). The overlay adds value when volatility is
 elevated but has not collapsed into a full drawdown, and stops adding value once liquidity
 deteriorates. The constraint still cuts tail risk relative to unconstrained RL in all three
 regimes ($-29.1\%$ calm, $-20.7\%$ high-vol, $-27.4\%$ selloff), which suggests that the
@@ -667,8 +663,7 @@ gives Wilcoxon $p=8.8\times10^{-6}$ and a bootstrap 95\,\% CI of $[-0.0089,\,-0.
 mean fold difference, and 26 of the 27 untied folds improve (sign test on directions only,
 $p=4\times10^{-7}$).\looseness=-1
 
-The two universes share a calendar, so their folds are not independent. We therefore also
-average their differences within each calendar fold. The 20 resulting clusters give Wilcoxon
+The two universes share a calendar, so their folds are not independent. We also average their differences within each calendar fold. The 20 resulting clusters give Wilcoxon
 $p=3.3\times10^{-4}$ (exact sign-flip test $p=3.8\times10^{-5}$), and moving-block bootstrap intervals, which
 resample runs of consecutive clusters to keep time order, exclude zero. The Probabilistic Sharpe Ratio~\cite{bailey2012sharpe} (the
 probability that the true Sharpe is above zero) of the constrained allocator is $\geq 0.99$ on
@@ -715,7 +710,7 @@ Ablations show a consistent pattern (Figure~\ref{fig:hero}, right, with 3-seed m
 $1.92\%$) through base ($1.2\%$) to tight ($\alpha=0.99$ or $0.72\%$) improves CVaR$_{99}$ and
 Sharpe together at every step. The tightest configuration reaches Sharpe~$1.27$ and
 CVaR$_{99}=1.4\%$, above minimum variance on the same window (Sharpe~0.90, CVaR$_{99}=4.4\%$)
-and competitive with its walk-forward Sharpe of~1.45. Tighter risk limits usually cost return. Here they help, because the constraint acts only on the worst weeks, through its tail-only gradient and tighter checkpoint selection, and so removes the
+and competitive with its walk-forward Sharpe of~1.45. Here tighter limits also raise return, which risk limits usually do not, because the constraint acts only on the worst weeks, through its tail-only gradient and tighter checkpoint selection, and so removes the
 largest losses while leaving most of the return distribution unchanged. Against the base
 configuration (Sharpe $0.865$, CVaR$_{99}$ $0.0301$, max-DD $0.111$), removing the anchor gives $0.826$, $0.0318$ and $0.108$, and $\alpha=0.90$ gives $0.684$, $0.0452$ and $0.172$. A Sharpe objective gives $0.791$, $0.0273$ and $0.108$, the loose budget $0.515$, $0.0493$ and $0.230$, $\alpha=0.99$ gives $1.251$, $0.0146$ and $0.053$, and the tighter budget $1.272$, $0.0135$ and $0.041$.\looseness=-1
 
@@ -806,7 +801,7 @@ walk-forward (OOS) & 1.40 & 0.78 & 0.74 & 0.56 \\
 unfiltered learner is far from it. Its mean per-rebalance $L_1$ weight distance to the
 rolling min-variance path is $0.89$ (of a maximum $2.0$), with correlation $0.20$ and a
 different top-weighted asset in $97\%$ of weeks. The similarity suggested by the tightest
-ablation (Figure~\ref{fig:hero}, right) is therefore in aggregate risk statistics and does not
+ablation (Figure~\ref{fig:hero}, right) is in aggregate risk statistics and does not
 extend to holdings. The filtered arms are closer ($L_1$ $0.48$ to $0.61$, correlation $0.72$ to
 $0.79$). They achieve compliance partly by holding low-volatility portfolios, and from there
 they improve on minimum variance in breach depth, and A5 also in Sharpe
