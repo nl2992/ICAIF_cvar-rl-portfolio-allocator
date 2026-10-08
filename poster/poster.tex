@@ -1,0 +1,260 @@
+%% ICAIF '26 poster for "Making Tail Constraints Bind" (paper 873).
+%% A0 portrait (84.1 x 118.9 cm), as required by the organisers.
+%% Style follows the Columbia MAFN posters: full-width navy title banner with
+%% logos, two plain columns, centred bold section headings, sans-serif text.
+%% Build: cd poster && latexmk -pdf poster.tex
+%% Figures are the paper's vector PDFs. Logos are picked up from
+%% logos/{columbia,unsw,icaif}.{pdf,png} and fall back to a labelled box.
+\documentclass[25pt, a0paper, portrait, margin=0mm, innermargin=25mm,
+  blockverticalspace=10mm, colspace=25mm, subcolspace=8mm]{tikzposter}
+
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage[scaled=0.95]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{sfmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{qrcode}
+\usepackage{fontawesome5}
+\usepackage{enumitem}
+\usepackage{ragged2e}
+\usetikzlibrary{arrows.meta, positioning, calc}
+\graphicspath{{../paper/figures/}{logos/}}
+
+%% ---------------------------------------------------------------------------
+%% Palette. Navy matches scripts/_paper_style.py; the banner is a shade deeper.
+\definecolor{ink}{HTML}{222222}
+\definecolor{navy}{HTML}{2F4B7C}
+\colorlet{banner}{navy!80!black}
+\definecolor{dark}{HTML}{4D4D4D}
+\definecolor{mid}{HTML}{8C8C8C}
+\colorlet{tint}{navy!7}
+
+\usetheme{Default}
+\usetitlestyle{Filled}
+\colorlet{backgroundcolor}{white}
+\colorlet{framecolor}{white}
+\colorlet{titlefgcolor}{white}
+\colorlet{titlebgcolor}{banner}
+\colorlet{blocktitlebgcolor}{white}
+\colorlet{blocktitlefgcolor}{navy}
+\colorlet{blockbodybgcolor}{white}
+\colorlet{blockbodyfgcolor}{ink}
+
+%% Sections: centred bold heading, no frame or fill.
+\defineblockstyle{Plain}{
+  titlewidthscale=1, bodywidthscale=1, titlecenter,
+  titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0pt, bodyoffsety=0pt,
+  bodyverticalshift=0pt, roundedcorners=0, linewidth=0pt,
+  titleinnersep=3mm, bodyinnersep=3mm
+}{}
+\useblockstyle{Plain}
+\tikzposterlatexaffectionproofoff
+
+%% ---------------------------------------------------------------------------
+\newcommand{\hl}[1]{\textcolor{navy}{\textbf{#1}}}
+\newcommand{\logo}[3]{% file, height, colour of the placeholder
+  \IfFileExists{logos/#1.pdf}{\includegraphics[height=#2]{logos/#1.pdf}}{%
+  \IfFileExists{logos/#1.png}{\includegraphics[height=#2]{logos/#1.png}}{%
+  \tikz\node[draw=#3, dashed, line width=1mm, minimum height=#2, minimum width=#2,
+    text=#3, font=\normalsize, align=center]{#1\\logo};}}}
+\newcommand{\iconitem}[1]{\hangindent=1.5em\hangafter=1\noindent
+  \makebox[1.5em][l]{\textcolor{navy}{\faCheckSquare[regular]}}#1}
+\newcommand{\diag}[1]{\par\smallskip\noindent{\setlength{\fboxsep}{5mm}\colorbox{tint}{%
+  \begin{minipage}{\dimexpr\linewidth-10mm}\RaggedRight\iconitem{#1}\end{minipage}}}\par}
+\newcommand{\fig}[2][0.78\linewidth]{\par\medskip{\centering
+  \includegraphics[width=#1]{#2}\par}}
+\newcommand{\figcap}[1]{{\centering\small\color{dark}#1\par}\medskip}
+\setlist{leftmargin=1.1em, itemsep=2mm, topsep=2mm, label=\textcolor{navy}{\textbullet},
+  before=\RaggedRight}
+\setlength{\parskip}{0.45em}
+%% Block bodies default to \large; set them one step down for this text density.
+\newcommand{\body}{\fontsize{27.5}{34}\selectfont\setlength{\parskip}{0.45em}}
+
+\newcommand{\repourl}{https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator}
+
+%% ---------------------------------------------------------------------------
+\settitle{%
+  \begin{minipage}[c]{0.14\linewidth}\centering
+    \logo{columbia}{52mm}{white}\par\vspace{1mm}
+    {\color{white}\Large\bfseries MAFN\par}\vspace{5mm}
+    \logo{unsw}{52mm}{white}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.70\linewidth}\centering\color{white}
+    {\fontsize{70}{84}\selectfont\bfseries Making Tail Constraints Bind: Two Silent Failure
+      Modes in CVaR-Constrained Portfolio RL\par}
+    \vspace{10mm}
+    {\LARGE Nigel Li$^{1,2}$\qquad Yutong Han$^{2}$\par}
+    \vspace{4mm}
+    {\large\itshape $^1$University of New South Wales, Sydney\qquad
+      $^2$Columbia University, New York City\par}
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.14\linewidth}\centering
+    \colorbox{white}{\logo{icaif}{80mm}{mid}}
+  \end{minipage}}
+
+\begin{document}
+\maketitle[innersep=14mm, titletoblockverticalspace=14mm]
+
+\begin{columns}
+%% ===========================================================================
+\column{0.5}
+\block{Abstract}{\body
+  A portfolio allocator trained by reinforcement learning (RL) to maximise return has no reason
+  to avoid large losses. The usual safeguard caps Conditional Value-at-Risk (CVaR), the average
+  loss in the worst weeks, through a Lagrangian penalty. We show that this safeguard can fail
+  silently in two ways. When the penalty and the reward sit on different scales, the penalty
+  weight stays at zero and the budget is never enforced, even as tail metrics improve. And the
+  evaluation protocol can decide the winner, since a single stress window and a rolling
+  walk-forward rank the same methods in opposite orders. We add a decision-time filter that
+  moves each portfolio toward minimum variance when its forecast CVaR exceeds the budget. It
+  cuts the out-of-sample breach rate from \hl{75.1\% to 7.4\%}, and across a 40-fold,
+  two-universe walk-forward the tail-risk reduction is significant
+  (\hl{26 of 27} untied folds, $p=8.8\times10^{-6}$).
+}
+
+\block{Problem Setup}{\body
+  Each week the agent splits capital across seven macro ETFs (SPY, TLT, HYG, DBC, GLD, UUP,
+  BIL), long-only with max weight 0.40, turnover cap 0.50 and a 5\,bps proportional cost.
+  The data are 887 weekly returns from 2008 to 2024. $\mathrm{CVaR}_{0.95}$ is the mean loss
+  in the worst 5\% of weeks, and the budget is $d=1.2\%$. The policy is trained by
+  back-propagating through the portfolio return itself,
+  \[
+    \mathcal{L} = -\mathrm{Sharpe} + \lambda\,\mathrm{ReLU}\big(\widehat{\mathrm{CVaR}}-d\big)
+      + \kappa\,\mathrm{turnover},\qquad
+    \lambda \leftarrow \max\{0,\ \lambda + \eta_\lambda(\widehat{\mathrm{CVaR}}-d)\}.
+  \]
+  \vspace{2mm}
+  \centering
+  \begin{tikzpicture}[
+      box/.style={draw=dark, line width=1.2mm, rounded corners=3mm, align=center,
+        text width=100mm, minimum height=50mm, inner sep=4mm, font=\normalsize, fill=white},
+      ours/.style={box, draw=navy, fill=tint, line width=2mm},
+      arr/.style={-{Latex[length=9mm, width=9mm]}, line width=1.6mm, color=dark},
+      node distance=18mm and 16mm]
+    \node[box] (s) {\textbf{State $s_t$}\\ momentum, volatility, weights, drawdown, CVaR};
+    \node[box, right=of s] (a) {\textbf{Residual actor}\\
+      $w=\mathrm{softmax}(\log a_t + f_\theta(s_t))$, $a_t$ inverse-vol anchor};
+    \node[ours, right=of a] (f) {\textbf{\color{navy}CVaR filter (ours)}\\
+      if $c_\alpha\sigma_p-\mu_p>d$:\\ $w \leftarrow s\,w + (1-s)\,w^{\mathrm{MV}}$};
+    \node[box, below=of f] (p) {\textbf{Projection}\\ weight cap, turnover cap, long-only};
+    \node[box, below=of a] (m) {\textbf{Market}\\ $r_t = w_t^{\top}\rho_t - c\lVert\Delta w_t\rVert_1$};
+    \draw[arr] (s) -- (a);
+    \draw[arr] (a) -- (f);
+    \draw[arr] (f) -- (p);
+    \draw[arr] (p) -- (m);
+    \draw[arr, color=mid, dashed] (m.north) -- node[left, font=\small, text=dark,
+      align=right] {exact gradient\\ to $\theta$} (a.south);
+  \end{tikzpicture}
+  \par\RaggedRight\smallskip
+  {\small\color{dark} The filter forecasts CVaR from the trailing 104 weeks ($c_{0.95}=2.06$)
+  and keeps the largest $s$ that clears $d$. It uses only data up to $t-1$, and a
+  shifted-returns test confirms no look-ahead.\par}
+}
+
+\block{Why a Tail Limit}{\body
+  In the week of 16 March 2020 the S\&P 500 fell about 15\% and the VIX closed at 82.69. An
+  allocator trained only for return kept holding equities. An identical allocator with a CVaR
+  limit had already rotated into Treasuries and cash, and lost about half as much
+  (\hl{7.7\% vs 16.3\%} drawdown).
+  \fig[0.9\linewidth]{figure_stress_paths.pdf}
+  \figcap{Figure 1. Drawdown on the 2020--2024 stress window (five-seed mean in bold).}
+}
+
+\block{Failure 1: The Penalty Never Switches On}{\body
+  The CVaR excess is about $10^{-2}$. With a dual step $\eta_\lambda=10^{-3}$, each update
+  moves $\lambda$ by about $10^{-5}$, and 1500 updates are not enough. A model-free
+  actor--critic fails the same way when its cost advantage is left at $10^{-3}$ against a
+  standardised reward advantage.
+  \fig[0.9\linewidth]{figure_lambda_trace.pdf}
+  \figcap{Figure 2. The Lagrange multiplier over training (five seeds, mean in bold).}
+  The rest of the pipeline already cuts $\mathrm{CVaR}_{99}$ by \hl{61\%} with
+  $\lambda\approx0$ ($p=0.0044$), so tail metrics improve whether or not the dual works.
+  \diag{\textbf{Diagnostic.} Plot $\lambda$ over training. If it stays at zero, the constraint
+  is off.}
+}
+
+%% ===========================================================================
+\column{0.5}
+\block{Failure 2: The Test Protocol Picks the Winner}{\body
+  On a 31-asset universe, one stress split ranks the learner above every optimiser. A 20-fold
+  rolling walk-forward reverses the ranking. Ledoit--Wolf shrinkage does not explain it. The
+  tail reduction against unconstrained RL holds under both protocols
+  ($p=6\times10^{-4}$), while the edge over the optimiser does not.
+  \fig[0.66\linewidth]{figure_protocol.pdf}
+  \figcap{Figure 3. Sharpe ratio of the same methods under two protocols.}
+  \diag{\textbf{Diagnostic.} Rank learners against optimisers on rolling walk-forward folds,
+  with Deflated Sharpe.}
+}
+
+\block{The Fix: A Decision-Time CVaR Filter}{\body
+  Scaling the dual fixes training but not the test window. The scaled dual binds in training
+  and still breaches in 75\% of test weeks, and four rules for setting $d$ all give 71--78\%.
+  The filter acts on the portfolio itself, before it trades.
+  \fig[0.68\linewidth]{figure_filter_frontier.pdf}
+  \figcap{Figure 4. Breach rate against Sharpe on the stress window. Dashed line, 5\% tolerance.}
+  \centering
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    arm (5-seed mean) & Sharpe & $\mathrm{CVaR}_{99}$ & breach \\
+    \midrule
+    A1 unconstrained & 0.626 & 0.065 & 100.0\% \\
+    A2 mis-scaled dual & 0.987 & 0.025 & 7.9\% \\
+    A3 scaled dual & 0.911 & 0.028 & 75.1\% \\
+    A7 adaptive dual, no filter & 0.826 & 0.031 & 81.9\% \\
+    \hl{A6 filter + scaled dual} & \hl{0.851} & \hl{0.016} & \hl{7.4\%} \\
+    \midrule
+    minimum variance & 0.901 & & 7.9\% \\
+    \bottomrule
+  \end{tabular}
+  \par\RaggedRight\smallskip
+  A7 raises $\lambda$ online and still breaches, so the gain in A6 comes from the filter.
+}
+
+\block{Statistical Significance}{\body
+  Rolling walk-forward with 26-week test folds on two universes, $\mathrm{CVaR}_{99}$ of the
+  constrained vs the unconstrained learner.
+  \par\medskip\centering
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    universe & folds & improved & Wilcoxon $p$ \\
+    \midrule
+    macro ETF (7) & 20 & 9 (11 tied) & 0.0077 \\
+    sector ETF (10) & 20 & 17 & 0.0003 \\
+    \hl{pooled} & \hl{40} & \hl{26 of 27 untied} & \hl{$8.8\times10^{-6}$} \\
+    clustered by calendar & 20 & & $3.3\times10^{-4}$ \\
+    \bottomrule
+  \end{tabular}
+  \par\RaggedRight\smallskip
+  Benjamini--Hochberg rejects the null on both universes. A tie is a fold where the budget
+  never binds. On sector ETFs the stress result replicates, with $\mathrm{CVaR}_{99}$ down 30\%
+  at no Sharpe cost.
+}
+
+\block{Limitations and Takeaways}{\body
+  The learner does not beat rolling minimum variance on Sharpe out of sample, and Deflated
+  Sharpe removes its Sharpe edge. What survives correction is lower tail risk and budget
+  compliance. The study uses weekly data and proportional costs, and the Gaussian forecast can
+  understate fat tails.
+  \par\medskip
+  \iconitem{\textbf{Plot $\lambda$.} A flat trace at zero means the constraint is off.}\par
+  \iconitem{\textbf{Match the scales.} Standardise the cost advantage and size $\eta_\lambda$
+    to the CVaR excess.}\par
+  \iconitem{\textbf{Test on rolling folds,} with Deflated Sharpe, before claiming an edge.}\par
+  \iconitem{\textbf{Enforce the budget at trade time.} A soft penalty only discourages breaches
+    on average.}\par
+  \medskip
+  \begin{minipage}[c]{0.83\linewidth}\RaggedRight\footnotesize\color{dark}
+    Rockafellar \& Uryasev 2000. Altman 1999. Stooke et al.\ 2020. Ji et al.\ 2024.
+    Dalal et al.\ 2018. Bailey \& L\'opez de Prado 2014.\par
+    \faEnvelope[regular]\ nigel.li@unsw.edu.au \quad yh3915@columbia.edu\par
+    \faGithub\ github.com/nl2992/ICAIF\_cvar-rl-portfolio-allocator
+  \end{minipage}\hfill
+  \begin{minipage}[c]{0.14\linewidth}\centering
+    \qrcode[height=\linewidth]{\repourl}
+  \end{minipage}
+}
+\end{columns}
+
+\end{document}
