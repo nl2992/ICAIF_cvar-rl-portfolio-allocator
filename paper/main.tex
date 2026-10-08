@@ -76,8 +76,8 @@ this lowers the breach rate from $75.1\%$ to $7.4\%$, close to the classical opt
 Sharpe ratio comparable to rolling minimum variance. Across a rolling walk-forward on two ETF
 universes, with weekly data and transaction costs, the reduction in tail risk is statistically
 significant, including when folds are clustered by calendar, after Benjamini--Hochberg and (for
-Sharpe) Deflated-Sharpe adjustment. Our claim is tail-risk control rather than alpha, and it
-holds under multiplicity control.
+Sharpe) Deflated-Sharpe adjustment. What the constraint delivers is protection against deep losses, and that protection survives
+multiple-testing correction.
 \end{abstract}
 
 \begin{CCSXML}
@@ -166,7 +166,7 @@ walk-forward with Wilcoxon, Benjamini--Hochberg and Deflated-Sharpe control, whi
 surfaces the reversal in Contribution~1.
 \end{enumerate}
 
-Our claim is tail-risk control rather than alpha. We contribute a constraint that measurably
+Our central claim is that the constraint protects against deep losses. We contribute a constraint that measurably
 binds and lowers tail losses, a decision-time filter that keeps a learned policy within its
 budget out of sample, and two failure modes that other studies of constrained RL in finance
 can check for.\looseness=-1
