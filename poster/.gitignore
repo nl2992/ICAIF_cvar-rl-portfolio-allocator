@@ -16,3 +16,5 @@ build.log
 # latex preview rasterizations
 _pv/
 *.synctex.gz
+!figures/*.pdf
+figures/*.png
