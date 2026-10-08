@@ -65,9 +65,9 @@ loss in the worst weeks, through a Lagrangian penalty. We show that this safegua
 silently in two ways. First, when the penalty and the reward sit on different scales, through
 an unstandardised cost advantage or a dual step mis-scaled to the CVaR excess, the penalty
 weight stays at zero and the budget is never enforced, even as tail metrics keep improving.
-Second, the evaluation protocol can decide the winner. On a broad cross-asset universe, a
-single stress window ranks the learned allocator above every classical optimiser, a rolling
-walk-forward reverses that ranking, and the reduction in tail risk holds under both. Fixing
+Second, the evaluation protocol can decide the winner. On a broad cross-asset universe, a single stress window ranks the learned allocator above every classical optimiser, a rolling
+walk-forward reverses that ranking, and the reduction in tail risk holds under both. Plotting the multiplier during training exposes
+the first failure, and rolling out-of-sample folds expose the second. Fixing
 the scale makes the penalty bind in training, but the budget is still breached in most
 out-of-sample weeks. We therefore add a decision-time filter. Before each trade, it forecasts
 the portfolio's CVaR from trailing data and, when the forecast exceeds the budget, moves the
