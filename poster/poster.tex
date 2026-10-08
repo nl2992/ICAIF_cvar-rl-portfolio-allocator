@@ -1,7 +1,8 @@
 %% ICAIF '26 poster for "Making Tail Constraints Bind" (paper 873).
 %% A0 portrait (84.1 x 118.9 cm), as required by the organisers.
 %% Style follows the Columbia MAFN posters: full-width blue title banner with
-%% logos, two plain columns, centred bold section headings, sans-serif text.
+%% logos, two plain columns, centred bold section headings. Text and math are set in
+%% STIX Two, the same family as the figures.
 %% Build: cd poster && latexmk -pdf poster.tex
 %% Figures: the paper's vector PDFs plus two poster figures from
 %% scripts/make_poster_figures.py (poster/figures/). Logos live in logos/.
@@ -12,9 +13,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage[scaled=0.95]{helvet}
-\renewcommand{\familydefault}{\sfdefault}
-\usepackage{sfmath}
+\usepackage{stix2}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{qrcode}
@@ -71,13 +70,14 @@
 \newcommand{\repourl}{https://github.com/nl2992/ICAIF_cvar-rl-portfolio-allocator}
 
 %% ---------------------------------------------------------------------------
+\newlength{\logoh}\setlength{\logoh}{62mm}
 \settitle{%
-  \begin{minipage}[c]{0.14\linewidth}\centering
-    \includegraphics[height=44mm]{logos/mafn.png}\par\vspace{4mm}
-    \includegraphics[height=52mm]{logos/unsw.png}
+  \begin{minipage}[c]{0.17\linewidth}\centering
+    \includegraphics[height=\logoh]{logos/mafn_tight.png}\hspace{10mm}%
+    \includegraphics[height=\logoh]{logos/unsw.png}
   \end{minipage}\hfill
-  \begin{minipage}[c]{0.70\linewidth}\centering\color{white}
-    {\fontsize{58}{69}\selectfont\bfseries Making Tail Constraints Bind: Two Silent Failure
+  \begin{minipage}[c]{0.64\linewidth}\centering\color{white}
+    {\fontsize{60}{72}\selectfont\bfseries Making Tail Constraints Bind: Two Silent Failure
       Modes in CVaR-Constrained Portfolio RL\par}
     \vspace{9mm}
     {\LARGE Nigel Li$^{1,2}$\qquad Yutong Han$^{1}$\par}
@@ -85,8 +85,8 @@
     {\large\itshape $^1$Columbia University, New York\qquad
       $^2$University of New South Wales, Sydney\par}
   \end{minipage}\hfill
-  \begin{minipage}[c]{0.14\linewidth}\centering
-    \includegraphics[width=\linewidth]{logos/icaif_white.png}
+  \begin{minipage}[c]{0.17\linewidth}\centering
+    \includegraphics[height=\logoh]{logos/icaif_white.png}
   \end{minipage}}
 
 \begin{document}
@@ -113,7 +113,7 @@
   allocator trained only for return kept its equities. The same allocator trained with a CVaR
   budget had already moved into Treasuries and cash, and its drawdown was 7.7\% against
   16.3\% (Fig.~1).
-  \fig[0.68\linewidth]{figure_stress_paths.pdf}
+  \fig[0.62\linewidth]{figure_stress_paths.pdf}
   \figcap{Figure 1. Drawdown over 2020 to 2024. Thick lines are five-seed means and thin lines
   individual seeds.}
   A budget of this kind is usually imposed with a Lagrangian penalty whose weight $\lambda$
@@ -126,8 +126,10 @@
   With $\alpha=0.95$ it averages the worst 5\%. It looks only at losses, and it measures how
   large they are beyond the Value-at-Risk (VaR) threshold (Fig.~2).
   \fig[0.66\linewidth]{figure_cvar_tail.pdf}
-  \figcap{Figure 2. Weekly losses of the two allocators on the 2020 to 2024 stress window.
-  CVaR is the mean of the losses to the right of VaR.}
+  \figcap{Figure 2. Weekly losses on the 2020 to 2024 stress window, five seeds pooled (1335
+  weeks per allocator). Each CVaR line is the mean of the losses at or beyond that
+  allocator's VaR (constrained VaR 1.28\%, unconstrained 2.00\%). Averaged per seed, as in
+  Table 1, the values are 1.89\% and 3.33\%.}
   Each week the allocator chooses long-only weights $w_t$ on seven ETFs (SPY, TLT, HYG, DBC,
   GLD, UUP, BIL), with at most 40\% in one asset, weekly turnover at most 0.50 and a 5\,bps
   cost. The problem is a constrained Markov decision process [2],
@@ -172,10 +174,10 @@
       lab/.style={above, font=\fontsize{21}{24}\selectfont, text=ink},
       node distance=0mm]
     \node[v] (s) at (0,0) {$s_t$};
-    \node[v] (wt) at (7.6,0) {$\tilde w_t$};
-    \node[v] (wh) at (15.6,0) {$\hat w_t$};
-    \node[v] (w) at (23.4,0) {$w_t$};
-    \node[v] (r) at (30.6,0) {$r_t$};
+    \node[v] (wt) at (7.35,0) {$\tilde w_t$};
+    \node[v] (wh) at (15.1,0) {$\hat w_t$};
+    \node[v] (w) at (22.7,0) {$w_t$};
+    \node[v] (r) at (29.7,0) {$r_t$};
     \draw[map] (s) -- node[lab] {$f_\theta$} (wt);
     \draw[map, color=navy, line width=1.8mm] (wt) -- node[lab, text=navy] {filter $\Phi_d$} (wh);
     \draw[map] (wh) -- node[lab] {$\Pi_{\mathcal W}$} (w);

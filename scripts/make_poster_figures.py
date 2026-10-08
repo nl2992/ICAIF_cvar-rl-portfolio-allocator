@@ -48,38 +48,52 @@ def tail_stats(loss: np.ndarray, alpha: float = ALPHA) -> tuple[float, float]:
 
 
 def cvar_tail() -> None:
+    """Pooled five-seed loss histograms with VaR and CVaR of exactly the plotted sample.
+
+    The lines are computed on the pooled sample, so the shaded region holds the
+    worst 5% of the plotted constrained weeks and each CVaR line is the mean of
+    its own tail. Per-seed means (Table 1 of the poster) are printed alongside.
+    """
     paths = pd.read_csv("results/tables_camera_ready/stress_paths.csv")
     ps.apply()
     fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.55))
-    bins = np.linspace(-6, 10, 49)
-    stats = {}
+    losses = {arm: -100 * paths[paths.arm == arm].ret.to_numpy() for arm in ("unconstrained", "constrained")}
+    lo = np.floor(min(l.min() for l in losses.values()))
+    hi = np.ceil(max(l.max() for l in losses.values()))
+    bins = np.arange(lo, hi + 1e-9, 1 / 3)
+    assert all(((l >= bins[0]) & (l <= bins[-1])).all() for l in losses.values()), "weeks outside bins"
     for arm, colour, face in (("unconstrained", ps.MID, ps.LIGHT), ("constrained", ps.ACCENT, "none")):
-        loss = -100 * paths[paths.arm == arm].ret.to_numpy()
-        per_seed = [tail_stats(-100 * g.ret.to_numpy()) for _, g in paths[paths.arm == arm].groupby("seed")]
-        stats[arm] = np.mean(per_seed, axis=0)
-        ax.hist(loss, bins=bins, density=True, histtype="stepfilled" if face != "none" else "step",
+        ax.hist(losses[arm], bins=bins, density=True, histtype="stepfilled" if face != "none" else "step",
                 facecolor=face, edgecolor=colour, linewidth=0.9, zorder=2 if face == "none" else 1)
-    var_c, cvar_c = stats["constrained"]
-    _, cvar_u = stats["unconstrained"]
+    var_c, cvar_c = tail_stats(losses["constrained"])
+    var_u, cvar_u = tail_stats(losses["unconstrained"])
+    share = (losses["constrained"] >= var_c).mean()
+    per_seed = {arm: np.mean([tail_stats(-100 * g.ret.to_numpy()) for _, g in paths[paths.arm == arm].groupby("seed")],
+                             axis=0) for arm in losses}
     top = ax.get_ylim()[1]
     ax.axvspan(var_c, bins[-1], color=ps.ACCENT, alpha=0.08, lw=0, zorder=0)
     ax.vlines(var_c, 0, 1.17 * top, color=ps.ACCENT, lw=0.7, ls=(0, (3, 2)))
     ax.vlines(cvar_c, 0, 1.17 * top, color=ps.ACCENT, lw=1.3)
     ax.vlines(cvar_u, 0, 0.98 * top, color=ps.DARK, lw=1.3)
-    ax.text(var_c - 0.12, 1.2 * top, r"VaR$_{0.95}$", color=ps.ACCENT, fontsize=6.5, ha="right", va="bottom")
-    ax.text(cvar_c - 0.12, 1.2 * top, f"  CVaR$_{{0.95}}$ = {cvar_c:.1f}% (constrained)", color=ps.ACCENT,
+    ax.text(var_c - 0.15, 1.2 * top, r"VaR$_{0.95}$", color=ps.ACCENT, fontsize=6.5, ha="right", va="bottom")
+    ax.text(cvar_c - 0.15, 1.2 * top, f"  CVaR$_{{0.95}}$ = {cvar_c:.2f}% (constrained)", color=ps.ACCENT,
             fontsize=6.5, ha="left", va="bottom")
-    ax.text(cvar_u + 0.15, 0.9 * top, f"CVaR$_{{0.95}}$ = {cvar_u:.1f}%\n(unconstrained)", color=ps.DARK,
+    ax.text(cvar_u + 0.2, 0.9 * top, f"CVaR$_{{0.95}}$ = {cvar_u:.2f}%\n(unconstrained)", color=ps.DARK,
             fontsize=6.5, ha="left", va="top", linespacing=1.0)
     ax.text(bins[-1] - 0.2, 0.42 * top, "shaded: worst 5% of\nconstrained weeks", color=ps.ACCENT,
             fontsize=6.5, ha="right", va="top", linespacing=1.0)
     ax.set_ylim(0, 1.45 * top)
     ax.set_xlim(bins[0], bins[-1])
+    ax.set_xticks(np.arange(-8, 9, 2))
     ax.set_xlabel("weekly loss (%), stress window, five seeds pooled")
     ax.set_ylabel("density")
     ax.set_yticks([])
     fig.tight_layout(pad=0.2)
-    print("cvar_tail stats (per-seed mean VaR, CVaR):", {k: np.round(v, 3) for k, v in stats.items()})
+    issues = ps.check_layout(fig)
+    print("cvar_tail layout issues:", issues or "none")
+    print(f"cvar_tail pooled: constrained VaR {var_c:.3f} CVaR {cvar_c:.3f} (share beyond VaR {share:.4f}); "
+          f"unconstrained VaR {var_u:.3f} CVaR {cvar_u:.3f}")
+    print("cvar_tail per-seed means (VaR, CVaR):", {k: np.round(v, 3).tolist() for k, v in per_seed.items()})
     ps.save(fig, "figure_cvar_tail", dirs=OUT)
 
 
