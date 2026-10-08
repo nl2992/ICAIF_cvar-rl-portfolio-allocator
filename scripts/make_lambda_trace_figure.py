@@ -21,7 +21,7 @@ STYLE = {"scaled dual": (ps.ACCENT, r"scaled dual ($\eta_\lambda=5$)"),
 
 def main() -> None:
     ps.apply()
-    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.55))
+    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.35))
     ends = {}
     for arm, (colour, label) in STYLE.items():
         d = TRACE[TRACE.arm == arm]

@@ -55,7 +55,7 @@ LABELS = {
     "equal weight": (0.62, 0.935, "center"),
     "A7": (0.86, 0.826, "left"),
     "risk parity": (0.70, 0.677, "right"),
-    "unconstrained": (1.04, 0.672, "right"),
+    "unconstrained": (1.04, 0.69, "right"),
     "scaled dual, loose budget": (0.73, 0.520, "right"),
 }
 DISPLAY: dict[str, str] = {}
@@ -64,7 +64,7 @@ TARGET = 0.05  # tolerated weekly breach rate (cfg model.cvar_budget)
 
 def build():
     ps.apply()
-    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 2.0))
+    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.8))
     fig.subplots_adjust(left=0.13, right=0.98, bottom=0.2, top=0.828)
     ax.axvline(TARGET, color=ps.DARK, linewidth=0.6, linestyle=(0, (3, 2)), zorder=1)
     ax.text(TARGET - 0.012, 0.485, "5% target", rotation=90, ha="right", va="bottom",

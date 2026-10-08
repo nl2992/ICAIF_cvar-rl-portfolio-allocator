@@ -32,7 +32,7 @@ def week_of(date: str) -> float:
 
 def main() -> None:
     ps.apply()
-    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.6))
+    fig, ax = plt.subplots(figsize=(ps.COLUMN_WIDTH_IN, 1.4))
     for arm, (colour, label) in STYLE.items():
         d = PATHS[PATHS.arm == arm]
         for _, g in d.groupby("seed"):
