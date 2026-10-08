@@ -59,25 +59,24 @@ CVaR-Constrained Portfolio RL}
 \email{yh3915@columbia.edu}
 
 \begin{abstract}
-Reinforcement learning (RL) can learn how to split a portfolio across assets, but an
-allocator trained only to maximise return has no reason to avoid large losses. A common remedy
-is to cap Conditional Value-at-Risk (CVaR), the average loss in the worst weeks, through a
-Lagrangian penalty. We find two ways in which this remedy can fail without any sign in the
-usual metrics. First, if the penalty and the reward are on different scales (an unstandardised
-cost advantage, or a dual step mis-scaled to the CVaR excess), the penalty weight stays at zero
-and the budget is never enforced. Second, the test protocol can change which method looks
-best. On a broad cross-asset universe, a single stress window ranks the learned allocator above
-every classical optimiser, and a rolling walk-forward reverses that ranking, while the
-reduction in tail risk holds under both. Correcting the scale makes the penalty bind in
-training, but the budget is still breached in most out-of-sample weeks. We therefore propose a
-narrow fix. Before each trade, we estimate the portfolio's forward CVaR from trailing data and,
-if it is over budget, move the portfolio toward a minimum-variance one. At matched settings
-this lowers the breach rate from $75.1\%$ to $7.4\%$, close to the classical optimisers, at a
-Sharpe ratio comparable to rolling minimum variance. Across a rolling walk-forward on two ETF
-universes, with weekly data and transaction costs, the reduction in tail risk is statistically
-significant, including when folds are clustered by calendar, after Benjamini--Hochberg and (for
-Sharpe) Deflated-Sharpe adjustment. What the constraint delivers is protection against deep losses, and that protection survives
-multiple-testing correction.
+A portfolio allocator trained by reinforcement learning (RL) to maximise return has no reason
+to avoid large losses. The usual safeguard caps Conditional Value-at-Risk (CVaR), the average
+loss in the worst weeks, through a Lagrangian penalty. We show that this safeguard can fail
+silently in two ways. First, when the penalty and the reward sit on different scales, through
+an unstandardised cost advantage or a dual step mis-scaled to the CVaR excess, the penalty
+weight stays at zero and the budget is never enforced, even as tail metrics keep improving.
+Second, the evaluation protocol can decide the winner. On a broad cross-asset universe, a
+single stress window ranks the learned allocator above every classical optimiser, a rolling
+walk-forward reverses that ranking, and the reduction in tail risk holds under both. Fixing
+the scale makes the penalty bind in training, but the budget is still breached in most
+out-of-sample weeks. We therefore add a decision-time filter. Before each trade, it forecasts
+the portfolio's CVaR from trailing data and, when the forecast exceeds the budget, moves the
+portfolio toward minimum variance. At matched settings, the filter cuts the breach rate from
+$75.1\%$ to $7.4\%$, close to the classical optimisers, at a Sharpe ratio comparable to rolling
+minimum variance. Across a rolling walk-forward on two ETF universes with weekly data and
+trading costs, the reduction in tail risk is statistically significant, including when folds
+are clustered by calendar and after Benjamini--Hochberg control. What the constraint delivers
+is protection against deep losses, and that protection survives multiple-testing correction.
 \end{abstract}
 
 \begin{CCSXML}
