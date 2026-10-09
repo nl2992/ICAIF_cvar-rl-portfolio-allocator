@@ -120,7 +120,7 @@
   allocator trained only for return kept its equities. The same allocator trained with a CVaR
   budget had already moved into Treasuries and cash, and its drawdown was 7.7\% against
   16.3\% (Fig.~1).
-  \fig[0.58\linewidth]{figure_stress_paths.pdf}
+  \fig[0.78\linewidth]{figure_stress_paths.pdf}
   \figcap{Figure 1. Drawdown over 2020 to 2024. Thick lines are five-seed means and thin lines
   individual seeds.}
 }
@@ -129,7 +129,7 @@
   $\mathrm{CVaR}_\alpha$ is the average loss in the worst $(1-\alpha)$ share of weeks [1]. With
   $\alpha=0.95$ it averages the worst 5\%, so it measures how large the losses are beyond the
   Value-at-Risk (VaR) threshold (Fig.~2).
-  \fig[0.6\linewidth]{figure_cvar_tail.pdf}
+  \fig[0.8\linewidth]{figure_cvar_tail.pdf}
   \figcap{Figure 2. Weekly returns on the stress window, five seeds pooled. Shaded, the worst
   5\% of constrained weeks. Lines sit at minus each CVaR.}
   Each week the allocator chooses long-only weights $w_t$ on seven ETFs (SPY, TLT, HYG, DBC,
@@ -156,7 +156,7 @@
   $\lambda$ by about $10^{-5}$. With $\eta_\lambda=5.0$, $\lambda$ rose to between 0.1 and
   0.3. A model-free actor-critic failed in the same way when its cost signal (about
   $10^{-3}$) was left unstandardised next to a unit-scale reward signal.
-  \fig[0.56\linewidth]{figure_lambda_trace.pdf}
+  \fig[0.78\linewidth]{figure_lambda_trace.pdf}
   \figcap{Figure 3. The penalty weight $\lambda$ during training, five seeds.}
   Tail metrics do not reveal the failure. Even with $\lambda$ near zero, the rest of the
   pipeline (the anchor, the projection and checkpoint selection under the CVaR limit) lowered
@@ -175,7 +175,7 @@
   (0.74 against 1.40, Fig.~4). With Ledoit-Wolf shrinkage [5], minimum variance still reached
   only 0.25 on the split. The tail-risk reduction against unconstrained RL held under both
   tests.
-  \fig[0.44\linewidth]{figure_protocol.pdf}
+  \fig[0.62\linewidth]{figure_protocol.pdf}
   \figcap{Figure 4. The same four methods ranked by two tests, 31-asset universe.}
   \runin{Remedy} Compare learned allocators with optimisers on rolling walk-forward folds,
   with multiple-testing control and the Deflated Sharpe ratio [4]. We report walk-forward results
