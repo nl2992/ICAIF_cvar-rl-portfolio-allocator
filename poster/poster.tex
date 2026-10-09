@@ -104,10 +104,10 @@
   Reinforcement learning (RL) portfolio allocators are often given a tail-risk limit through a
   Lagrangian penalty on Conditional Value-at-Risk (CVaR). We show two ways in which this limit
   fails with no visible symptom. When the CVaR cost is on a far smaller scale than the reward,
-  the penalty weight $\lambda$ stays at zero, and a single stress test can reverse how the
-  learner ranks against classical optimisers. Our
-  solution scales the dual step to the CVaR excess and adds a decision-time filter that moves
-  each over-budget portfolio toward minimum variance before it trades. The filter cut the
+  the penalty weight $\lambda$ stays at zero. A single stress test can also reverse how the
+  learner ranks against classical optimisers. We scale the dual step to the CVaR excess and add
+  a decision-time filter that moves each over-budget portfolio toward minimum variance before
+  it trades. The filter cut the
   out-of-sample breach rate from \hl{75.1\% to 7.4\%}. Over 40 walk-forward folds on two ETF
   universes, the constraint lowered $\mathrm{CVaR}_{99}$ in \hl{26 of 27} untied folds
   ($p=8.8\times10^{-6}$).
@@ -164,19 +164,20 @@
   constraint is inactive.}
 }
 
-\block{Failure 2. The test decides the ranking}{\body
+\block{Failure 2. The test protocol reverses the ranking}{\body
   A walk-forward test retrains the model on a rolling window and evaluates it on the next
   unseen block. On a 31-asset universe, one fixed stress split ranked the constrained learner
   above minimum variance (Sharpe 0.85 against 0.23). A 20-fold walk-forward reversed the order
-  (0.74 against 1.40, Fig.~4). Ledoit-Wolf shrinkage [5] did not change the split result
-  (0.25). The tail-risk reduction against unconstrained RL held under both tests.
+  (0.74 against 1.40, Fig.~4). With Ledoit-Wolf shrinkage [5], minimum variance still reached
+  only 0.25 on the split. The tail-risk reduction against unconstrained RL held under both
+  tests.
   \fig[0.42\linewidth]{figure_protocol.pdf}
   \figcap{Figure 4. The same four methods ranked by two tests, 31-asset universe.}
   \keynote{Compare learners with optimisers on rolling walk-forward folds and report the
   Deflated Sharpe ratio [4].}
 }
 
-\block{From problems to solutions}{\body
+\block{Summary of problems and solutions}{\body
   {\centering\fontsize{19}{23.5}\selectfont\setlength{\tabcolsep}{2.5mm}
   \renewcommand{\arraystretch}{1.12}
   \begin{tabular}{@{}>{\RaggedRight}p{0.3\linewidth}>{\RaggedRight}p{0.33\linewidth}
@@ -202,10 +203,9 @@
 %% ===========================================================================
 \column{0.5}
 \block{Our method}{\body
-  Our solution has two parts. The allocator is trained end to end with a CVaR penalty whose
-  dual step matches the scale of the CVaR excess, and a filter checks every portfolio before it
-  trades. Figure 5 writes the weekly decision as a chain of maps, and steps (i) to (iv) define
-  each one.
+  We train the allocator end to end with a CVaR penalty whose dual step matches the scale of
+  the CVaR excess, and a filter checks every portfolio before it trades. Figure 5 shows the
+  weekly decision as four maps, defined in steps (i) to (iv).
   \par\medskip\centering
   \begin{tikzpicture}[
       v/.style={font=\fontsize{30}{34}\selectfont, inner sep=2mm},
@@ -256,8 +256,8 @@
         \lambda\leftarrow\max\{0,\ \lambda+\eta_\lambda(\widehat{\mathrm{CVaR}}-d)\},
       \]
       where $\widehat{\mathrm{CVaR}}$ is the mean of the worst 5\% of window returns, so its
-      gradient reaches only tail weeks. The kept checkpoint has the best validation objective
-      among those within the validation CVaR limit.
+      gradient reaches only tail weeks. We keep the checkpoint with the best validation
+      objective among those within the validation CVaR limit.
   \end{enumerate}
   \tabcap{Table 1. Training and evaluation details.}
   {\centering\fontsize{19}{23}\selectfont\setlength{\tabcolsep}{3mm}
@@ -279,12 +279,12 @@
   \end{tabular}\par}
 }
 
-\block{Fix. The filter keeps the portfolio within budget}{\body
+\block{Decision-time filter}{\body
   A larger dual step made $\lambda$ move, but the portfolio was then over budget in 75.1\% of
   test weeks. Classical rules met the same budget in 92\% of weeks, so the budget was
   attainable. Adding the filter lowered the breach rate to \hl{7.4\%} (Table 2). Raising
-  $\lambda$ during testing without the filter left it at 81.9\%, so the improvement comes
-  from the filter.
+  $\lambda$ during testing without the filter left the breach rate at 81.9\%, which attributes
+  the improvement to the filter.
   \par\smallskip
   \tabcap{Table 2. Stress window, five-seed means. Breach is the share of test weeks over
   budget, with 5\% tolerated.}
@@ -304,7 +304,7 @@
   \end{tabular}\par}
 }
 
-\block{Result. Lower tail risk in every test}{\body
+\block{Tail risk across test settings}{\body
   The walk-forward test retrains every 26 weeks on the previous six years and tests on the
   next 26 unseen weeks, giving 20 folds per universe from 2015 to 2024. In Figure 6 each fold is
   one point. Below the diagonal the constraint lowered $\mathrm{CVaR}_{0.99}$. On it the budget
@@ -336,19 +336,21 @@
   Fold counts exclude tied folds. Each $p$ is a Wilcoxon signed-rank test on
   $\Delta_k=\mathrm{CVaR}^{\mathrm{con}}_{0.99,k}-\mathrm{CVaR}^{\mathrm{unc}}_{0.99,k}$, with
   $W^{+}=\sum_{k:\,\Delta_k\neq0}R_k\,\mathbf{1}[\Delta_k>0]$ and $R_k$ the rank of
-  $|\Delta_k|$. Both universes pass Benjamini-Hochberg [6]. Calendar-clustered
-  $p=3.3\times10^{-4}$. The Probabilistic Sharpe ratio PSR$(0)$ was at least 0.99 in both, but the Sharpe edge over classical baselines
-  did not survive DSR.\par}
+  $|\Delta_k|$. Both universes pass a Benjamini-Hochberg correction [6], and clustering folds
+  by calendar gives $p=3.3\times10^{-4}$. The Probabilistic Sharpe ratio PSR$(0)$ was at least
+  0.99 in both universes, but the Sharpe advantage over classical baselines did not survive the
+  Deflated Sharpe ratio.\par}
 }
 
 \block{Limitations and future work}{\body
   \begin{itemize}
     \item The filter's Gaussian forecast can understate fat tails. An empirical or Cornish-Fisher
       forecast is the next step.
-    \item Results use weekly data and proportional costs. Daily data with market impact would
-      test the breach reduction under realistic trading.
-    \item The gain is tail-risk control, not extra return. As a high-volatility overlay the
-      policy reached Sharpe 1.316 against 1.209 for minimum variance.
+    \item All results use weekly data and proportional costs. Daily data with a market-impact
+      model would test whether the breach reduction survives real trading.
+    \item The constraint lowers tail risk but does not beat minimum variance on Sharpe. A hybrid
+      that uses it only in high-volatility weeks reached 1.316 against 1.209, with overlapping
+      intervals.
   \end{itemize}
   \par\medskip
   \begin{minipage}[c]{0.85\linewidth}\RaggedRight\fontsize{16}{19.5}\selectfont\color{dark}
