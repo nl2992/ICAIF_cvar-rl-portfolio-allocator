@@ -118,7 +118,7 @@
   allocator trained only for return kept its equities. The same allocator trained with a CVaR
   budget had already moved into Treasuries and cash, and its drawdown was 7.7\% against
   16.3\% (Fig.~1).
-  \fig[0.5\linewidth]{figure_stress_paths.pdf}
+  \fig[0.56\linewidth]{figure_stress_paths.pdf}
   \figcap{Figure 1. Drawdown over 2020 to 2024. Thick lines are five-seed means and thin lines
   individual seeds.}
 }
@@ -127,7 +127,7 @@
   $\mathrm{CVaR}_\alpha$ is the average loss in the worst $(1-\alpha)$ share of weeks [1]. With
   $\alpha=0.95$ it averages the worst 5\%, so it measures how large the losses are beyond the
   Value-at-Risk (VaR) threshold (Fig.~2).
-  \fig[0.5\linewidth]{figure_cvar_tail.pdf}
+  \fig[0.58\linewidth]{figure_cvar_tail.pdf}
   \figcap{Figure 2. Weekly returns on the stress window, five seeds pooled. Shaded, the worst
   5\% of constrained weeks. Lines sit at minus each CVaR.}
   Each week the allocator chooses long-only weights $w_t$ on seven ETFs (SPY, TLT, HYG, DBC,
@@ -138,25 +138,14 @@
     \mathrm{CVaR}_\alpha(L)=\min_{\zeta\in\mathbb{R}}\Big\{\zeta+\tfrac{1}{1-\alpha}\,
       \mathbb{E}\big[(L-\zeta)^{+}\big]\Big\}.
   \]
-  All measures use weekly net returns $r_1,\dots,r_T$ and wealth $W_t=\prod_{u\le t}(1+r_u)$,
-  \begin{align*}
-    \mathrm{Sharpe}&=\sqrt{52}\;\bar r/s_r, &
-    \mathrm{MDD}&=\max_t\big(1-W_t/\textstyle\max_{u\le t}W_u\big),\\
-    \widehat{\mathrm{CVaR}}_\alpha(r)&=-\operatorname{mean}\{r_t:\ r_t\le\hat q_{1-\alpha}(r)\}, &
-    B&=\tfrac{1}{|\mathcal{T}|}\textstyle\sum_{t\in\mathcal{T}}
-      \mathbf{1}\big[\widehat{\mathrm{CVaR}}_{0.95}(r_{t-52:t-1})>d\big],
-  \end{align*}
-  where $\hat q_{1-\alpha}$ is the empirical quantile and $B$ is the breach rate over the test
-  weeks $\mathcal{T}$, of which 5\% may breach. Sharpe significance uses the Probabilistic and
-  Deflated Sharpe ratios [4], with per-week $\widehat{SR}$, skewness $\hat\gamma_3$, kurtosis
-  $\hat\gamma_4$ and $N$ configurations tried,
+  A test week is a breach when the trailing 52-week $\mathrm{CVaR}_{0.95}$ exceeds $d$, so the
+  breach rate over the test weeks $\mathcal{T}$ is
   \[
-    \mathrm{PSR}(SR^\ast)=\Phi\!\left(\frac{(\widehat{SR}-SR^\ast)\sqrt{T-1}}
-      {\sqrt{1-\hat\gamma_3\widehat{SR}+\frac{\hat\gamma_4-1}{4}\widehat{SR}^{2}}}\right),\qquad
-    SR^\ast_{\mathrm{DSR}}=\hat\sigma_{SR}\Big[(1-\gamma)\Phi^{-1}\big(1-\tfrac1N\big)
-      +\gamma\,\Phi^{-1}\big(1-\tfrac{1}{Ne}\big)\Big],
+    B=\frac{1}{|\mathcal{T}|}\sum_{t\in\mathcal{T}}
+      \mathbf{1}\big[\widehat{\mathrm{CVaR}}_{0.95}(r_{t-52:t-1})>d\big],
   \]
-  where $\gamma$ is the Euler-Mascheroni constant.
+  with 5\% of weeks tolerated. Sharpe ratios are annualised from weekly net returns, and their
+  significance is judged with the Probabilistic and Deflated Sharpe ratios [4].
 }
 
 \block{Failure 1. The penalty weight never moves}{\body
@@ -165,7 +154,7 @@
   $\lambda$ by about $10^{-5}$. With $\eta_\lambda=5.0$, $\lambda$ rose to between 0.1 and
   0.3. A model-free actor-critic failed in the same way when its cost signal (about
   $10^{-3}$) was left unstandardised next to a unit-scale reward signal.
-  \fig[0.48\linewidth]{figure_lambda_trace.pdf}
+  \fig[0.54\linewidth]{figure_lambda_trace.pdf}
   \figcap{Figure 3. The penalty weight $\lambda$ during training, five seeds.}
   Tail metrics do not reveal the failure. Even with $\lambda$ near zero, the rest of the
   pipeline (the anchor, the projection and checkpoint selection under the CVaR limit) lowered
@@ -181,7 +170,7 @@
   above minimum variance (Sharpe 0.85 against 0.23). A 20-fold walk-forward reversed the order
   (0.74 against 1.40, Fig.~4). Ledoit-Wolf shrinkage [5] did not change the split result
   (0.25). The tail-risk reduction against unconstrained RL held under both tests.
-  \fig[0.37\linewidth]{figure_protocol.pdf}
+  \fig[0.42\linewidth]{figure_protocol.pdf}
   \figcap{Figure 4. The same four methods ranked by two tests, 31-asset universe.}
   \keynote{Compare learners with optimisers on rolling walk-forward folds and report the
   Deflated Sharpe ratio [4].}
@@ -320,7 +309,7 @@
   next 26 unseen weeks, giving 20 folds per universe from 2015 to 2024. In Figure 6 each fold is
   one point. Below the diagonal the constraint lowered $\mathrm{CVaR}_{0.99}$. On it the budget
   never bound, so both models held the same portfolio.
-  \fig[0.35\linewidth]{figure_fold_scatter.pdf}
+  \fig[0.4\linewidth]{figure_fold_scatter.pdf}
   \figcap{Figure 6. Walk-forward folds, $\mathrm{CVaR}_{0.99}$ without against with the
   constraint (log scale). The largest reductions came in the first half of 2020.}
   \tabcap{Table 3. Tail risk with and without the constraint in every test setting.}
@@ -348,36 +337,19 @@
   $\Delta_k=\mathrm{CVaR}^{\mathrm{con}}_{0.99,k}-\mathrm{CVaR}^{\mathrm{unc}}_{0.99,k}$, with
   $W^{+}=\sum_{k:\,\Delta_k\neq0}R_k\,\mathbf{1}[\Delta_k>0]$ and $R_k$ the rank of
   $|\Delta_k|$. Both universes pass Benjamini-Hochberg [6]. Calendar-clustered
-  $p=3.3\times10^{-4}$. PSR$(0)\ge0.99$ in both, but the Sharpe edge over classical baselines
+  $p=3.3\times10^{-4}$. The Probabilistic Sharpe ratio PSR$(0)$ was at least 0.99 in both, but the Sharpe edge over classical baselines
   did not survive DSR.\par}
 }
 
 \block{Limitations and future work}{\body
-  {\centering\fontsize{19}{23.5}\selectfont\setlength{\tabcolsep}{2.5mm}
-  \renewcommand{\arraystretch}{1.12}
-  \begin{tabular}{@{}>{\RaggedRight}p{0.26\linewidth}>{\RaggedRight}p{0.35\linewidth}
-      >{\RaggedRight\arraybackslash}p{0.33\linewidth}@{}}
-    \toprule
-    limitation & why it matters & what we could do \\
-    \midrule
-    Gaussian CVaR forecast in the filter. &
-    Weekly losses are fat-tailed, so the forecast can understate risk and let breaches
-      through. &
-    Use an empirical or Cornish-Fisher forecast and compare breach rates. \\
-    \addlinespace
-    Weekly data, proportional costs, no market impact. &
-    Impact and slippage could lower Sharpe and change how often the filter trades. &
-    Re-run on daily data with an impact model, reporting turnover with breach. \\
-    \addlinespace
-    Reversal shown on one 31-asset window, equity-centric universes. &
-    One window cannot show how often rankings flip or whether results carry to other assets. &
-    Repeat the comparison over more universes and start dates. \\
-    \addlinespace
-    No Sharpe edge over minimum variance after DSR. &
-    The contribution is tail-risk control, not extra return. &
-    Use it as a high-volatility overlay (hybrid Sharpe 1.316 against 1.209). \\
-    \bottomrule
-  \end{tabular}\par}
+  \begin{itemize}
+    \item The filter's Gaussian forecast can understate fat tails. An empirical or Cornish-Fisher
+      forecast is the next step.
+    \item Results use weekly data and proportional costs. Daily data with market impact would
+      test the breach reduction under realistic trading.
+    \item The gain is tail-risk control, not extra return. As a high-volatility overlay the
+      policy reached Sharpe 1.316 against 1.209 for minimum variance.
+  \end{itemize}
   \par\medskip
   \begin{minipage}[c]{0.85\linewidth}\RaggedRight\fontsize{16}{19.5}\selectfont\color{dark}
     \textbf{References.}
